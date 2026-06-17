@@ -1255,6 +1255,7 @@
             sidebarUser.innerText = welcomeName;
             sidebarRole.innerText = roleDisplay;
 
+            
             // Animate card items
             const card = document.getElementById('tasks');
             card.style.transform = "scale(0.99)";
