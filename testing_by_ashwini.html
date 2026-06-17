@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Member Directory</title>
+    <!-- Google Fonts: Inter & Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-primary: #0b0f19;
+            --bg-secondary: #151c2c;
+            --bg-card: rgba(30, 41, 59, 0.7);
+            --accent-primary: #6366f1;
+            --accent-secondary: #a855f7;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.15) 0px, transparent 50%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            margin-top: 1.5rem;
+        }
+
+        @media (min-width: 992px) {
+            .container {
+                grid-template-columns: 350px 1fr;
+            }
+        }
+
+        /* Header section styling */
+        header {
+            width: 100%;
+            max-width: 1200px;
+            text-align: left;
+            margin-bottom: 1rem;
+            animation: fadeInDown 0.8s ease;
+        }
+
+        h1 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 2.25rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        /* Premium glassmorphic cards */
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            box-shadow: 0 15px 35px rgba(99, 102, 241, 0.1);
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .card-title {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .card-title::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 1.25rem;
+            background: linear-gradient(to bottom, var(--accent-primary), var(--accent-secondary));
+            border-radius: 2px;
+        }
+
+        /* Form Controls styling */
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background-color: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.95rem;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .form-control:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+            background-color: rgba(15, 23, 42, 0.8);
+        }
+
+        select.form-control {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.2rem;
+            padding-right: 2.5rem;
+        }
+
+        /* Interactive Button */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+            filter: brightness(1.1);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        /* Responsive Table Container */
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background: rgba(15, 23, 42, 0.4);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+
+        th {
+            background-color: rgba(30, 41, 59, 0.8);
+            color: var(--text-primary);
+            font-weight: 600;
+            padding: 1rem 1.25rem;
+            font-family: 'Poppins', sans-serif;
+            border-bottom: 1px solid var(--border-color);
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            transition: var(--transition);
+        }
+
+        tr {
+            transition: var(--transition);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background-color: rgba(255, 255, 255, 0.02);
+            color: var(--text-primary);
+        }
+
+        /* Badges for status */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-active {
+            background-color: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .badge-pending {
+            background-color: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .badge-suspended {
+            background-color: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        /* Action buttons in table */
+        .action-btns {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-action {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .btn-edit:hover {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+            background-color: rgba(99, 102, 241, 0.05);
+        }
+
+        .btn-delete:hover {
+            border-color: var(--danger);
+            color: var(--danger);
+            background-color: rgba(239, 68, 68, 0.05);
+        }
+
+        /* Animations */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeInUp 0.6s ease forwards;
+        }
+
+        /* Responsive spacing/layouts */
+        .card-form {
+            animation: fadeInUp 0.6s ease;
+        }
+
+        .card-table {
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Connect Board</h1>
+        <p>Manage and synchronize workspace members dynamically</p>
+    </header>
+
+    <div class="container">
+        <!-- Input Form Component -->
+        <section class="card card-form">
+            <h2 class="card-title">Add Workspace Member</h2>
+            <form id="memberForm">
+                <div class="form-group">
+                    <label for="memberName" class="form-label">Full Name</label>
+                    <input type="text" id="memberName" class="form-control" placeholder="John Doe" required autocomplete="off">
+                </div>
+
+                <div class="form-group">
+                    <label for="memberEmail" class="form-label">Email Address</label>
+                    <input type="email" id="memberEmail" class="form-control" placeholder="john@example.com" required autocomplete="off">
+                </div>
+
+                <div class="form-group">
+                    <label for="memberRole" class="form-label">Role</label>
+                    <select id="memberRole" class="form-control" required>
+                        <option value="" disabled selected>Select a role</option>
+                        <option value="Administrator">Administrator</option>
+                        <option value="Developer">Developer</option>
+                        <option value="UI/UX Designer">UI/UX Designer</option>
+                        <option value="Project Manager">Project Manager</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="memberStatus" class="form-label">Account Status</label>
+                    <select id="memberStatus" class="form-control" required>
+                        <option value="Active" selected>Active</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Suspended">Suspended</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn" id="submitBtn">Register Member</button>
+            </form>
+        </section>
+
+        <!-- Directory Table Component -->
+        <section class="card card-table">
+            <h2 class="card-title">Active Directory</h2>
+            
+            <div class="table-responsive">
+                <table id="directoryTable">
+                    <thead>
+                        <tr>
+                            <th>Member</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Table rows will be inserted here dynamically -->
+                    </tbody>
+                </table>
+                <div id="emptyState" class="empty-state" style="display: none;">
+                    No members registered yet. Fill out the form to add a member.
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Mock Initial Data
+        let membersList = [
+            {
+                id: 1,
+                name: "Ashwini P.",
+                email: "ashwini@connect.org",
+                role: "Developer",
+                status: "Active"
+            },
+            {
+                id: 2,
+                name: "Salil Pijdurkar",
+                email: "salil@connect.org",
+                role: "Administrator",
+                status: "Active"
+            },
+            {
+                id: 3,
+                name: "Emily Watson",
+                email: "emily.w@connect.org",
+                role: "UI/UX Designer",
+                status: "Pending"
+            }
+        ];
+
+        let editModeId = null;
+
+        // DOM elements
+        const memberForm = document.getElementById('memberForm');
+        const memberName = document.getElementById('memberName');
+        const memberEmail = document.getElementById('memberEmail');
+        const memberRole = document.getElementById('memberRole');
+        const memberStatus = document.getElementById('memberStatus');
+        const submitBtn = document.getElementById('submitBtn');
+        const tableBody = document.getElementById('tableBody');
+        const emptyState = document.getElementById('emptyState');
+
+        // Render table rows
+        function renderTable() {
+            tableBody.innerHTML = '';
+            
+            if (membersList.length === 0) {
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+
+            membersList.forEach((member) => {
+                const tr = document.createElement('tr');
+                tr.setAttribute('data-id', member.id);
+                
+                // Determine status badge class
+                let badgeClass = 'badge-active';
+                if (member.status === 'Pending') badgeClass = 'badge-pending';
+                if (member.status === 'Suspended') badgeClass = 'badge-suspended';
+
+                tr.innerHTML = `
+                    <td>
+                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">${escapeHTML(member.name)}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">${escapeHTML(member.email)}</div>
+                    </td>
+                    <td>
+                        <span style="font-weight: 500;">${escapeHTML(member.role)}</span>
+                    </td>
+                    <td>
+                        <span class="badge ${badgeClass}">${escapeHTML(member.status)}</span>
+                    </td>
+                    <td>
+                        <div class="action-btns">
+                            <button class="btn-action btn-edit" onclick="editMember(${member.id})">Edit</button>
+                            <button class="btn-action btn-delete" onclick="deleteMember(${member.id})">Delete</button>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        // Form submit handler (Add / Edit member)
+        memberForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const nameVal = memberName.value.trim();
+            const emailVal = memberEmail.value.trim();
+            const roleVal = memberRole.value;
+            const statusVal = memberStatus.value;
+
+            if (editModeId !== null) {
+                // Update existing member
+                membersList = membersList.map(m => {
+                    if (m.id === editModeId) {
+                        return { ...m, name: nameVal, email: emailVal, role: roleVal, status: statusVal };
+                    }
+                    return m;
+                });
+                editModeId = null;
+                submitBtn.innerText = 'Register Member';
+                document.querySelector('.card-form .card-title').innerText = 'Add Workspace Member';
+            } else {
+                // Add new member
+                const newMember = {
+                    id: Date.now(),
+                    name: nameVal,
+                    email: emailVal,
+                    role: roleVal,
+                    status: statusVal
+                };
+                membersList.push(newMember);
+            }
+
+            memberForm.reset();
+            renderTable();
+        });
+
+        // Edit member action
+        window.editMember = function(id) {
+            const member = membersList.find(m => m.id === id);
+            if (!member) return;
+
+            memberName.value = member.name;
+            memberEmail.value = member.email;
+            memberRole.value = member.role;
+            memberStatus.value = member.status;
+
+            editModeId = id;
+            submitBtn.innerText = 'Update Member';
+            document.querySelector('.card-form .card-title').innerText = 'Edit Workspace Member';
+            memberName.focus();
+        };
+
+        // Delete member action
+        window.deleteMember = function(id) {
+            const tr = document.querySelector(`tr[data-id="${id}"]`);
+            if (tr) {
+                // Simple fade/slide out animation before removal
+                tr.style.opacity = '0';
+                tr.style.transform = 'translateX(20px)';
+                setTimeout(() => {
+                    membersList = membersList.filter(m => m.id !== id);
+                    if (editModeId === id) {
+                        // Reset form if currently editing the deleted user
+                        editModeId = null;
+                        submitBtn.innerText = 'Register Member';
+                        document.querySelector('.card-form .card-title').innerText = 'Add Workspace Member';
+                        memberForm.reset();
+                    }
+                    renderTable();
+                }, 300);
+            }
+        };
+
+        // Simple HTML Escaping utility
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+
+        // Initial render
+        renderTable();
+    </script>
+</body>
+</html>
