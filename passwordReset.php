@@ -17,7 +17,7 @@ define('SMTP_ENABLED', true);
 define('SMTP_HOST', 'smtp.gmail.com');
 define('SMTP_PORT', 465);
 define('SMTP_SECURE', 'ssl');
-define('SMTP_USER', 'shree.chaugule@gmail.com');
+define('SMTP_USER', 'abc@gmail.com');
 define('SMTP_PASS', 'mvnp mtcg goft cnps');
 define('SMTP_FROM_NAME', 'Connect Amravati Admin');
 
