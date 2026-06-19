@@ -10,6 +10,70 @@ if (session_status() === PHP_SESSION_NONE) {
 
 date_default_timezone_set('Asia/Kolkata');
 
+// Language Toggle Setup (Support Marathi & English)
+$lang = isset($_GET['lang']) && $_GET['lang'] === 'mr' ? 'mr' : 'en';
+$translations = [
+    'en' => [
+        'title_forgot' => 'Forgot Password - Connect Amravati',
+        'title_reset' => 'Reset Password - Connect Amravati',
+        'title_success' => 'Reset Successful - Connect Amravati',
+        'heading_forgot' => 'Forgot Password',
+        'desc_forgot' => 'Enter your registered email address to receive reset instructions.',
+        'heading_reset' => 'Reset Password',
+        'desc_reset' => 'Create a strong password to secure your account.',
+        'heading_success' => 'Reset Successful',
+        'desc_success' => 'Your password has been updated. You can now log in with your new password.',
+        'label_email' => 'Registered Email',
+        'label_new_pwd' => 'New Password',
+        'label_confirm_pwd' => 'Confirm Password',
+        'pwd_hint' => 'Minimum 8 characters, include uppercase, lowercase, number, and special character.',
+        'btn_send_link' => 'Send Reset Link',
+        'btn_reset_pwd' => 'Reset Password',
+        'btn_go_to_login' => 'Go to Login',
+        'err_pwd_len' => 'Password must be at least 8 characters.',
+        'err_pwd_match' => 'Passwords do not match.',
+        'err_invalid_email' => 'Please enter a valid email address.',
+        'err_no_account' => 'No active account found with that email address. Please check and try again.',
+        'err_invalid_link' => 'Invalid or expired password reset link. Please request a new one.',
+        'msg_success_reset' => 'Password reset successfully! You can now log in with your new password.',
+        'msg_link_sent' => 'A password reset link has been sent to your email address.',
+        'msg_local_link' => 'SMTP not configured. Link generated for local testing.'
+    ],
+    'mr' => [
+        'title_forgot' => 'पासवर्ड विसरलात - कनेक्ट अमरावती',
+        'title_reset' => 'पासवर्ड रीसेट करा - कनेक्ट अमरावती',
+        'title_success' => 'रीसेट यशस्वी - कनेक्ट अमरावती',
+        'heading_forgot' => 'पासवर्ड विसरलात',
+        'desc_forgot' => 'रीसेट सूचना प्राप्त करण्यासाठी तुमचा नोंदणीकृत ईमेल पत्ता प्रविष्ट करा.',
+        'heading_reset' => 'पासवर्ड रीसेट करा',
+        'desc_reset' => 'तुमचे खाते सुरक्षित करण्यासाठी एक मजबूत पासवर्ड तयार करा.',
+        'heading_success' => 'रीसेट यशस्वी',
+        'desc_success' => 'तुमचा पासवर्ड अपडेट केला गेला आहे. आता तुम्ही तुमच्या नवीन पासवर्डने लॉग इन करू शकता.',
+        'label_email' => 'नोंदणीकृत ईमेल',
+        'label_new_pwd' => 'नवीन पासवर्ड',
+        'label_confirm_pwd' => 'पासवर्डची पुष्टी करा',
+        'pwd_hint' => 'किमान ८ अक्षरे, अप्परकेस, लोअरकेस, संख्या आणि विशेष वर्ण समाविष्ट करा.',
+        'btn_send_link' => 'रीसेट लिंक पाठवा',
+        'btn_reset_pwd' => 'पासवर्ड रीसेट करा',
+        'btn_go_to_login' => 'लॉगिन वर जा',
+        'err_pwd_len' => 'पासवर्ड किमान ८ अक्षरांचा असावा.',
+        'err_pwd_match' => 'पासवर्ड जुळत नाहीत.',
+        'err_invalid_email' => 'कृपया एक वैध ईमेल पत्ता प्रविष्ट करा.',
+        'err_no_account' => 'त्या ईमेल पत्त्यासह कोणतेही सक्रिय खाते आढळले नाही. कृपया तपासा आणि पुन्हा प्रयत्न करा.',
+        'err_invalid_link' => 'अवैध किंवा कालबाह्य झालेली पासवर्ड रीसेट लिंक. कृपया नवीन विनंती करा.',
+        'msg_success_reset' => 'पासवर्ड यशस्वीरित्या रीसेट झाला! आता तुम्ही तुमच्या नवीन पासवर्डने लॉग इन करू शकता.',
+        'msg_link_sent' => 'तुमच्या ईमेल पत्त्यावर पासवर्ड रीसेट लिंक पाठवली गेली आहे.',
+        'msg_local_link' => 'SMTP कॉन्फिगर केलेले नाही. स्थानिक चाचणीसाठी लिंक व्युत्पन्न केली आहे.'
+    ]
+];
+$t = $translations[$lang];
+
+$temp_token = isset($_GET['token']) ? trim($_GET['token']) : '';
+$lang_switch_url = 'passwordReset.php?lang=' . ($lang === 'en' ? 'mr' : 'en');
+if (!empty($temp_token)) {
+    $lang_switch_url .= '&token=' . urlencode($temp_token);
+}
+
 // ==========================================
 // SMTP CONFIGURATION FOR REAL EMAIL DISPATCH
 // ==========================================
@@ -17,7 +81,7 @@ define('SMTP_ENABLED', true);
 define('SMTP_HOST', 'smtp.gmail.com');
 define('SMTP_PORT', 465);
 define('SMTP_SECURE', 'ssl');
-define('SMTP_USER', 'abc@gmail.com');
+define('SMTP_USER', 'shree.chaugule@gmail.com');
 define('SMTP_PASS', 'mvnp mtcg goft cnps');
 define('SMTP_FROM_NAME', 'Connect Amravati Admin');
 
@@ -252,7 +316,7 @@ $valid_user = null;
 if ($mode === 'reset') {
     $valid_user = verify_reset_token($token, $conn);
     if (!$valid_user) {
-        $message = "<div class='error'>Invalid or expired password reset link. Please request a new one.</div>";
+        $message = "<div class='error'>" . $t['err_invalid_link'] . "</div>";
         $mode = 'request';
     }
 }
@@ -266,9 +330,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $confirmPassword = $_POST['confirm_password'];
 
         if (strlen($password) < 8) {
-            $message = "<div class='error'>Password must be at least 8 characters.</div>";
+            $message = "<div class='error'>" . $t['err_pwd_len'] . "</div>";
         } elseif ($password !== $confirmPassword) {
-            $message = "<div class='error'>Passwords do not match.</div>";
+            $message = "<div class='error'>" . $t['err_pwd_match'] . "</div>";
         } else {
             // Hash and update using correct column: password_hash, primary key: user_id
             $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
@@ -283,9 +347,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $stmt->execute();
             $stmt->close();
 
-            $message   = "<div class='success'>Password reset successfully! You can now log in with your new password.</div>";
+            $message   = "<div class='success'>" . $t['msg_success_reset'] . "</div>";
             $valid_user = null;
-            $mode       = 'request';
+            $mode       = 'success';
             $token      = '';
         }
     }
@@ -295,7 +359,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $email = filter_var(trim($_POST['email']), FILTER_SANITIZE_EMAIL);
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $message = "<div class='error'>Please enter a valid email address.</div>";
+            $message = "<div class='error'>" . $t['err_invalid_email'] . "</div>";
         } else {
             // Lookup using actual columns: email, user_id, full_name, password_hash, status
             $stmt = $conn->prepare(
@@ -318,7 +382,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $host = $_SERVER['HTTP_HOST'];
                 $dir = dirname($_SERVER['SCRIPT_NAME']);
                 $dir = ($dir === '\\' || $dir === '/') ? '' : $dir;
-                $reset_link = $protocol . "://" . $host . $dir . "/passwordReset.php?token=" . $plain_token;
+                $reset_link = $protocol . "://" . $host . $dir . "/passwordReset.php?token=" . $plain_token . "&lang=" . $lang;
                 
                 $smtp_configured = (SMTP_PASS !== 'YOUR_APP_PASSWORD_OR_SMTP_PASSWORD' && !empty(SMTP_PASS));
                 
@@ -340,7 +404,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                             SMTP_SECURE
                         );
                         
-                        $message = "<div class='success'>A password reset link has been sent to your email address.</div>";
+                        $message = "<div class='success'>" . $t['msg_link_sent'] . "</div>";
                     } catch (Exception $e) {
                         $message = "<div class='error'>SMTP Mailer Error: " . htmlspecialchars($e->getMessage()) . "</div>";
                         $simulated_email = [
@@ -351,7 +415,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         ];
                     }
                 } else {
-                    $message = "<div class='success'>SMTP not configured. Link generated for local testing.</div>";
+                    $message = "<div class='success'>" . $t['msg_local_link'] . "</div>";
                     $simulated_email = [
                         'to' => $email,
                         'subject' => "🔑 Reset Your Password",
@@ -360,7 +424,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     ];
                 }
             } else {
-                $message = "<div class='error'>No active account found with that email address. Please check and try again.</div>";
+                $message = "<div class='error'>" . $t['err_no_account'] . "</div>";
             }
         }
     }
@@ -368,13 +432,32 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo $lang; ?>">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Reset Password</title>
+<title><?php 
+    if ($mode === 'success') echo htmlspecialchars($t['title_success']);
+    elseif ($mode === 'reset' && $valid_user) echo htmlspecialchars($t['title_reset']);
+    else echo htmlspecialchars($t['title_forgot']);
+?></title>
 
 <style>
+.lang-switch {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 15px;
+    font-size: 13px;
+}
+.lang-switch a {
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: bold;
+}
+.lang-switch a:hover {
+    text-decoration: underline;
+}
+
 body{
     margin:0;
     font-family:Arial, sans-serif;
@@ -445,6 +528,26 @@ button{
 
 button:hover{
     background:#1d4ed8;
+}
+
+.btn-link {
+    display: block;
+    text-align: center;
+    width: 100%;
+    padding: 12px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    text-decoration: none;
+    box-sizing: border-box;
+}
+
+.btn-link:hover {
+    background: #1d4ed8;
 }
 
 .success{
@@ -529,47 +632,61 @@ button:hover{
 <body>
 
 <div class="container">
+    <div class="lang-switch">
+        <?php if ($lang === 'en'): ?>
+            <a href="<?php echo htmlspecialchars($lang_switch_url); ?>">मराठी (MR)</a>
+        <?php else: ?>
+            <a href="<?php echo htmlspecialchars($lang_switch_url); ?>">English (EN)</a>
+        <?php endif; ?>
+    </div>
 
-    <?php if ($mode === 'reset' && $valid_user): ?>
+    <?php if ($mode === 'success'): ?>
+        <!-- SUCCESS MODE -->
+        <h2><?php echo htmlspecialchars($t['heading_success']); ?></h2>
+        <p><?php echo htmlspecialchars($t['desc_success']); ?></p>
+
+        <?php echo $message; ?>
+
+        <a href="login.php?lang=<?php echo $lang; ?>" class="btn-link"><?php echo htmlspecialchars($t['btn_go_to_login']); ?></a>
+
+    <?php elseif ($mode === 'reset' && $valid_user): ?>
         <!-- RESET PASSWORD MODE -->
-        <h2>Reset Password</h2>
-        <p>Create a strong password to secure your account.</p>
+        <h2><?php echo htmlspecialchars($t['heading_reset']); ?></h2>
+        <p><?php echo htmlspecialchars($t['desc_reset']); ?></p>
 
         <?php echo $message; ?>
 
         <form method="POST">
             <div class="form-group">
-                <label>New Password</label>
+                <label><?php echo htmlspecialchars($t['label_new_pwd']); ?></label>
                 <input type="password" name="password" required>
                 <div class="password-hint">
-                    Minimum 8 characters, include uppercase, lowercase, number, and special character.
+                    <?php echo htmlspecialchars($t['pwd_hint']); ?>
                 </div>
             </div>
 
             <div class="form-group">
-                <label>Confirm Password</label>
+                <label><?php echo htmlspecialchars($t['label_confirm_pwd']); ?></label>
                 <input type="password" name="confirm_password" required>
             </div>
 
-            <button type="submit">Reset Password</button>
+            <button type="submit"><?php echo htmlspecialchars($t['btn_reset_pwd']); ?></button>
         </form>
         
-        <a href="passwordReset.php" class="back-link">← Request Reset Link</a>
-
     <?php else: ?>
         <!-- REQUEST RESET LINK MODE -->
-        <h2>Forgot Password</h2>
-        <p>Enter your registered email address to receive reset instructions.</p>
+        <h2><?php echo htmlspecialchars($t['heading_forgot']); ?></h2>
+        <p><?php echo htmlspecialchars($t['desc_forgot']); ?></p>
 
         <?php echo $message; ?>
 
         <form method="POST">
             <div class="form-group">
-                <label>Registered Email</label>
+                <label><?php echo htmlspecialchars($t['label_email']); ?></label>
                 <input type="email" name="email" required placeholder="name@example.com" value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>">
             </div>
 
-            <button type="submit">Send Reset Link</button>
+            <button type="submit"><?php echo htmlspecialchars($t['btn_send_link']); ?></button>
         </form>
     <?php endif; ?>
 
