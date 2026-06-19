@@ -214,10 +214,27 @@
                 </button>
 
                 <!-- Notifications -->
-                <button class="relative p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="bell" class="w-5 h-5"></i>
-                    <span class="absolute top-1.5 right-1.5 block h-2 w-2 rounded-full bg-saffron-500 ring-2 ring-white dark:ring-slate-900"></span>
-                </button>
+                <div class="relative">
+                    <button id="notificationBtn" class="relative p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none">
+                        <i data-lucide="bell" class="w-5 h-5"></i>
+                        <span id="unreadCountBadge" style="display:none;" class="absolute top-0 right-0 flex items-center justify-center h-4 w-4 text-[10px] font-bold text-white rounded-full bg-saffron-500 ring-2 ring-white dark:ring-slate-900">0</span>
+                    </button>
+                    <!-- Dropdown -->
+                    <div id="notificationDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 z-50">
+                        <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-t-lg">
+                            <h3 class="text-sm font-semibold text-slate-900 dark:text-white">Notifications</h3>
+                            <button onclick="markAllAsRead()" class="text-xs text-navy-600 dark:text-blue-400 hover:text-navy-800 dark:hover:text-blue-300 font-medium">Mark all as read</button>
+                        </div>
+                        <div id="notificationList" class="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/50">
+                            <!-- Populated via AJAX -->
+                        </div>
+                        <div class="border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-b-lg">
+                            <a href="notifications.php" class="block w-full text-center px-4 py-3 text-xs font-medium text-slate-500 hover:text-navy-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors">
+                                View All Notifications
+                            </a>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Profile Dropdown -->
                 <div class="flex items-center space-x-3 border-l border-slate-200 dark:border-slate-700 pl-4 ml-2 cursor-pointer">
@@ -665,6 +682,92 @@
 
         // Initial render
         renderCharts(htmlElement.classList.contains('dark'));
+
+        // Notification System
+        const notificationBtn = document.getElementById('notificationBtn');
+        const notificationDropdown = document.getElementById('notificationDropdown');
+        const unreadCountBadge = document.getElementById('unreadCountBadge');
+        const notificationList = document.getElementById('notificationList');
+
+        notificationBtn.addEventListener('click', () => {
+            notificationDropdown.classList.toggle('hidden');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!notificationBtn.contains(e.target) && !notificationDropdown.contains(e.target)) {
+                notificationDropdown.classList.add('hidden');
+            }
+        });
+
+        function fetchNotifications() {
+            fetch('api/get_notifications.php')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Update Badge
+                        if (data.unread_count > 0) {
+                            unreadCountBadge.style.display = 'flex';
+                            unreadCountBadge.innerText = data.unread_count > 99 ? '99+' : data.unread_count;
+                        } else {
+                            unreadCountBadge.style.display = 'none';
+                        }
+
+                        // Update List
+                        notificationList.innerHTML = '';
+                        if (data.notifications.length === 0) {
+                            notificationList.innerHTML = `
+                                <div class="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
+                                    No new notifications
+                                </div>
+                            `;
+                        } else {
+                            data.notifications.forEach(n => {
+                                const readClass = n.is_read == 0 ? 'bg-slate-50 dark:bg-slate-800' : 'opacity-70';
+                                const item = document.createElement('div');
+                                item.className = `px-4 py-3 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition-colors ${readClass}`;
+                                item.innerHTML = `
+                                    <div class="flex items-start">
+                                        <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center mt-0.5 ${n.badge_color}">
+                                            <i data-lucide="bell" class="w-4 h-4"></i>
+                                        </div>
+                                        <div class="ml-3 flex-1">
+                                            <p class="text-sm font-medium text-slate-900 dark:text-white">${n.title}</p>
+                                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">${n.message}</p>
+                                            <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-1">${n.time_elapsed}</p>
+                                        </div>
+                                    </div>
+                                `;
+                                item.onclick = () => markAsRead(n.id);
+                                notificationList.appendChild(item);
+                            });
+                            lucide.createIcons();
+                        }
+                    }
+                })
+                .catch(err => console.error('Error fetching notifications:', err));
+        }
+
+        function markAsRead(id) {
+            fetch('api/mark_notification_read.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notification_id: id })
+            }).then(() => fetchNotifications());
+        }
+
+        function markAllAsRead() {
+            fetch('api/mark_notification_read.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mark_all: true })
+            }).then(() => fetchNotifications());
+        }
+
+        // Poll every 30 seconds
+        setInterval(fetchNotifications, 30000);
+        // Initial fetch
+        fetchNotifications();
 
     </script>
 </body>
