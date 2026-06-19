@@ -194,7 +194,7 @@ function log_login_attempt($conn, $user_id, $ip, $device, $status) {
     </form>
 
     <div class="footer-links">
-        <a href="passwordReset.php"><?php echo htmlspecialchars($t['forgot_pwd']); ?></a>
+        <a href="passwordReset.php?lang=<?php echo $lang; ?>"><?php echo htmlspecialchars($t['forgot_pwd']); ?></a>
     </div>
 </div>
 
