@@ -32,6 +32,7 @@ $translations = [
         'menu_dashboard' => 'Executive Dashboard',
         'menu_task_alloc' => 'Task Allocation',
         'menu_announcements' => 'Announcements',
+        'menu_notifications' => 'Notification Center',
         'menu_appreciation' => 'Appreciation',
         'menu_analytics' => 'Analytics & Data',
         'menu_reports' => 'Reports & Analytics',
@@ -131,6 +132,7 @@ $translations = [
         'menu_dashboard' => 'कार्यकारी डॅशबोर्ड',
         'menu_task_alloc' => 'कार्य वाटप',
         'menu_announcements' => 'घोषणा',
+        'menu_notifications' => 'सूचना केंद्र',
         'menu_appreciation' => 'कौतुक',
         'menu_analytics' => 'विश्लेषण आणि डेटा',
         'menu_reports' => 'अहवाल आणि विश्लेषण',
@@ -674,9 +676,9 @@ function priorityCss(string $p): string {
                 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <i data-lucide="network"   class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($t['menu_task_alloc']) ?>
             </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
+            <a href="notifications.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
                 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="bell-ring" class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($t['menu_announcements']) ?>
+                <i data-lucide="bell-ring" class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($t['menu_notifications']) ?>
             </a>
             <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
                 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
@@ -792,13 +794,29 @@ function priorityCss(string $p): string {
                 <i data-lucide="sun"  class="w-5 h-5 hidden dark:block"></i>
             </button>
             <!-- Notifications -->
-            <button class="relative p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400
-                           dark:hover:text-slate-200 rounded-full
-                           hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="bell" class="w-5 h-5"></i>
-                <span class="absolute top-1.5 right-1.5 h-2 w-2 rounded-full
-                             bg-saffron-500 ring-2 ring-white dark:ring-slate-900"></span>
-            </button>
+            <div class="relative">
+                <button id="notificationBtn" class="relative p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none">
+                    <i data-lucide="bell" class="w-5 h-5"></i>
+                    <span id="unreadCountBadge" style="display:none;" class="absolute top-0 right-0 flex items-center justify-center h-4 w-4 text-[10px] font-bold text-white rounded-full bg-saffron-500 ring-2 ring-white dark:ring-slate-900">0</span>
+                </button>
+                <!-- Dropdown -->
+                <div id="notificationDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 z-50">
+                    <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-t-lg">
+                        <h3 class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($t['menu_notifications'] ?? 'Notifications') ?></h3>
+                        <button onclick="markAllAsRead()" class="text-xs text-navy-600 dark:text-blue-400 hover:text-navy-800 dark:hover:text-blue-300 font-medium">
+                            <?= $lang === 'en' ? 'Mark all as read' : 'सर्व वाचलेले म्हणून चिन्हांकित करा' ?>
+                        </button>
+                    </div>
+                    <div id="notificationList" class="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/50">
+                        <!-- Populated via AJAX -->
+                    </div>
+                    <div class="border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-b-lg">
+                        <a href="notifications.php?lang=<?= $lang ?>" class="block w-full text-center px-4 py-3 text-xs font-medium text-slate-500 hover:text-navy-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors">
+                            <?= $lang === 'en' ? 'View All Notifications' : 'सर्व सूचना पहा' ?>
+                        </a>
+                    </div>
+                </div>
+            </div>
             <!-- Profile -->
             <div class="flex items-center space-x-3 border-l border-slate-200
                         dark:border-slate-700 pl-4 ml-2 cursor-pointer">
@@ -1798,6 +1816,91 @@ function buildAllCharts(isDark) {
     );
     charts.vDonut.render();
 }
+
+// Notification Bell Logic
+const notificationBtn = document.getElementById('notificationBtn');
+const notificationDropdown = document.getElementById('notificationDropdown');
+const unreadCountBadge = document.getElementById('unreadCountBadge');
+const notificationList = document.getElementById('notificationList');
+
+notificationBtn.addEventListener('click', () => {
+    notificationDropdown.classList.toggle('hidden');
+});
+
+document.addEventListener('click', (e) => {
+    if (!notificationBtn.contains(e.target) && !notificationDropdown.contains(e.target)) {
+        notificationDropdown.classList.add('hidden');
+    }
+});
+
+function fetchNotifications() {
+    fetch('api/get_notifications.php')
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                if (data.unread_count > 0) {
+                    unreadCountBadge.style.display = 'flex';
+                    unreadCountBadge.innerText = data.unread_count > 99 ? '99+' : data.unread_count;
+                } else {
+                    unreadCountBadge.style.display = 'none';
+                }
+                notificationList.innerHTML = '';
+                if (data.notifications.length === 0) {
+                    notificationList.innerHTML = `<div class="px-4 py-6 text-center text-sm text-slate-500">No new notifications</div>`;
+                } else {
+                    data.notifications.forEach(n => {
+                        const isUnread = n.is_read == 0;
+                        const readBgClass = isUnread ? 'bg-blue-50/30 dark:bg-slate-800/80 border-l-4 border-blue-500 font-medium' : 'bg-transparent border-l-4 border-transparent opacity-75 hover:opacity-100';
+                        const titleWeight = isUnread ? 'font-bold text-slate-900 dark:text-white' : 'font-medium text-slate-700 dark:text-slate-300';
+                        const dotIndicator = isUnread ? `<span class="absolute top-4 right-4 w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_5px_rgba(59,130,246,0.6)]"></span>` : '';
+                        
+                        const item = document.createElement('div');
+                        item.className = `relative px-4 py-3 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition-all duration-200 ${readBgClass}`;
+                        item.innerHTML = `
+                            ${dotIndicator}
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center mt-0.5 shadow-sm ${n.badge_color}">
+                                    <i data-lucide="bell" class="w-4 h-4"></i>
+                                </div>
+                                <div class="ml-3 flex-1 pr-6">
+                                    <p class="text-sm ${titleWeight}">${n.title}</p>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">${n.message}</p>
+                                    <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-1.5 font-medium flex items-center">
+                                        <i data-lucide="clock" class="w-3 h-3 mr-1 opacity-70"></i> ${n.time_elapsed}
+                                    </p>
+                                </div>
+                            </div>
+                        `;
+                        item.onclick = () => {
+                            if (isUnread) markAsRead(n.id);
+                        };
+                        notificationList.appendChild(item);
+                    });
+                    lucide.createIcons();
+                }
+            }
+        })
+        .catch(err => console.error('Error fetching notifications:', err));
+}
+
+function markAsRead(id) {
+    fetch('api/mark_notification_read.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notification_id: id })
+    }).then(() => fetchNotifications());
+}
+
+function markAllAsRead() {
+    fetch('api/mark_notification_read.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mark_all: true })
+    }).then(() => fetchNotifications());
+}
+
+setInterval(fetchNotifications, 30000);
+fetchNotifications();
 </script>
 </body>
 </html>
