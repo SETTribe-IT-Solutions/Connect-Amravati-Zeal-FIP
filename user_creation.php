@@ -2,6 +2,198 @@
 session_start();
 require_once 'include/dbConfig.php';
 
+// Language Toggle Setup (Support Marathi & English)
+$lang = isset($_GET['lang']) && $_GET['lang'] === 'mr' ? 'mr' : 'en';
+
+$translations = [
+    'en' => [
+        'title' => 'User Management - Amravati Connect',
+        'brand_name' => 'Amravati Connect',
+        'menu_main_modules' => 'Main Modules',
+        'menu_dashboard' => 'Executive Dashboard',
+        'menu_notifications' => 'Notification Center',
+        'menu_admin' => 'Administration',
+        'menu_users' => 'User Management',
+        'page_title' => 'User Management',
+        'page_subtitle' => 'Create, update, and manage system users and officers.',
+        'form_create_title' => 'Create New User',
+        'form_update_title' => 'Update User Information',
+        'label_emp_code' => 'Employee Code',
+        'label_full_name' => 'Full Name *',
+        'label_email' => 'Email *',
+        'label_mobile' => 'Mobile *',
+        'label_department' => 'Department',
+        'select_department' => '-- Select Department --',
+        'label_role' => 'Role',
+        'select_role' => '-- Select Role --',
+        'label_taluka' => 'Taluka',
+        'select_taluka' => '-- Select Taluka --',
+        'label_village' => 'Village',
+        'select_village' => '-- Select Village --',
+        'label_status' => 'Status',
+        'status_active' => 'Active',
+        'status_inactive' => 'Inactive',
+        'btn_cancel' => 'Cancel',
+        'btn_clear' => 'Clear Form',
+        'btn_save' => 'Save User',
+        'btn_update' => 'Update User',
+        'table_title' => 'Registered Users',
+        'search_placeholder' => 'Search users...',
+        'btn_search' => 'Search',
+        'btn_clear_search' => 'Clear',
+        'col_sr_no' => 'Sr. No',
+        'col_user_details' => 'User Details',
+        'col_contact' => 'Contact',
+        'col_dept_role' => 'Department / Role',
+        'col_status' => 'Status',
+        'col_actions' => 'Actions',
+        'no_users' => 'No users found.',
+        'confirm_delete' => 'Are you sure you want to deactivate/delete this user?',
+        'role_administrator' => 'System Administrator',
+        'role_collector' => 'District Collector',
+        'role_additional_collector' => 'Additional Collector',
+        'role_deputy_collector' => 'Deputy Collector',
+        'role_sdo' => 'Sub-Divisional Officer',
+        'role_tehsildar' => 'Tehsildar',
+        'role_bdo' => 'Block Development Officer',
+        'role_talathi' => 'Talathi',
+        'role_gramsevak' => 'Gramsevak',
+        'badge_level' => 'Level',
+    ],
+    'mr' => [
+        'title' => 'वापरकर्ता व्यवस्थापन - अमरावती कनेक्ट',
+        'brand_name' => 'अमरावती कनेक्ट',
+        'menu_main_modules' => 'मुख्य मॉड्युल्स',
+        'menu_dashboard' => 'कार्यकारी डॅशबोर्ड',
+        'menu_notifications' => 'सूचना केंद्र',
+        'menu_admin' => 'प्रशासन',
+        'menu_users' => 'वापरकर्ता व्यवस्थापन',
+        'page_title' => 'वापरकर्ता व्यवस्थापन',
+        'page_subtitle' => 'सिस्टम वापरकर्ते आणि अधिकार्‍यांची निर्मिती, अद्ययावत आणि व्यवस्थापन करा.',
+        'form_create_title' => 'नवीन वापरकर्ता तयार करा',
+        'form_update_title' => 'वापरकर्ता माहिती अद्ययावत करा',
+        'label_emp_code' => 'कर्मचारी कोड',
+        'label_full_name' => 'पूर्ण नाव *',
+        'label_email' => 'ईमेल *',
+        'label_mobile' => 'मोबाईल *',
+        'label_department' => 'विभाग',
+        'select_department' => '-- विभाग निवडा --',
+        'label_role' => 'भूमिका / पद',
+        'select_role' => '-- भूमिका निवडा --',
+        'label_taluka' => 'तालुका',
+        'select_taluka' => '-- तालुका निवडा --',
+        'label_village' => 'गाव',
+        'select_village' => '-- गाव निवडा --',
+        'label_status' => 'स्थिती',
+        'status_active' => 'सक्रिय',
+        'status_inactive' => 'निष्क्रिय',
+        'btn_cancel' => 'रद्द करा',
+        'btn_clear' => 'फॉर्म साफ करा',
+        'btn_save' => 'वापरकर्ता जतन करा',
+        'btn_update' => 'वापरकर्ता अद्ययावत करा',
+        'table_title' => 'नोंदणीकृत वापरकर्ते',
+        'search_placeholder' => 'वापरकर्ते शोधा...',
+        'btn_search' => 'शोधा',
+        'btn_clear_search' => 'साफ करा',
+        'col_sr_no' => 'अ.क्र.',
+        'col_user_details' => 'वापरकर्त्याचा तपशील',
+        'col_contact' => 'संपर्क',
+        'col_dept_role' => 'विभाग / भूमिका',
+        'col_status' => 'स्थिती',
+        'col_actions' => 'कृती',
+        'no_users' => 'कोणतेही वापरकर्ते आढळले नाहीत.',
+        'confirm_delete' => 'आपण नक्की या वापरकर्त्याला निष्क्रिय/हटवू इच्छिता?',
+        'role_administrator' => 'सिस्टम प्रशासक',
+        'role_collector' => 'जिल्हाधिकारी',
+        'role_additional_collector' => 'अपर जिल्हाधिकारी',
+        'role_deputy_collector' => 'उपजिल्हाधिकारी',
+        'role_sdo' => 'उपविभागीय अधिकारी (SDO)',
+        'role_tehsildar' => 'तहसीलदार',
+        'role_bdo' => 'गट विकास अधिकारी (BDO)',
+        'role_talathi' => 'तलाठी',
+        'role_gramsevak' => 'ग्रामसेवक',
+        'badge_level' => 'स्तर',
+    ]
+];
+$t = $translations[$lang];
+
+/* ─── Map login session keys to dashboard variables ────────────────── */
+if (isset($_SESSION['role_name'])) {
+    $_SESSION['user_role']       = $_SESSION['role_name'];
+    $_SESSION['user_name']       = $_SESSION['full_name'];
+    $_SESSION['user_taluka_id']  = $_SESSION['taluka_id'];
+    $_SESSION['user_village_id'] = $_SESSION['village_id'];
+}
+
+/* ─── Session defaults (dev preview) ───────────────────────── */
+if (empty($_SESSION['user_role'])) {
+    $_SESSION['user_role']       = 'Collector';
+    $_SESSION['user_name']       = 'Hon. Collector';
+    $_SESSION['user_taluka_id']  = 1;
+    $_SESSION['user_village_id'] = 1;
+}
+
+$sRole      = $_SESSION['user_role'];
+$sName      = $_SESSION['user_name'];
+$sTalukaId  = (int) ($_SESSION['user_taluka_id']  ?? 1);
+$sVillageId = (int) ($_SESSION['user_village_id'] ?? 1);
+
+/* ─── Role → Level map ─────────────────────────────────────── */
+const ROLE_LEVEL_MAP = [
+    'Administrator'        => 1,
+    'System Administrator' => 1,
+    'Collector'            => 1,
+    'Additional Collector' => 1,
+    'Deputy Collector'     => 1,
+    'SDO'                  => 2,
+    'Tehsildar'            => 2,
+    'BDO'                  => 2,
+    'Talathi'              => 3,
+    'Gramsevak'            => 3,
+];
+
+function getDashboardLevel(string $role, mysqli $conn): int {
+    try {
+        $stmt = $conn->prepare("SELECT role_level FROM roles WHERE role_name = ? LIMIT 1");
+        if ($stmt) {
+            $stmt->bind_param('s', $role);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            if ($row = $res->fetch_assoc()) {
+                $stmt->close();
+                return (int)$row['role_level'];
+            }
+            $stmt->close();
+        }
+    } catch (Exception $e) {
+        error_log('getDashboardLevel DB error: ' . $e->getMessage());
+    }
+    return ROLE_LEVEL_MAP[$role] ?? 3;
+}
+
+$level = getDashboardLevel($sRole, $conn);
+if ($level !== 1) {
+    header("Location: dashboard.php?lang=" . $lang);
+    exit();
+}
+
+$roleKey = match($sRole) {
+    'Administrator', 'System Administrator' => 'role_administrator',
+    'Collector' => 'role_collector',
+    'Additional Collector' => 'role_additional_collector',
+    'Deputy Collector' => 'role_deputy_collector',
+    'SDO' => 'role_sdo',
+    'Tehsildar' => 'role_tehsildar',
+    'BDO' => 'role_bdo',
+    'Talathi' => 'role_talathi',
+    'Gramsevak' => 'role_gramsevak',
+    default => '',
+};
+$roleLabel = $roleKey ? $t[$roleKey] : $sRole;
+
+$parts    = array_filter(explode(' ', trim($sName)));
+$initials = strtoupper(substr($parts[0] ?? 'U', 0, 1) . substr($parts[1] ?? '', 0, 1));
+
 // Initialize variables
 $action = isset($_GET['action']) ? $_GET['action'] : '';
 $edit_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
@@ -49,7 +241,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($stmtUpdate->execute()) {
                         $_SESSION['msg'] = "User updated successfully!";
                         $_SESSION['msgType'] = "success";
-                        header("Location: user_creation.php");
+                        header("Location: user_creation.php?lang=" . $lang);
                         exit();
                     } else {
                         $msg = "Error updating user: " . $conn->error;
@@ -62,14 +254,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $nextId = intval($maxRow['max_id']) + 1;
                     $generated_employee_code = "EMP" . str_pad($nextId, 5, "0", STR_PAD_LEFT);
 
-                    $defaultPassword = password_hash('Welcome@123', PASSWORD_DEFAULT);
+                    // Fetch role_name to determine the default password
+                    $defaultPassText = 'test@123';
+                    if ($role_id) {
+                        $roleStmt = $conn->prepare("SELECT role_name FROM roles WHERE role_id = ?");
+                        if ($roleStmt) {
+                            $roleStmt->bind_param("i", $role_id);
+                            $roleStmt->execute();
+                            $roleRes = $roleStmt->get_result();
+                            if ($roleRow = $roleRes->fetch_assoc()) {
+                                $roleNameStr = $roleRow['role_name'];
+                                if ($roleNameStr === 'Administrator' || $roleNameStr === 'System Administrator') {
+                                    $defaultPassText = 'Admin@123';
+                                }
+                            }
+                            $roleStmt->close();
+                        }
+                    }
+                    $defaultPassword = password_hash($defaultPassText, PASSWORD_DEFAULT);
+
                     $insertSql = "INSERT INTO users (employee_code, full_name, email, mobile, department_id, role_id, district_id, taluka_id, village_id, password_hash, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                     $stmtInsert = $conn->prepare($insertSql);
                     $stmtInsert->bind_param("ssssiiiiiss", $generated_employee_code, $full_name, $email, $mobile, $department_id, $role_id, $district_id, $taluka_id, $village_id, $defaultPassword, $status);
                     if ($stmtInsert->execute()) {
                         $_SESSION['msg'] = "User created successfully!";
                         $_SESSION['msgType'] = "success";
-                        header("Location: user_creation.php");
+                        header("Location: user_creation.php?lang=" . $lang);
                         exit();
                     } else {
                         $msg = "Error creating user: " . $conn->error;
@@ -93,7 +303,7 @@ if ($action === 'delete' && $edit_id > 0) {
         $_SESSION['msg'] = "Error deleting user.";
         $_SESSION['msgType'] = "error";
     }
-    header("Location: user_creation.php");
+    header("Location: user_creation.php?lang=" . $lang);
     exit();
 }
 
@@ -145,11 +355,11 @@ $usersResult = $conn->query($usersQuery);
 
 ?>
 <!DOCTYPE html>
-<html lang="en" class="light">
+<html lang="<?= $lang ?>" class="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Management - Amravati Connect</title>
+    <title><?= htmlspecialchars($t['title']) ?></title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -243,33 +453,94 @@ $usersResult = $conn->query($usersQuery);
             background: rgba(15, 23, 42, 0.7);
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
+
+        /* Level badges */
+        .badge-l1 { background:#dbeafe; color:#1e3a8a; border:1px solid #bfdbfe; }
+        .badge-l2 { background:#fef3c7; color:#92400e; border:1px solid #fde68a; }
+        .badge-l3 { background:#d1fae5; color:#065f46; border:1px solid #a7f3d0; }
+        .dark .badge-l1 { background:#1e3a8a33; color:#93c5fd; border-color:#1e40af; }
+        .dark .badge-l2 { background:#92400e33; color:#fcd34d; border-color:#b45309; }
+        .dark .badge-l3 { background:#065f4633; color:#6ee7b7; border-color:#047857; }
+
+        /* Active nav */
+        .nav-active { background:#eef2f6; color:#152b4a; }
+        .dark .nav-active { background:#1e293b; color:#fff; }
     </style>
 </head>
 <body class="h-screen flex overflow-hidden bg-navy-50 dark:bg-slate-900 transition-colors duration-200">
 
     <!-- SIDEBAR -->
-    <aside class="w-64 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-all duration-300 z-20" id="sidebar">
-        <!-- Sidebar Header -->
+    <aside id="sidebar"
+           class="w-64 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800
+                  flex flex-col transition-all duration-300 z-20">
+
+        <!-- Logo / Brand -->
         <div class="h-16 flex items-center px-6 border-b border-slate-200 dark:border-slate-800">
             <div class="w-8 h-8 rounded bg-navy-600 flex items-center justify-center mr-3">
                 <i data-lucide="landmark" class="text-white w-5 h-5"></i>
             </div>
-            <span class="font-bold text-lg text-navy-700 dark:text-white tracking-tight">Amravati Connect</span>
+            <span class="font-bold text-lg text-navy-700 dark:text-white tracking-tight"><?= htmlspecialchars($t['brand_name']) ?></span>
         </div>
 
-        <!-- Sidebar Navigation -->
+        <!-- Navigation -->
         <div class="flex-1 overflow-y-auto py-4">
             <nav class="space-y-1 px-3">
-                <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-4">Main Modules</p>
-                <a href="index.php" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-4"><?= htmlspecialchars($t['menu_main_modules']) ?></p>
+                <a href="dashboard.php?lang=<?= $lang ?>"
+                   class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                     <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3 text-slate-400"></i>
-                    Executive Dashboard
+                    <?= htmlspecialchars($t['menu_dashboard']) ?>
                 </a>
-                
-                <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6">Administration</p>
-                <a href="user_creation.php" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-r-md bg-saffron-50 text-saffron-600 border-l-4 border-saffron-500 dark:bg-slate-800 dark:text-saffron-400 dark:border-saffron-500">
-                    <i data-lucide="users" class="w-5 h-5 mr-3 text-saffron-600 dark:text-saffron-400"></i>
-                    User Management
+                <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
+                    text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <i data-lucide="network"   class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($translations[$lang]['menu_task_alloc'] ?? 'Task Allocation') ?>
+                </a>
+                <a href="notifications.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
+                    text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <i data-lucide="bell-ring" class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($t['menu_notifications']) ?>
+                </a>
+                <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
+                    text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <i data-lucide="award"     class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($translations[$lang]['menu_appreciation'] ?? 'Appreciation') ?>
+                </a>
+
+                <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6"><?= htmlspecialchars($translations[$lang]['menu_analytics'] ?? 'Analytics & Data') ?></p>
+                <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
+                    text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <i data-lucide="pie-chart"   class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($translations[$lang]['menu_reports'] ?? 'Reports & Analytics') ?>
+                </a>
+                <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
+                    text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <i data-lucide="map"         class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($translations[$lang]['menu_gis'] ?? 'GIS Map View') ?>
+                </a>
+                <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
+                    text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <i data-lucide="folder-open" class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($translations[$lang]['menu_docs'] ?? 'Document Management') ?>
+                </a>
+
+                <?php if ($level === 1): ?>
+                <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6"><?= htmlspecialchars($t['menu_admin']) ?></p>
+                <a href="user_creation.php?lang=<?= $lang ?>"
+                   class="nav-active flex items-center px-3 py-2.5 text-sm font-medium rounded-md">
+                    <i data-lucide="users" class="w-5 h-5 mr-3 text-navy-600 dark:text-blue-400"></i>
+                    <?= htmlspecialchars($t['menu_users']) ?>
+                </a>
+                <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
+                    text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <i data-lucide="map-pin"      class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($translations[$lang]['menu_hierarchy'] ?? 'Location Hierarchy') ?>
+                </a>
+                <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
+                    text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <i data-lucide="shield-check" class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($translations[$lang]['menu_audit'] ?? 'Audit Logs') ?>
+                </a>
+                <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
+                    text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <i data-lucide="settings"     class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($translations[$lang]['menu_settings'] ?? 'Settings') ?>
+                </a>
+                <?php endif; ?>
+                <a href="logout.php" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
+                    text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors">
+                    <i data-lucide="log-out" class="w-5 h-5 mr-3 text-red-500"></i><?= htmlspecialchars($translations[$lang]['menu_logout'] ?? 'Logout') ?>
                 </a>
             </nav>
         </div>
@@ -289,11 +560,67 @@ $usersResult = $conn->query($usersQuery);
             </div>
 
             <div class="flex items-center space-x-4">
+                <!-- Language Switcher -->
+                <?php
+                $queryParams = $_GET;
+                $queryParams['lang'] = ($lang === 'en' ? 'mr' : 'en');
+                $lang_switch_url = 'user_creation.php?' . http_build_query($queryParams);
+                ?>
+                <a href="<?php echo htmlspecialchars($lang_switch_url); ?>" 
+                   class="flex items-center text-sm font-medium text-slate-700 dark:text-slate-300
+                          hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-1.5 rounded-md
+                          transition-colors border border-slate-200 dark:border-slate-700" style="text-decoration: none;">
+                    <i data-lucide="languages" class="w-4 h-4 mr-2 text-slate-500"></i>
+                    <?php echo $lang === 'en' ? 'मराठी (MR)' : 'English (EN)'; ?>
+                </a>
+                
                 <!-- Theme Switcher -->
                 <button id="themeToggle" class="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                     <i data-lucide="moon" class="w-5 h-5 dark:hidden"></i>
                     <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
                 </button>
+
+                <!-- Notifications -->
+                <div class="relative">
+                    <button id="notificationBtn" class="relative p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none">
+                        <i data-lucide="bell" class="w-5 h-5"></i>
+                        <span id="unreadCountBadge" style="display:none;" class="absolute top-0 right-0 flex items-center justify-center h-4 w-4 text-[10px] font-bold text-white rounded-full bg-saffron-500 ring-2 ring-white dark:ring-slate-900">0</span>
+                    </button>
+                    <!-- Dropdown -->
+                    <div id="notificationDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 z-50">
+                        <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-t-lg">
+                            <h3 class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($t['menu_notifications'] ?? 'Notifications') ?></h3>
+                            <button onclick="markAllAsRead()" class="text-xs text-navy-600 dark:text-blue-400 hover:text-navy-800 dark:hover:text-blue-300 font-medium">
+                                <?= $lang === 'en' ? 'Mark all as read' : 'सर्व वाचलेले म्हणून चिन्हांकित करा' ?>
+                            </button>
+                        </div>
+                        <div id="notificationList" class="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/50">
+                            <!-- Populated via AJAX -->
+                        </div>
+                        <div class="border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-b-lg">
+                            <a href="notifications.php?lang=<?= $lang ?>" class="block w-full text-center px-4 py-3 text-xs font-medium text-slate-500 hover:text-navy-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors">
+                                <?= $lang === 'en' ? 'View All Notifications' : 'सर्व सूचना पहा' ?>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profile -->
+                <div class="flex items-center space-x-3 border-l border-slate-200
+                            dark:border-slate-700 pl-4 ml-2 cursor-pointer">
+                    <div class="flex flex-col text-right hidden sm:block">
+                        <span class="text-sm font-semibold text-slate-900 dark:text-white">
+                            <?= htmlspecialchars($sName) ?>
+                        </span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">
+                            <?= htmlspecialchars($roleLabel) ?>
+                        </span>
+                    </div>
+                    <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center
+                                text-white font-bold text-sm border-2 border-white dark:border-slate-800 shadow-sm">
+                        <?= htmlspecialchars($initials) ?>
+                    </div>
+                </div>
             </div>
         </header>
 
@@ -303,8 +630,16 @@ $usersResult = $conn->query($usersQuery);
             <!-- Page Header -->
             <div class="flex flex-col md:flex-row md:items-center justify-between mb-8">
                 <div>
-                    <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">User Management</h1>
-                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Create, update, and manage system users and officers.</p>
+                    <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight"><?= htmlspecialchars($t['page_title']) ?></h1>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1"><?= htmlspecialchars($t['page_subtitle']) ?></p>
+                </div>
+                <div class="mt-4 md:mt-0 flex items-center space-x-3 flex-wrap gap-y-2">
+                    <!-- Access level badge -->
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold
+                                 <?= $level===1 ? 'badge-l1' : ($level===2 ? 'badge-l2' : 'badge-l3') ?>">
+                        <i data-lucide="shield" class="w-3.5 h-3.5"></i>
+                        <?= htmlspecialchars($t['badge_level']) ?> <?= $level ?> &middot; <?= htmlspecialchars($roleLabel) ?>
+                    </span>
                 </div>
             </div>
 
@@ -317,51 +652,51 @@ $usersResult = $conn->query($usersQuery);
             <?php endif; ?>
 
             <!-- Form Section -->
-            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border-t-4 border-t-navy-600 border-x border-b border-slate-200 dark:border-slate-700 mb-8 overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-navy-50 dark:bg-slate-800/50">
-                    <h2 class="text-lg font-semibold text-navy-700 dark:text-white">
-                        <?= $editData ? 'Update User Information' : 'Create New User' ?>
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 mb-8 overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                    <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
+                        <?= $editData ? htmlspecialchars($t['form_update_title']) : htmlspecialchars($t['form_create_title']) ?>
                     </h2>
                 </div>
                 <div class="p-6">
-                    <form method="POST" action="user_creation.php">
+                    <form method="POST" action="user_creation.php?lang=<?= $lang ?>">
                         <input type="hidden" name="user_id" value="<?= $editData ? $editData['user_id'] : '' ?>">
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
                             
                             <!-- Employee Code -->
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Employee Code</label>
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"><?= htmlspecialchars($t['label_emp_code']) ?></label>
                                 <input type="text" name="employee_code" value="<?= $editData ? htmlspecialchars($editData['employee_code']) : '(Auto-generated)' ?>" readonly
                                     class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-100 dark:bg-slate-600 text-slate-500 dark:text-slate-400 cursor-not-allowed focus:outline-none">
                             </div>
 
                             <!-- Full Name -->
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Full Name *</label>
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"><?= htmlspecialchars($t['label_full_name']) ?></label>
                                 <input type="text" name="full_name" required value="<?= $editData ? htmlspecialchars($editData['full_name']) : '' ?>"
                                     class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-1 focus:ring-navy-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
                             </div>
 
                             <!-- Email -->
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email *</label>
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"><?= htmlspecialchars($t['label_email']) ?></label>
                                 <input type="email" name="email" required value="<?= $editData ? htmlspecialchars($editData['email']) : '' ?>"
                                     class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-1 focus:ring-navy-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
                             </div>
 
                             <!-- Mobile -->
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Mobile *</label>
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"><?= htmlspecialchars($t['label_mobile']) ?></label>
                                 <input type="text" name="mobile" required value="<?= $editData ? htmlspecialchars($editData['mobile']) : '' ?>"
                                     class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-1 focus:ring-navy-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
                             </div>
 
                             <!-- Department -->
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Department</label>
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"><?= htmlspecialchars($t['label_department']) ?></label>
                                 <select name="department_id" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-1 focus:ring-navy-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
-                                    <option value="">-- Select Department --</option>
+                                    <option value=""><?= htmlspecialchars($t['select_department']) ?></option>
                                     <?php while ($dept = $departments->fetch_assoc()): ?>
                                         <option value="<?= $dept['department_id'] ?>" <?= ($editData && $editData['department_id'] == $dept['department_id']) ? 'selected' : '' ?>>
                                             <?= htmlspecialchars($dept['department_name']) ?>
@@ -372,9 +707,9 @@ $usersResult = $conn->query($usersQuery);
 
                             <!-- Role -->
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Role</label>
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"><?= htmlspecialchars($t['label_role']) ?></label>
                                 <select name="role_id" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-1 focus:ring-navy-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
-                                    <option value="">-- Select Role --</option>
+                                    <option value=""><?= htmlspecialchars($t['select_role']) ?></option>
                                     <?php while ($role = $roles->fetch_assoc()): ?>
                                         <option value="<?= $role['role_id'] ?>" <?= ($editData && $editData['role_id'] == $role['role_id']) ? 'selected' : '' ?>>
                                             <?= htmlspecialchars($role['role_name']) ?>
@@ -385,9 +720,9 @@ $usersResult = $conn->query($usersQuery);
 
                             <!-- Taluka -->
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Taluka</label>
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"><?= htmlspecialchars($t['label_taluka']) ?></label>
                                 <select name="taluka_id" id="taluka_id" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-1 focus:ring-navy-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
-                                    <option value="">-- Select Taluka --</option>
+                                    <option value=""><?= htmlspecialchars($t['select_taluka']) ?></option>
                                     <?php while ($taluka = $talukas->fetch_assoc()): ?>
                                         <option value="<?= $taluka['taluka_id'] ?>" <?= ($editData && $editData['taluka_id'] == $taluka['taluka_id']) ? 'selected' : '' ?>>
                                             <?= htmlspecialchars($taluka['taluka_name']) ?>
@@ -398,37 +733,37 @@ $usersResult = $conn->query($usersQuery);
 
                             <!-- Village -->
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Village</label>
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"><?= htmlspecialchars($t['label_village']) ?></label>
                                 <select name="village_id" id="village_id" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-1 focus:ring-navy-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
-                                    <option value="">-- Select Village --</option>
+                                    <option value=""><?= htmlspecialchars($t['select_village']) ?></option>
                                     <!-- Populated by JavaScript based on Taluka -->
                                 </select>
                             </div>
 
                             <!-- Status -->
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Status</label>
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"><?= htmlspecialchars($t['label_status']) ?></label>
                                 <select name="status" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-1 focus:ring-navy-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
-                                    <option value="Active" <?= ($editData && $editData['status'] == 'Active') ? 'selected' : '' ?>>Active</option>
-                                    <option value="Inactive" <?= ($editData && $editData['status'] == 'Inactive') ? 'selected' : '' ?>>Inactive</option>
+                                    <option value="Active" <?= ($editData && $editData['status'] == 'Active') ? 'selected' : '' ?>><?= htmlspecialchars($t['status_active']) ?></option>
+                                    <option value="Inactive" <?= ($editData && $editData['status'] == 'Inactive') ? 'selected' : '' ?>><?= htmlspecialchars($t['status_inactive']) ?></option>
                                 </select>
                             </div>
                         </div>
 
                         <div class="flex justify-end space-x-3 mt-4 border-t border-slate-200 dark:border-slate-700 pt-5">
                             <?php if ($editData): ?>
-                                <a href="user_creation.php" class="inline-flex items-center px-4 py-2 border border-slate-300 dark:border-slate-600 shadow-sm text-sm font-medium rounded-md text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-                                    Cancel
+                                <a href="user_creation.php?lang=<?= $lang ?>" class="inline-flex items-center px-4 py-2 border border-slate-300 dark:border-slate-600 shadow-sm text-sm font-medium rounded-md text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                                    <?= htmlspecialchars($t['btn_cancel']) ?>
                                 </a>
                             <?php else: ?>
                                 <button type="reset" class="inline-flex items-center px-4 py-2 border border-slate-300 dark:border-slate-600 shadow-sm text-sm font-medium rounded-md text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-                                    Clear Form
+                                    <?= htmlspecialchars($t['btn_clear']) ?>
                                 </button>
                             <?php endif; ?>
                             
                             <button type="submit" name="save_user" class="inline-flex items-center px-5 py-2.5 border border-transparent shadow-sm text-sm font-bold rounded-md text-white bg-govgreen-600 hover:bg-govgreen-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-govgreen-500 transition-colors">
                                 <i data-lucide="<?= $editData ? 'save' : 'plus' ?>" class="w-4 h-4 mr-2"></i>
-                                <?= $editData ? 'Update User' : 'Save User' ?>
+                                <?= $editData ? htmlspecialchars($t['btn_update']) : htmlspecialchars($t['btn_save']) ?>
                             </button>
                         </div>
                     </form>
@@ -438,21 +773,22 @@ $usersResult = $conn->query($usersQuery);
             <!-- Data Table Section -->
             <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden mb-12">
                 <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Registered Users</h2>
+                    <h2 class="text-lg font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($t['table_title']) ?></h2>
                     
                     <form method="GET" action="user_creation.php" class="flex space-x-2">
+                        <input type="hidden" name="lang" value="<?= $lang ?>">
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <i data-lucide="search" class="h-4 w-4 text-slate-400"></i>
                             </div>
-                            <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Search users..." 
+                            <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="<?= htmlspecialchars($t['search_placeholder']) ?>" 
                                 class="block w-full pl-10 pr-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-navy-500 focus:border-navy-500">
                         </div>
                         <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-navy-600 hover:bg-navy-700 focus:outline-none transition-colors">
-                            Search
+                            <?= htmlspecialchars($t['btn_search']) ?>
                         </button>
                         <?php if ($search): ?>
-                            <a href="user_creation.php" class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 transition-colors">Clear</a>
+                            <a href="user_creation.php?lang=<?= $lang ?>" class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 transition-colors"><?= htmlspecialchars($t['btn_clear_search']) ?></a>
                         <?php endif; ?>
                     </form>
                 </div>
@@ -461,12 +797,12 @@ $usersResult = $conn->query($usersQuery);
                     <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
                         <thead class="bg-navy-50 dark:bg-slate-900/50">
                             <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Sr. No</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">User Details</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Contact</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Department / Role</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
-                                <th scope="col" class="px-6 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_sr_no']) ?></th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_user_details']) ?></th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_contact']) ?></th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_dept_role']) ?></th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_status']) ?></th>
+                                <th scope="col" class="px-6 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_actions']) ?></th>
                             </tr>
                         </thead>
                         <tbody class="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
@@ -493,21 +829,37 @@ $usersResult = $conn->query($usersQuery);
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <div class="text-sm text-slate-900 dark:text-white"><?= htmlspecialchars($row['department_name'] ?: 'N/A') ?></div>
-                                            <div class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($row['role_name'] ?: 'N/A') ?></div>
+                                            <div class="text-xs text-slate-500 dark:text-slate-400">
+                                                <?php
+                                                $dbRoleKey = match($row['role_name']) {
+                                                    'Administrator', 'System Administrator' => 'role_administrator',
+                                                    'Collector' => 'role_collector',
+                                                    'Additional Collector' => 'role_additional_collector',
+                                                    'Deputy Collector' => 'role_deputy_collector',
+                                                    'SDO' => 'role_sdo',
+                                                    'Tehsildar' => 'role_tehsildar',
+                                                    'BDO' => 'role_bdo',
+                                                    'Talathi' => 'role_talathi',
+                                                    'Gramsevak' => 'role_gramsevak',
+                                                    default => '',
+                                                };
+                                                echo htmlspecialchars($dbRoleKey ? $t[$dbRoleKey] : $row['role_name']);
+                                                ?>
+                                            </div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <?php if ($row['status'] == 'Active'): ?>
                                                 <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
-                                                    Active
+                                                    <?= htmlspecialchars($t['status_active']) ?>
                                                 </span>
                                             <?php else: ?>
                                                 <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800">
-                                                    Inactive
+                                                    <?= htmlspecialchars($t['status_inactive']) ?>
                                                 </span>
                                             <?php endif; ?>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <a href="user_creation.php?action=edit&id=<?= $row['user_id'] ?>" class="text-navy-600 dark:text-blue-400 hover:text-navy-900 dark:hover:text-blue-300 mr-3 inline-flex items-center">
+                                            <a href="user_creation.php?action=edit&id=<?= $row['user_id'] ?>&lang=<?= $lang ?>" class="text-navy-600 dark:text-blue-400 hover:text-navy-900 dark:hover:text-blue-300 mr-3 inline-flex items-center">
                                                 <i data-lucide="edit-2" class="w-4 h-4"></i>
                                             </a>
                                             <button onclick="confirmDelete(<?= $row['user_id'] ?>)" class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 inline-flex items-center">
@@ -519,7 +871,7 @@ $usersResult = $conn->query($usersQuery);
                             <?php else: ?>
                                 <tr>
                                     <td colspan="6" class="px-6 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
-                                        No users found.
+                                        <?= htmlspecialchars($t['no_users']) ?>
                                     </td>
                                 </tr>
                             <?php endif; ?>
@@ -569,8 +921,8 @@ $usersResult = $conn->query($usersQuery);
 
         // Delete Confirmation
         function confirmDelete(id) {
-            if (confirm("Are you sure you want to deactivate/delete this user?")) {
-                window.location.href = "user_creation.php?action=delete&id=" + id;
+            if (confirm("<?= htmlspecialchars($t['confirm_delete']) ?>")) {
+                window.location.href = "user_creation.php?action=delete&id=" + id + "&lang=<?= $lang ?>";
             }
         }
 
@@ -582,7 +934,7 @@ $usersResult = $conn->query($usersQuery);
 
         function populateVillages() {
             const talukaId = talukaSelect.value;
-            villageSelect.innerHTML = '<option value="">-- Select Village --</option>';
+            villageSelect.innerHTML = '<option value=""><?= htmlspecialchars($t['select_village']) ?></option>';
             
             if (talukaId) {
                 const filteredVillages = allVillages.filter(v => v.taluka_id == talukaId);
@@ -604,6 +956,91 @@ $usersResult = $conn->query($usersQuery);
         if (talukaSelect.value) {
             populateVillages();
         }
+
+        // Notification Bell Logic
+        const notificationBtn = document.getElementById('notificationBtn');
+        const notificationDropdown = document.getElementById('notificationDropdown');
+        const unreadCountBadge = document.getElementById('unreadCountBadge');
+        const notificationList = document.getElementById('notificationList');
+
+        notificationBtn.addEventListener('click', () => {
+            notificationDropdown.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!notificationBtn.contains(e.target) && !notificationDropdown.contains(e.target)) {
+                notificationDropdown.classList.add('hidden');
+            }
+        });
+
+        function fetchNotifications() {
+            fetch('api/get_notifications.php')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        if (data.unread_count > 0) {
+                            unreadCountBadge.style.display = 'flex';
+                            unreadCountBadge.innerText = data.unread_count > 99 ? '99+' : data.unread_count;
+                        } else {
+                            unreadCountBadge.style.display = 'none';
+                        }
+                        notificationList.innerHTML = '';
+                        if (data.notifications.length === 0) {
+                            notificationList.innerHTML = `<div class="px-4 py-6 text-center text-sm text-slate-500">No new notifications</div>`;
+                        } else {
+                            data.notifications.forEach(n => {
+                                const isUnread = n.is_read == 0;
+                                const readBgClass = isUnread ? 'bg-blue-50/30 dark:bg-slate-800/80 border-l-4 border-blue-500 font-medium' : 'bg-transparent border-l-4 border-transparent opacity-75 hover:opacity-100';
+                                const titleWeight = isUnread ? 'font-bold text-slate-900 dark:text-white' : 'font-medium text-slate-700 dark:text-slate-300';
+                                const dotIndicator = isUnread ? `<span class="absolute top-4 right-4 w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_5px_rgba(59,130,246,0.6)]"></span>` : '';
+                                
+                                const item = document.createElement('div');
+                                item.className = `relative px-4 py-3 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition-all duration-200 ${readBgClass}`;
+                                item.innerHTML = `
+                                    ${dotIndicator}
+                                    <div class="flex items-start">
+                                        <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center mt-0.5 shadow-sm ${n.badge_color}">
+                                            <i data-lucide="bell" class="w-4 h-4"></i>
+                                        </div>
+                                        <div class="ml-3 flex-1 pr-6">
+                                            <p class="text-sm ${titleWeight}">${n.title}</p>
+                                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">${n.message}</p>
+                                            <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-1.5 font-medium flex items-center">
+                                                <i data-lucide="clock" class="w-3 h-3 mr-1 opacity-70"></i> ${n.time_elapsed}
+                                            </p>
+                                        </div>
+                                    </div>
+                                `;
+                                item.onclick = () => {
+                                    if (isUnread) markAsRead(n.id);
+                                };
+                                notificationList.appendChild(item);
+                            });
+                            lucide.createIcons();
+                        }
+                    }
+                })
+                .catch(err => console.error('Error fetching notifications:', err));
+        }
+
+        function markAsRead(id) {
+            fetch('api/mark_notification_read.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notification_id: id })
+            }).then(() => fetchNotifications());
+        }
+
+        function markAllAsRead() {
+            fetch('api/mark_notification_read.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mark_all: true })
+            }).then(() => fetchNotifications());
+        }
+
+        setInterval(fetchNotifications, 30000);
+        fetchNotifications();
     </script>
 </body>
 </html>
