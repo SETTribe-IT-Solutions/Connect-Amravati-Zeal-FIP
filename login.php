@@ -137,66 +137,155 @@ function log_login_attempt($conn, $user_id, $ip, $device, $status) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($t['title']); ?></title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Tailwind Config for Design System -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        navy: {
+                            50: '#eef2f6',
+                            100: '#d9e2ec',
+                            500: '#1a365d',
+                            600: '#152b4a',
+                            700: '#0f1f38',
+                            900: '#0a1424'
+                        },
+                        govgreen: {
+                            50: '#edf7ed',
+                            100: '#cce8cc',
+                            500: '#2e7d32',
+                            600: '#256428'
+                        },
+                        saffron: {
+                            50: '#fff3e0',
+                            100: '#ffe0b2',
+                            500: '#f57c00',
+                            600: '#e65100'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; margin: 0; padding: 0; display: flex; align-items: center; justify-content: center; height: 100vh; }
-        .login-container { background: #ffffff; width: 100%; max-width: 420px; padding: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 8px; border-top: 5px solid #0056b3; }
-        .header-area { text-align: center; margin-bottom: 25px; }
-        .header-area h2 { margin: 5px 0; color: #333; font-size: 22px; }
-        .header-area p { margin: 0; color: #666; font-size: 14px; }
-        .lang-switch { display: flex; justify-content: flex-end; margin-bottom: 15px; font-size: 13px; }
-        .lang-switch a { color: #0056b3; text-decoration: none; font-weight: bold; }
-        .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #495057; font-size: 14px; }
-        .form-control { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ced4da; border-radius: 4px; font-size: 15px; }
-        .form-control:focus { border-color: #80bdff; outline: 0; box-shadow: 0 0 0 0.2rem rgba(0,86,179,0.25); }
-        .btn-submit { background-color: #0056b3; color: white; width: 100%; border: none; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 4px; cursor: pointer; transition: background 0.2s; }
-        .btn-submit:hover { background-color: #004085; }
-        .alert-danger { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 12px; border-radius: 4px; margin-bottom: 20px; font-size: 14px; }
-        .footer-links { margin-top: 20px; text-align: center; font-size: 13px; }
-        .footer-links a { color: #6c757d; text-decoration: none; }
-        .footer-links a:hover { text-decoration: underline; }
+        /* Optional Animations */
+        @keyframes blob {
+            0% { transform: translate(0px, 0px) scale(1); }
+            33% { transform: translate(30px, -50px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+            100% { transform: translate(0px, 0px) scale(1); }
+        }
+        .animate-blob {
+            animation: blob 7s infinite;
+        }
+        .animation-delay-2000 {
+            animation-delay: 2s;
+        }
     </style>
 </head>
-<body>
+<body class="min-h-screen flex items-center justify-center bg-navy-50 font-sans relative overflow-hidden">
 
-<div class="login-container">
-    <div class="lang-switch">
-        <?php if ($lang === 'en'): ?>
-            <a href="login.php?lang=mr">मराठी (MR)</a>
-        <?php else: ?>
-            <a href="login.php?lang=en">English (EN)</a>
-        <?php endif; ?>
+    <!-- Decorative Background Elements -->
+    <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-navy-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+    <div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-saffron-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+    
+    <!-- National Tricolor Bar at the absolute top -->
+    <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#FF9933] via-white to-[#138808]"></div>
+
+    <div class="w-full max-w-md px-6 py-8 relative z-10">
+        
+        <!-- Login Card -->
+        <div class="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl overflow-hidden border border-white/50">
+            
+            <div class="p-8">
+                <!-- Header / Logo Area -->
+                <div class="text-center mb-8">
+                    <div class="mx-auto w-16 h-16 bg-gradient-to-br from-navy-500 to-navy-700 rounded-2xl shadow-lg flex items-center justify-center mb-5 transform rotate-3 hover:rotate-0 transition-transform duration-300">
+                        <i data-lucide="landmark" class="w-8 h-8 text-white"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-slate-900 tracking-tight"><?php echo htmlspecialchars($t['heading']); ?></h2>
+                    <p class="text-sm text-slate-500 mt-2 font-medium"><?php echo htmlspecialchars($t['subheading']); ?></p>
+                </div>
+
+                <!-- Language Toggle -->
+                <div class="flex justify-center mb-6">
+                    <?php if ($lang === 'en'): ?>
+                        <a href="login.php?lang=mr" class="inline-flex items-center text-xs font-semibold text-navy-600 hover:text-navy-800 transition-colors bg-navy-50/80 px-3 py-1.5 rounded-full border border-navy-100">
+                            <i data-lucide="globe" class="w-3 h-3 mr-1.5"></i> Switch to मराठी (MR)
+                        </a>
+                    <?php else: ?>
+                        <a href="login.php?lang=en" class="inline-flex items-center text-xs font-semibold text-navy-600 hover:text-navy-800 transition-colors bg-navy-50/80 px-3 py-1.5 rounded-full border border-navy-100">
+                            <i data-lucide="globe" class="w-3 h-3 mr-1.5"></i> Switch to English (EN)
+                        </a>
+                    <?php endif; ?>
+                </div>
+
+                <?php if (!empty($error_message)): ?>
+                    <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-start mb-6 shadow-sm animate-pulse">
+                        <i data-lucide="alert-circle" class="w-5 h-5 mr-2 shrink-0 mt-0.5"></i>
+                        <span class="text-sm font-medium"><?php echo htmlspecialchars($error_message); ?></span>
+                    </div>
+                <?php endif; ?>
+
+                <form action="login.php?lang=<?php echo $lang; ?>" method="POST" autocomplete="off" class="space-y-5">
+                    
+                    <div>
+                        <label for="username" class="block text-sm font-semibold text-slate-700 mb-1.5"><?php echo htmlspecialchars($t['label_username']); ?></label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                <i data-lucide="user" class="w-5 h-5 text-slate-400"></i>
+                            </div>
+                            <input type="text" id="username" name="username" required autofocus placeholder="e.g. EMP12345 or user@domain.gov.in"
+                                class="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-500 focus:border-transparent transition-all text-slate-900 placeholder-slate-400 shadow-sm hover:border-slate-300">
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label for="password" class="block text-sm font-semibold text-slate-700"><?php echo htmlspecialchars($t['label_password']); ?></label>
+                            <a href="passwordReset.php" class="text-xs font-medium text-navy-600 hover:text-navy-800 transition-colors"><?php echo htmlspecialchars($t['forgot_pwd']); ?></a>
+                        </div>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                <i data-lucide="lock" class="w-5 h-5 text-slate-400"></i>
+                            </div>
+                            <input type="password" id="password" name="password" required placeholder="••••••••"
+                                class="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-500 focus:border-transparent transition-all text-slate-900 placeholder-slate-400 shadow-sm hover:border-slate-300">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-govgreen-600 hover:bg-govgreen-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-govgreen-500 transition-all duration-200 transform hover:-translate-y-0.5 mt-4">
+                        <i data-lucide="log-in" class="w-4 h-4 mr-2"></i>
+                        <?php echo htmlspecialchars($t['btn_login']); ?>
+                    </button>
+                    
+                </form>
+
+            </div>
+            
+            <div class="bg-slate-50/50 px-8 py-4 border-t border-slate-100 text-center">
+                <p class="text-xs text-slate-500 font-medium">&copy; <?php echo date('Y'); ?> Connect Amravati. All rights reserved.</p>
+            </div>
+
+        </div>
     </div>
 
-    <div class="header-area">
-        <h2><?php echo htmlspecialchars($t['heading']); ?></h2>
-        <p><?php echo htmlspecialchars($t['subheading']); ?></p>
-    </div>
-
-    <?php if (!empty($error_message)): ?>
-        <div class="alert-danger">
-            <?php echo htmlspecialchars($error_message); ?>
-        </div>
-    <?php endif; ?>
-
-    <form action="login.php?lang=<?php echo $lang; ?>" method="POST" autocomplete="off">
-        <div class="form-group">
-            <label for="username"><?php echo htmlspecialchars($t['label_username']); ?></label>
-            <input type="text" id="username" name="username" class="form-control" required autofocus placeholder="e.g. EMP12345 or user@domain.gov.in">
-        </div>
-
-        <div class="form-group">
-            <label for="password"><?php echo htmlspecialchars($t['label_password']); ?></label>
-            <input type="password" id="password" name="password" class="form-control" required placeholder="••••••••">
-        </div>
-
-        <button type="submit" class="btn-submit"><?php echo htmlspecialchars($t['btn_login']); ?></button>
-    </form>
-
-    <div class="footer-links">
-        <a href="passwordReset.php"><?php echo htmlspecialchars($t['forgot_pwd']); ?></a>
-    </div>
-</div>
-
+    <script>
+        lucide.createIcons();
+    </script>
 </body>
 </html>

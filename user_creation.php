@@ -245,7 +245,7 @@ $usersResult = $conn->query($usersQuery);
         }
     </style>
 </head>
-<body class="h-screen flex overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
+<body class="h-screen flex overflow-hidden bg-navy-50 dark:bg-slate-900 transition-colors duration-200">
 
     <!-- SIDEBAR -->
     <aside class="w-64 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-all duration-300 z-20" id="sidebar">
@@ -267,8 +267,8 @@ $usersResult = $conn->query($usersQuery);
                 </a>
                 
                 <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6">Administration</p>
-                <a href="user_creation.php" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md bg-navy-50 text-navy-700 dark:bg-slate-800 dark:text-white">
-                    <i data-lucide="users" class="w-5 h-5 mr-3 text-navy-600 dark:text-blue-400"></i>
+                <a href="user_creation.php" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-r-md bg-saffron-50 text-saffron-600 border-l-4 border-saffron-500 dark:bg-slate-800 dark:text-saffron-400 dark:border-saffron-500">
+                    <i data-lucide="users" class="w-5 h-5 mr-3 text-saffron-600 dark:text-saffron-400"></i>
                     User Management
                 </a>
             </nav>
@@ -277,7 +277,9 @@ $usersResult = $conn->query($usersQuery);
 
     <!-- MAIN WRAPPER -->
     <div class="flex-1 flex flex-col overflow-hidden">
-        
+        <!-- National Tricolor Bar -->
+        <div class="h-1.5 w-full bg-gradient-to-r from-[#FF9933] via-white to-[#138808] shrink-0"></div>
+
         <!-- GLOBAL HEADER -->
         <header class="h-16 glass-panel border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 z-10 sticky top-0">
             <div class="flex items-center flex-1">
@@ -296,7 +298,7 @@ $usersResult = $conn->query($usersQuery);
         </header>
 
         <!-- MAIN CONTENT SCROLL AREA -->
-        <main class="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900 p-6 sm:p-8">
+        <main class="flex-1 overflow-y-auto bg-navy-50 dark:bg-slate-900 p-6 sm:p-8">
             
             <!-- Page Header -->
             <div class="flex flex-col md:flex-row md:items-center justify-between mb-8">
@@ -315,9 +317,9 @@ $usersResult = $conn->query($usersQuery);
             <?php endif; ?>
 
             <!-- Form Section -->
-            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 mb-8 overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-                    <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border-t-4 border-t-navy-600 border-x border-b border-slate-200 dark:border-slate-700 mb-8 overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-navy-50 dark:bg-slate-800/50">
+                    <h2 class="text-lg font-semibold text-navy-700 dark:text-white">
                         <?= $editData ? 'Update User Information' : 'Create New User' ?>
                     </h2>
                 </div>
@@ -424,7 +426,7 @@ $usersResult = $conn->query($usersQuery);
                                 </button>
                             <?php endif; ?>
                             
-                            <button type="submit" name="save_user" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-navy-600 hover:bg-navy-700 focus:outline-none transition-colors">
+                            <button type="submit" name="save_user" class="inline-flex items-center px-5 py-2.5 border border-transparent shadow-sm text-sm font-bold rounded-md text-white bg-govgreen-600 hover:bg-govgreen-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-govgreen-500 transition-colors">
                                 <i data-lucide="<?= $editData ? 'save' : 'plus' ?>" class="w-4 h-4 mr-2"></i>
                                 <?= $editData ? 'Update User' : 'Save User' ?>
                             </button>
@@ -457,7 +459,7 @@ $usersResult = $conn->query($usersQuery);
                 
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
-                        <thead class="bg-slate-50 dark:bg-slate-900/50">
+                        <thead class="bg-navy-50 dark:bg-slate-900/50">
                             <tr>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Sr. No</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">User Details</th>
