@@ -9,7 +9,7 @@
 
 // Database credentials
 define('DB_HOST', '82.25.121.144');
-define('DB_USER', 'u196817721_districtCNTDB');
+define('DB_USER', 'u196817721_districCNTZEAL');
 define('DB_PASS', 'districtCNTDB@2026');
 define('DB_NAME', 'u196817721_districtCNTDB');
 
