@@ -32,6 +32,7 @@ $translations = [
         'menu_dashboard' => 'Executive Dashboard',
         'menu_task_alloc' => 'Task Allocation',
         'menu_announcements' => 'Announcements',
+        'menu_announcement_center' => 'Announcement Center',
         'menu_notifications' => 'Notification Center',
         'menu_appreciation' => 'Appreciation',
         'menu_analytics' => 'Analytics & Data',
@@ -132,6 +133,7 @@ $translations = [
         'menu_dashboard' => 'कार्यकारी डॅशबोर्ड',
         'menu_task_alloc' => 'कार्य वाटप',
         'menu_announcements' => 'घोषणा',
+        'menu_announcement_center' => 'घोषणा केंद्र',
         'menu_notifications' => 'सूचना केंद्र',
         'menu_appreciation' => 'कौतुक',
         'menu_analytics' => 'विश्लेषण आणि डेटा',
@@ -671,6 +673,10 @@ function priorityCss(string $p): string {
                class="nav-active flex items-center px-3 py-2.5 text-sm font-medium rounded-md">
                 <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3 text-navy-600 dark:text-blue-400"></i>
                 <?= htmlspecialchars($t['menu_dashboard']) ?>
+            </a>
+            <a href="announcements.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
+                text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                <i data-lucide="megaphone" class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($t['menu_announcement_center'] ?? 'Announcement Center') ?>
             </a>
             <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
                 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
@@ -1833,11 +1839,40 @@ document.addEventListener('click', (e) => {
     }
 });
 
+let lastUnreadCount = 0;
+
+function playChime() {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.value = 587.33; // D5 tone
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        osc.start();
+        setTimeout(() => {
+            osc.frequency.value = 880; // A5 tone
+            setTimeout(() => {
+                osc.stop();
+                audioCtx.close();
+            }, 100);
+        }, 120);
+    } catch (e) {
+        console.error('AudioContext error:', e);
+    }
+}
+
 function fetchNotifications() {
     fetch('api/get_notifications.php')
         .then(res => res.json())
         .then(data => {
             if (data.status === 'success') {
+                if (data.unread_count > lastUnreadCount) {
+                    playChime();
+                }
+                lastUnreadCount = data.unread_count;
+
                 if (data.unread_count > 0) {
                     unreadCountBadge.style.display = 'flex';
                     unreadCountBadge.innerText = data.unread_count > 99 ? '99+' : data.unread_count;
@@ -1854,6 +1889,23 @@ function fetchNotifications() {
                         const titleWeight = isUnread ? 'font-bold text-slate-900 dark:text-white' : 'font-medium text-slate-700 dark:text-slate-300';
                         const dotIndicator = isUnread ? `<span class="absolute top-4 right-4 w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_5px_rgba(59,130,246,0.6)]"></span>` : '';
                         
+                        let actionsHtml = '';
+                        if (n.actions && n.actions.length > 0) {
+                            actionsHtml += `<div class="mt-2 flex flex-wrap gap-1.5" onclick="event.stopPropagation();">`;
+                            n.actions.forEach(act => {
+                                if (act.action === 'accept') {
+                                    actionsHtml += `<button onclick="acceptTask(${n.task_id}, ${n.id})" class="px-2 py-1 bg-govgreen-500 hover:bg-govgreen-600 text-white rounded text-[10px] font-bold transition-colors">Accept</button>`;
+                                } else if (act.action === 'reject') {
+                                    actionsHtml += `<button onclick="openRejectTaskModal(${n.task_id})" class="px-2 py-1 bg-red-500 hover:bg-red-650 text-white rounded text-[10px] font-bold transition-colors">Reject</button>`;
+                                } else if (act.action === 'verify_rejection') {
+                                    actionsHtml += `<button onclick="openReviewRejectionModal(${n.task_id})" class="px-2 py-1 bg-navy-500 hover:bg-navy-600 text-white rounded text-[10px] font-bold transition-colors">Verify Rejection</button>`;
+                                } else if (act.action === 'verify_completion') {
+                                    actionsHtml += `<button onclick="verifyCompletion(${n.task_id}, ${n.id})" class="px-2 py-1 bg-purple-500 hover:bg-purple-650 text-white rounded text-[10px] font-bold transition-colors">Verify Completion</button>`;
+                                }
+                            });
+                            actionsHtml += `</div>`;
+                        }
+
                         const item = document.createElement('div');
                         item.className = `relative px-4 py-3 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition-all duration-200 ${readBgClass}`;
                         item.innerHTML = `
@@ -1865,6 +1917,7 @@ function fetchNotifications() {
                                 <div class="ml-3 flex-1 pr-6">
                                     <p class="text-sm ${titleWeight}">${n.title}</p>
                                     <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">${n.message}</p>
+                                    ${actionsHtml}
                                     <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-1.5 font-medium flex items-center">
                                         <i data-lucide="clock" class="w-3 h-3 mr-1 opacity-70"></i> ${n.time_elapsed}
                                     </p>
@@ -1883,6 +1936,137 @@ function fetchNotifications() {
         .catch(err => console.error('Error fetching notifications:', err));
 }
 
+function acceptTask(taskId, notifId) {
+    fetch('api/task_notification_actions.php?action=accept&task_id=' + taskId)
+        .then(r => r.json())
+        .then(res => {
+            alert(res.message);
+            if (res.status === 'success') {
+                if (notifId) markAsRead(notifId);
+                fetchNotifications();
+            }
+        });
+}
+
+function verifyCompletion(taskId, notifId) {
+    fetch(`api/task_notification_actions.php?action=verify&task_id=${taskId}`)
+        .then(r => r.json())
+        .then(res => {
+            alert(res.message);
+            if (res.status === 'success') {
+                if (notifId) markAsRead(notifId);
+                fetchNotifications();
+            }
+        });
+}
+
+function openRejectTaskModal(taskId) {
+    document.getElementById('rejectTaskId').value = taskId;
+    document.getElementById('rejectTaskModal').classList.remove('hidden');
+}
+
+function closeRejectTaskModal() {
+    document.getElementById('rejectTaskModal').classList.add('hidden');
+    document.getElementById('rejectTaskForm').reset();
+}
+
+function submitRejectTask(e) {
+    e.preventDefault();
+    const form = document.getElementById('rejectTaskForm');
+    const fd = new FormData(form);
+    fd.append('action', 'reject');
+
+    fetch('api/task_notification_actions.php', {
+        method: 'POST',
+        body: fd
+    })
+    .then(r => r.json())
+    .then(res => {
+        alert(res.message);
+        if (res.status === 'success') {
+            closeRejectTaskModal();
+            fetchNotifications();
+        }
+    })
+    .catch(() => alert('Network error submitting rejection. Ensure remarks and file upload size matches.'));
+}
+
+function openReviewRejectionModal(taskId) {
+    document.getElementById('reviewTaskId').value = taskId;
+    
+    fetch(`api/task_notification_actions.php?action=get_rejection_details&task_id=${taskId}`)
+        .then(r => r.json())
+        .then(res => {
+            if (res.status === 'success') {
+                const rej = res.rejection;
+                document.getElementById('reviewEmployeeName').innerText = rej.full_name;
+                document.getElementById('reviewTaskTitle').innerText = `ID: ${taskId}`;
+                document.getElementById('reviewReason').innerText = rej.rejection_reason;
+                document.getElementById('reviewRemarks').innerText = rej.remarks;
+                
+                const fileName = rej.file_path.split('/').pop();
+                document.getElementById('reviewProofName').innerText = fileName;
+                document.getElementById('reviewProofDownload').href = rej.file_path;
+                
+                document.getElementById('reviewRejectionModal').classList.remove('hidden');
+                lucide.createIcons();
+            } else {
+                alert(res.message);
+            }
+        });
+}
+
+function closeReviewRejectionModal() {
+    document.getElementById('reviewRejectionModal').classList.add('hidden');
+}
+
+function submitRejectionReview(actionName) {
+    const taskId = document.getElementById('reviewTaskId').value;
+    fetch(`api/task_notification_actions.php?action=${actionName}&task_id=${taskId}`)
+        .then(r => r.json())
+        .then(res => {
+            alert(res.message);
+            if (res.status === 'success') {
+                closeReviewRejectionModal();
+                fetchNotifications();
+            }
+        });
+}
+
+function openClarificationModal() {
+    document.getElementById('clarificationModal').classList.remove('hidden');
+}
+
+function closeClarificationModal() {
+    document.getElementById('clarificationModal').classList.add('hidden');
+    document.getElementById('clarificationMessage').value = '';
+}
+
+function submitClarification(e) {
+    e.preventDefault();
+    const taskId = document.getElementById('reviewTaskId').value;
+    const message = document.getElementById('clarificationMessage').value;
+
+    const fd = new FormData();
+    fd.append('action', 'request_clarification');
+    fd.append('task_id', taskId);
+    fd.append('message', message);
+
+    fetch('api/task_notification_actions.php', {
+        method: 'POST',
+        body: fd
+    })
+    .then(r => r.json())
+    .then(res => {
+        alert(res.message);
+        if (res.status === 'success') {
+            closeClarificationModal();
+            closeReviewRejectionModal();
+            fetchNotifications();
+        }
+    });
+}
+
 function markAsRead(id) {
     fetch('api/mark_notification_read.php', {
         method: 'POST',
@@ -1899,8 +2083,116 @@ function markAllAsRead() {
     }).then(() => fetchNotifications());
 }
 
-setInterval(fetchNotifications, 30000);
+setInterval(fetchNotifications, 5000);
 fetchNotifications();
 </script>
+
+<!-- MODALS FOR TASK WORKFLOW ACTIONS -->
+<div id="rejectTaskModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white dark:bg-slate-800 w-full max-w-lg rounded-xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-700 m-4">
+        <div class="px-6 py-4 bg-red-600 text-white flex justify-between items-center">
+            <h3 class="font-bold text-lg">Task Rejection Submission</h3>
+            <button onclick="closeRejectTaskModal()" class="text-white hover:opacity-80"><i data-lucide="x" class="w-6 h-6"></i></button>
+        </div>
+        <form id="rejectTaskForm" onsubmit="submitRejectTask(event)" class="p-6 space-y-4">
+            <input type="hidden" id="rejectTaskId" name="task_id">
+            
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Rejection Reason *</label>
+                <select name="reason" required class="block w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2.5 text-sm focus:ring-red-500">
+                    <option value="">-- Choose Rejection Reason --</option>
+                    <option value="Overlapping Priorities">Overlapping Priorities</option>
+                    <option value="Resource Unavailability">Resource Unavailability</option>
+                    <option value="Outside Area of Responsibility">Outside Area of Responsibility</option>
+                    <option value="Technical Insufficiency">Technical Insufficiency</option>
+                    <option value="Health / Leave Period">Health / Leave Period</option>
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Detailed Remarks *</label>
+                <textarea name="remarks" rows="4" required placeholder="Explain in detail why you are rejecting this task assignment..." class="block w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2.5 text-sm focus:ring-red-500"></textarea>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Proof Upload (Mandatory Document) *</label>
+                <input type="file" name="proof_file" required class="block w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 border border-slate-300 dark:border-slate-600 rounded-lg p-1 dark:bg-slate-700">
+                <p class="text-[10px] text-slate-400 mt-1">Supported formats: PDF, DOC, DOCX, JPG, PNG, ZIP. Max file size: 10MB.</p>
+            </div>
+            
+            <div class="flex justify-end space-x-2 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <button type="button" onclick="closeRejectTaskModal()" class="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-700">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-colors">Submit Rejection</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="reviewRejectionModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white dark:bg-slate-800 w-full max-w-lg rounded-xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-700 m-4">
+        <div class="px-6 py-4 bg-navy-500 text-white flex justify-between items-center">
+            <h3 class="font-bold text-lg">Rejection Verification Review</h3>
+            <button onclick="closeReviewRejectionModal()" class="text-white hover:opacity-80"><i data-lucide="x" class="w-6 h-6"></i></button>
+        </div>
+        <div class="p-6 space-y-4">
+            <input type="hidden" id="reviewTaskId">
+            
+            <div class="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg">
+                <div>
+                    <span class="block text-xs text-slate-400 font-bold uppercase">Employee</span>
+                    <span class="text-sm font-semibold text-slate-800 dark:text-white" id="reviewEmployeeName">Employee Name</span>
+                </div>
+                <div>
+                    <span class="block text-xs text-slate-400 font-bold uppercase">Task Name</span>
+                    <span class="text-sm font-semibold text-slate-800 dark:text-white" id="reviewTaskTitle">Task Name</span>
+                </div>
+            </div>
+
+            <div>
+                <span class="block text-xs text-slate-400 font-bold uppercase mb-1">Rejection Reason</span>
+                <span class="text-sm font-semibold text-red-650 dark:text-red-400 bg-red-50 dark:bg-red-950/20 px-3 py-1 rounded-md" id="reviewReason">Reason Description</span>
+            </div>
+
+            <div>
+                <span class="block text-xs text-slate-400 font-bold uppercase mb-1">Detailed Remarks</span>
+                <p class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-900/30 p-3 rounded-lg border border-slate-200 dark:border-slate-700 whitespace-pre-wrap" id="reviewRemarks">Detailed description remarks...</p>
+            </div>
+
+            <div class="border border-slate-200 dark:border-slate-700 p-4 rounded-xl flex justify-between items-center bg-slate-50 dark:bg-slate-900/30">
+                <div class="flex items-center">
+                    <i data-lucide="paperclip" class="w-5 h-5 text-slate-400 mr-2"></i>
+                    <span class="text-sm font-semibold" id="reviewProofName">proof_file.pdf</span>
+                </div>
+                <a href="#" id="reviewProofDownload" target="_blank" class="px-4 py-2 bg-navy-500 hover:bg-navy-600 text-white rounded-lg text-xs font-bold transition-colors">Download Proof</a>
+            </div>
+
+            <div class="flex flex-wrap gap-2 justify-end pt-4 border-t border-slate-200 dark:border-slate-700">
+                <button type="button" onclick="openClarificationModal()" class="px-3.5 py-2 bg-saffron-500 hover:bg-saffron-600 text-white rounded-lg text-xs font-semibold transition-colors">Request Clarification</button>
+                <button type="button" onclick="submitRejectionReview('reject_rejection')" class="px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition-colors">Deny Rejection (Reassign)</button>
+                <button type="button" onclick="submitRejectionReview('approve_rejection')" class="px-3.5 py-2 bg-govgreen-500 hover:bg-govgreen-600 text-white rounded-lg text-xs font-semibold transition-colors">Approve Rejection</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="clarificationModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white dark:bg-slate-800 w-full max-w-md rounded-xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-700 m-4">
+        <div class="px-6 py-4 bg-saffron-500 text-white flex justify-between items-center">
+            <h3 class="font-bold text-lg">Clarification Message</h3>
+            <button onclick="closeClarificationModal()" class="text-white hover:opacity-80"><i data-lucide="x" class="w-6 h-6"></i></button>
+        </div>
+        <form onsubmit="submitClarification(event)" class="p-6 space-y-4">
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Enter your request or clarification notes *</label>
+                <textarea id="clarificationMessage" required rows="4" placeholder="Please clarify the dates or provide further context..." class="block w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2.5 text-sm focus:ring-saffron-500"></textarea>
+            </div>
+            
+            <div class="flex justify-end space-x-2 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <button type="button" onclick="closeClarificationModal()" class="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-700">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-saffron-500 hover:bg-saffron-600 text-white rounded-lg text-sm font-semibold transition-colors">Send Request</button>
+            </div>
+        </form>
+    </div>
+</div>
 </body>
 </html>

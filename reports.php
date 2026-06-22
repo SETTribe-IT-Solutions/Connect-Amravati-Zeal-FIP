@@ -8,6 +8,7 @@
  *    - Take action: Acknowledge, Reject (withReason + Attachment), Complete (Achievement base).
  *    - Export to Print, PDF, and Excel.
  *  Handles DB connection loss gracefully using robust mock fallbacks.
+ *  Updates status dynamically in runtime via asynchronous AJAX.
  * =============================================================
  */
 
@@ -25,6 +26,7 @@ $translations = [
         'menu_dashboard' => 'Executive Dashboard',
         'menu_task_alloc' => 'Task Allocation',
         'menu_announcements' => 'Announcements',
+        'menu_announcement_center' => 'Announcement Center',
         'menu_notifications' => 'Notification Center',
         'menu_appreciation' => 'Appreciation',
         'menu_analytics' => 'Analytics & Data',
@@ -67,6 +69,12 @@ $translations = [
         'status_completed' => 'Completed',
         'status_rejected' => 'Rejected',
         'status_overdue' => 'Overdue',
+        'status_accepted' => 'Accepted',
+        'status_verified' => 'Verified',
+        'status_pending_verification' => 'Pending Verification',
+        'status_approved_rejection' => 'Approved Rejection',
+        'status_denied' => 'Denied',
+        'status_reassigned' => 'Reassigned',
         'priority_critical' => 'Critical',
         'priority_high' => 'High',
         'priority_medium' => 'Medium',
@@ -93,6 +101,7 @@ $translations = [
         'menu_dashboard' => 'कार्यकारी डॅशबोर्ड',
         'menu_task_alloc' => 'कार्य वाटप',
         'menu_announcements' => 'घोषणा',
+        'menu_announcement_center' => 'घोषणा केंद्र',
         'menu_notifications' => 'सूचना केंद्र',
         'menu_appreciation' => 'कौतुक',
         'menu_analytics' => 'विश्लेषण आणि डेटा',
@@ -135,6 +144,12 @@ $translations = [
         'status_completed' => 'पूर्ण',
         'status_rejected' => 'नाकारलेले',
         'status_overdue' => 'थकीत',
+        'status_accepted' => 'स्वीकृत',
+        'status_verified' => 'सत्यापित',
+        'status_pending_verification' => 'सत्यापनासाठी प्रलंबित',
+        'status_approved_rejection' => 'मंजूर नाकारणे',
+        'status_denied' => 'नाकारलेले',
+        'status_reassigned' => 'पुन्हा नियुक्त केलेले',
         'priority_critical' => 'गंभीर',
         'priority_high' => 'उच्च',
         'priority_medium' => 'मध्यम',
@@ -157,21 +172,9 @@ $translations = [
 ];
 $t = $translations[$lang];
 
-// Graceful Database Connection Block
-$db_connected = false;
-$conn = null;
-try {
-    // Attempt DB loading
-    if (file_exists('include/dbConfig.php')) {
-        include 'include/dbConfig.php';
-        if (isset($conn) && $conn instanceof mysqli && !$conn->connect_error) {
-            $db_connected = true;
-        }
-    }
-} catch (Exception $e) {
-    $db_connected = false;
-    error_log("Amravati Connect: DB Connection Failed. Running reports.php in Mock mode. Error: " . $e->getMessage());
-}
+// Database Connection
+require_once 'include/dbConfig.php';
+$db_connected = true;
 
 /* Session details */
 if (empty($_SESSION['user_id'])) {
@@ -185,6 +188,9 @@ if (empty($_SESSION['user_role'])) {
 $userId = (int)$_SESSION['user_id'];
 $sRole  = $_SESSION['user_role'];
 $sName  = $_SESSION['user_name'];
+
+$isCollector = ($sRole === 'Collector' || $sRole === 'Administrator' || $sRole === 'System Administrator');
+$isL1 = ($isCollector || $sRole === 'Additional Collector' || $sRole === 'Deputy Collector');
 
 // ═══════════════════════════════════════════════════════════════════
 // AJAX Endpoint: Fetch Task Timeline Details
@@ -228,7 +234,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'task_details' && isset($_GET['tas
             'task' => [
                 'task_title' => 'Crop Damage Assessment Report',
                 'task_no' => 'TSK-MOCK-2026',
-                'task_description' => 'Determine crop loss percentage in Chandur block villages due to unseasonal rain. Gather data from local Talathis.',
+                'task_description' => 'Determine crop loss percentage in Chandur block villages due to hailstorm.',
                 'creator_name' => 'Sanjay Deshmukh',
                 'assignee_name' => $sName,
                 'due_date' => '2026-06-30'
@@ -299,12 +305,10 @@ function createReportNotification(
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// POST Form Handler: Task Action Workflows
+// POST Form Handler: Asynchronous AJAX-driven status updates in runtime
 // ═══════════════════════════════════════════════════════════════════
-$success_msg = '';
-$error_msg = '';
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    header('Content-Type: application/json');
     $action = $_POST['action'];
     $taskId = (int)$_POST['task_id'];
 
@@ -328,15 +332,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
                 createReportNotification($conn, $taskId, $taskTitle, $creatorId, $userId, 'Task Acknowledged', "$sName has acknowledged the task and is working on it.");
 
-                $_SESSION['flash_success'] = "Task acknowledged successfully.";
-                header("Location: reports.php?lang=$lang");
+                echo json_encode(['status' => 'success', 'task_title' => $taskTitle]);
                 exit;
             }
             elseif ($action === 'reject') {
                 $reason = trim($_POST['reason'] ?? '');
                 if (empty($reason)) {
-                    $_SESSION['flash_error'] = "Rejection reason is required.";
-                    header("Location: reports.php?lang=$lang");
+                    echo json_encode(['status' => 'error', 'message' => 'Rejection reason is required.']);
                     exit;
                 }
 
@@ -376,15 +378,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
                 createReportNotification($conn, $taskId, $taskTitle, $creatorId, $userId, 'Task Rejected', "$sName has rejected the task. Reason: $reason");
 
-                $_SESSION['flash_success'] = "Task rejected successfully.";
-                header("Location: reports.php?lang=$lang");
+                echo json_encode(['status' => 'success']);
                 exit;
             }
             elseif ($action === 'complete') {
                 $achievements = trim($_POST['achievements'] ?? '');
                 if (empty($achievements)) {
-                    $_SESSION['flash_error'] = "Achievement details are required.";
-                    header("Location: reports.php?lang=$lang");
+                    echo json_encode(['status' => 'error', 'message' => 'Achievement details are required.']);
                     exit;
                 }
 
@@ -424,29 +424,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
                 createReportNotification($conn, $taskId, $taskTitle, $creatorId, $userId, 'Task Completed', "$sName has completed the task. Achievements: $achievements");
 
-                $_SESSION['flash_success'] = "Task marked completed successfully.";
-                header("Location: reports.php?lang=$lang");
+                echo json_encode(['status' => 'success']);
                 exit;
             }
         } else {
-            $error_msg = "Task details not found.";
+            echo json_encode(['status' => 'error', 'message' => 'Task details not found.']);
+            exit;
         }
     } else {
         // Handle mock actions
-        $_SESSION['flash_success'] = "Action executed successfully (Demo Mode).";
-        header("Location: reports.php?lang=$lang");
+        echo json_encode(['status' => 'success', 'task_title' => 'Mock Task', 'demo' => true]);
         exit;
     }
-}
-
-// Flash alerts loader
-if (isset($_SESSION['flash_success'])) {
-    $success_msg = $_SESSION['flash_success'];
-    unset($_SESSION['flash_success']);
-}
-if (isset($_SESSION['flash_error'])) {
-    $error_msg = $_SESSION['flash_error'];
-    unset($_SESSION['flash_error']);
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -622,19 +611,21 @@ $level    = match($sRole) {
 
 function statusBadgeCss(string $s): string {
     return match($s) {
-        'Completed'   => 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800',
-        'Pending'     => 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800',
-        'In Progress' => 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800',
-        'Rejected'    => 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
-        'Overdue'     => 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-450 dark:border-red-800',
-        default       => 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600',
+        'Completed', 'Verified' => 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800',
+        'Pending', 'Assigned', 'Reassigned' => 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800',
+        'In Progress' => 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800',
+        'Accepted' => 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800',
+        'Rejected', 'Approved Rejection' => 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
+        'Pending Verification' => 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800',
+        'Overdue' => 'bg-red-100 text-red-850 border-red-200 dark:bg-red-900/30 dark:text-red-450 dark:border-red-800',
+        default => 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:border-slate-600',
     };
 }
 
 function priorityTextCss(string $p): string {
     return match($p) {
-        'Critical' => 'text-purple-650 font-bold dark:text-purple-400',
-        'High'     => 'text-red-600 font-semibold dark:text-red-400',
+        'Critical' => 'text-purple-600 font-bold dark:text-purple-400',
+        'High'     => 'text-red-650 font-semibold dark:text-red-400',
         'Medium'   => 'text-orange-500 font-medium dark:text-orange-400',
         default    => 'text-slate-500 dark:text-slate-400',
     };
@@ -799,6 +790,10 @@ function priorityTextCss(string $p): string {
                 <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3 text-slate-400"></i>
                 <?= htmlspecialchars($t['menu_dashboard']) ?>
             </a>
+            <a href="announcements.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                <i data-lucide="megaphone" class="w-5 h-5 mr-3 text-slate-400"></i>
+                <?= htmlspecialchars($t['menu_announcement_center'] ?? 'Announcement Center') ?>
+            </a>
             <a href="create_task.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <i data-lucide="network" class="w-5 h-5 mr-3 text-slate-400"></i>
                 <?= htmlspecialchars($t['menu_task_alloc']) ?>
@@ -918,33 +913,11 @@ function priorityTextCss(string $p): string {
     <!-- MAIN CONTENT SCROLL AREA -->
     <main class="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900 p-6 sm:p-8">
 
-        <!-- Status Alerts -->
-        <?php if ($success_msg): ?>
-        <div id="statusAlert" class="mb-6 flex items-start gap-3 p-4 bg-govgreen-50 dark:bg-green-900/20 border border-govgreen-100 dark:border-green-800 rounded-xl no-print animate-in">
-            <i data-lucide="check-circle-2" class="w-5 h-5 text-govgreen-600 dark:text-green-400 flex-shrink-0 mt-0.5"></i>
-            <div>
-                <p class="text-sm font-medium text-govgreen-700 dark:text-green-300"><?= htmlspecialchars($success_msg) ?></p>
-            </div>
-            <button onclick="document.getElementById('statusAlert').remove()" class="ml-auto text-govgreen-500 hover:text-govgreen-700">
-                <i data-lucide="x" class="w-4 h-4"></i>
-            </button>
-        </div>
-        <?php endif; ?>
-        <?php if ($error_msg): ?>
-        <div id="statusAlert" class="mb-6 flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl no-print animate-in">
-            <i data-lucide="alert-circle" class="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5"></i>
-            <p class="text-sm font-medium text-red-700 dark:text-red-300"><?= htmlspecialchars($error_msg) ?></p>
-            <button onclick="document.getElementById('statusAlert').remove()" class="ml-auto text-red-400 hover:text-red-600">
-                <i data-lucide="x" class="w-4 h-4"></i>
-            </button>
-        </div>
-        <?php endif; ?>
-
         <!-- DB Status Banner for Mock demo (no-print) -->
         <?php if (!$db_connected): ?>
         <div class="mb-6 p-3.5 bg-saffron-50 dark:bg-saffron-950/20 border border-saffron-200 dark:border-saffron-900 text-saffron-700 dark:text-saffron-400 rounded-xl text-xs flex items-center gap-2.5 no-print">
             <i data-lucide="alert-triangle" class="w-4 h-4 flex-shrink-0"></i>
-            <span>Database host is currently unreachable. Displaying local cache analytics and high-fidelity mock data. Report downloads are fully operational.</span>
+            <span>Database hosts are currently unreachable. Displaying cached reports and mock data analytics. Action executions and document downloads are simulated in runtime.</span>
         </div>
         <?php endif; ?>
 
@@ -1005,26 +978,26 @@ function priorityTextCss(string $p): string {
         <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6 no-print">
             <div class="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 kpi-card">
                 <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_total']) ?></p>
-                <p class="text-2xl font-bold mt-2 text-slate-800 dark:text-white"><?= $currentKpis['total'] ?></p>
+                <p id="kpi-total" class="text-2xl font-bold mt-2 text-slate-800 dark:text-white"><?= $currentKpis['total'] ?></p>
             </div>
             <div class="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 kpi-card">
                 <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_pending']) ?></p>
-                <p class="text-2xl font-bold mt-2 text-yellow-600 dark:text-yellow-400"><?= $currentKpis['pending'] ?></p>
+                <p id="kpi-pending" class="text-2xl font-bold mt-2 text-yellow-600 dark:text-yellow-400"><?= $currentKpis['pending'] ?></p>
             </div>
             <div class="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 kpi-card">
                 <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_in_progress']) ?></p>
-                <p class="text-2xl font-bold mt-2 text-blue-600 dark:text-blue-400"><?= $currentKpis['in_progress'] ?></p>
+                <p id="kpi-in-progress" class="text-2xl font-bold mt-2 text-blue-600 dark:text-blue-400"><?= $currentKpis['in_progress'] ?></p>
             </div>
             <div class="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 kpi-card">
                 <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_completed']) ?></p>
-                <p class="text-2xl font-bold mt-2 text-govgreen-600 dark:text-green-450"><?= $currentKpis['completed'] ?></p>
+                <p id="kpi-completed" class="text-2xl font-bold mt-2 text-govgreen-600 dark:text-green-450"><?= $currentKpis['completed'] ?></p>
             </div>
             <div class="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 kpi-card col-span-2 lg:col-span-1">
                 <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_rejected']) ?> / <?= htmlspecialchars($t['status_overdue']) ?></p>
                 <div class="flex items-baseline gap-2">
-                    <p class="text-2xl font-bold mt-2 text-red-600 dark:text-red-400"><?= $currentKpis['rejected'] ?></p>
+                    <p id="kpi-rejected" class="text-2xl font-bold mt-2 text-red-600 dark:text-red-400"><?= $currentKpis['rejected'] ?></p>
                     <span class="text-xs text-slate-400 dark:text-slate-500">/</span>
-                    <p class="text-sm font-semibold text-red-500 dark:text-red-400"><?= $currentKpis['overdue'] ?> overdue</p>
+                    <p id="kpi-overdue" class="text-sm font-semibold text-red-500 dark:text-red-400"><?= $currentKpis['overdue'] ?> overdue</p>
                 </div>
             </div>
         </div>
@@ -1082,20 +1055,20 @@ function priorityTextCss(string $p): string {
         <!-- Task Report Content Container (Captured by PDF exporter) -->
         <div id="report-container" class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden mb-12">
             <div class="overflow-x-auto">
-                <table id="tasks-table" class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                <table id="tasks-table" class="w-full min-w-[1000px] divide-y divide-slate-200 dark:divide-slate-700 table-fixed">
                     <thead class="bg-slate-50 dark:bg-slate-900/50">
                         <tr>
-                            <th class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_task_no']) ?></th>
-                            <th class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_title']) ?></th>
+                            <th class="w-[8%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_task_no']) ?></th>
+                            <th class="w-[28%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_title']) ?></th>
                             <?php if ($activeTab === 'allocated'): ?>
-                            <th class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_worker']) ?></th>
+                            <th class="w-[15%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_worker']) ?></th>
                             <?php else: ?>
-                            <th class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_creator']) ?></th>
+                            <th class="w-[15%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_creator']) ?></th>
                             <?php endif; ?>
-                            <th class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_priority']) ?></th>
-                            <th class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_status']) ?></th>
-                            <th class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_due']) ?></th>
-                            <th class="px-6 py-3.5 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider no-print"><?= htmlspecialchars($t['col_actions']) ?></th>
+                            <th class="w-[9%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_priority']) ?></th>
+                            <th class="w-[12%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_status']) ?></th>
+                            <th class="w-[10%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_due']) ?></th>
+                            <th class="w-[18%] px-6 py-3.5 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider no-print"><?= htmlspecialchars($t['col_actions']) ?></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-800">
@@ -1120,7 +1093,7 @@ function priorityTextCss(string $p): string {
                                 $dueFormatted = !empty($row['due_date']) ? date('M d, Y', strtotime($row['due_date'])) : 'N/A';
                                 $dueColor = $isOverdue ? 'text-red-650 font-bold dark:text-red-400' : 'text-slate-650 dark:text-slate-300';
                         ?>
-                        <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-750/30 transition-colors">
+                        <tr id="task-row-<?= $taskId ?>" class="hover:bg-slate-50/50 dark:hover:bg-slate-750/30 transition-colors">
                             <!-- Task No -->
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-mono font-semibold text-slate-900 dark:text-white">
                                 <?= htmlspecialchars($row['task_no']) ?>
@@ -1128,7 +1101,7 @@ function priorityTextCss(string $p): string {
                             <!-- Title & Description -->
                             <td class="px-6 py-4">
                                 <div class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($row['task_title']) ?></div>
-                                <div class="text-xs text-slate-450 dark:text-slate-450 mt-0.5 max-w-sm truncate leading-relaxed"><?= htmlspecialchars($row['task_description']) ?></div>
+                                <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm line-clamp-2 leading-relaxed whitespace-normal break-words"><?= htmlspecialchars($row['task_description']) ?></div>
                                 <?php if (!empty($row['task_category'])): ?>
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 mt-1">
                                     <?= htmlspecialchars($row['task_category']) ?>
@@ -1149,45 +1122,56 @@ function priorityTextCss(string $p): string {
                                 <?= htmlspecialchars($t['priority_' . strtolower($row['priority'])]) ?>
                             </td>
                             <!-- Status -->
-                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm status-cell">
                                 <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold border <?= $statusBadge ?>">
-                                    <?= htmlspecialchars($t['status_' . strtolower($displayStatus)]) ?>
+                                    <?php 
+                                    $statusKey = 'status_' . str_replace(' ', '_', strtolower($displayStatus));
+                                    $statusText = isset($t[$statusKey]) ? $t[$statusKey] : $displayStatus;
+                                    ?>
+                                    <?= htmlspecialchars($statusText) ?>
                                 </span>
                             </td>
                             <!-- Due Date -->
-                            <td class="px-6 py-4 whitespace-nowrap text-sm <?= $dueColor ?>">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm due-cell <?= $dueColor ?>">
                                 <?= $dueFormatted ?>
                             </td>
                             <!-- Actions (no-print) -->
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-xs font-medium space-x-1.5 no-print">
-                                <!-- Details Trigger -->
-                                <button onclick="openDetails(<?= $taskId ?>)" class="px-2.5 py-1 text-slate-700 border border-slate-300 dark:text-slate-300 dark:border-slate-700 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors inline-flex items-center gap-1">
-                                    <i data-lucide="eye" class="w-3.5 h-3.5"></i> <?= htmlspecialchars($t['btn_view']) ?>
-                                </button>
-
-                                <?php if ($activeTab === 'assigned'): ?>
-                                    <!-- Acknowledge action -->
-                                    <?php if ($row['status'] === 'Pending'): ?>
-                                    <form method="POST" action="reports.php?lang=<?= $lang ?>&tab=<?= $activeTab ?>" class="inline">
-                                        <input type="hidden" name="action" value="acknowledge">
-                                        <input type="hidden" name="task_id" value="<?= $taskId ?>">
-                                        <button type="submit" class="px-2.5 py-1 bg-govgreen-500 hover:bg-govgreen-600 text-white rounded-md transition-colors inline-flex items-center gap-1 shadow-sm font-semibold">
-                                            <i data-lucide="check" class="w-3.5 h-3.5"></i> <?= htmlspecialchars($t['btn_acknowledge']) ?>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium no-print">
+                                <div class="flex flex-wrap justify-end gap-1.5">
+                                    <?php if ($activeTab === 'assigned'): ?>
+                                        <?php if ($row['status'] === 'Pending' || $row['status'] === 'Reassigned'): ?>
+                                        <button onclick="acknowledgeTask(<?= $taskId ?>, this)" class="px-2.5 py-1 bg-govgreen-500 hover:bg-govgreen-600 text-white rounded-md transition-colors inline-flex items-center gap-1 shadow-sm font-semibold text-xs">
+                                            <i data-lucide="check" class="w-3.5 h-3.5"></i> Accept
                                         </button>
-                                    </form>
-                                    <!-- Reject modal trigger -->
-                                    <button onclick="openRejectModal(<?= $taskId ?>, '<?= htmlspecialchars(addslashes($row['task_title'])) ?>')" class="px-2.5 py-1 bg-red-650 hover:bg-red-700 text-white rounded-md transition-colors inline-flex items-center gap-1 shadow-sm font-semibold">
-                                        <i data-lucide="x" class="w-3.5 h-3.5"></i> <?= htmlspecialchars($t['btn_reject']) ?>
-                                    </button>
+                                        <button onclick="openRejectTaskModal(<?= $taskId ?>)" class="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors inline-flex items-center gap-1 shadow-sm font-semibold text-xs">
+                                            <i data-lucide="x" class="w-3.5 h-3.5"></i> Reject
+                                        </button>
+                                        <?php endif; ?>
+
+                                        <!-- Complete Action (visible in In Progress, Accepted, Reassigned) -->
+                                        <?php if (in_array($row['status'], ['In Progress', 'Accepted'])): ?>
+                                        <button onclick="openCompleteTaskModal(<?= $taskId ?>, '<?= htmlspecialchars(addslashes($row['task_title'])) ?>')" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors inline-flex items-center gap-1 shadow-sm font-semibold text-xs">
+                                            <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> <?= htmlspecialchars($t['btn_complete']) ?>
+                                        </button>
+                                        <?php endif; ?>
                                     <?php endif; ?>
 
-                                    <!-- Complete Action (visible in In Progress) -->
-                                    <?php if ($row['status'] === 'In Progress'): ?>
-                                    <button onclick="openCompleteModal(<?= $taskId ?>, '<?= htmlspecialchars(addslashes($row['task_title'])) ?>')" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors inline-flex items-center gap-1 shadow-sm font-semibold">
-                                        <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> <?= htmlspecialchars($t['btn_complete']) ?>
-                                    </button>
+                                    <?php if ($activeTab === 'allocated'): ?>
+                                        <!-- Verify Completion (visible to L1 / creator when Completed) -->
+                                        <?php if ($row['status'] === 'Completed' && $isL1): ?>
+                                        <button onclick="verifyCompletion(<?= $taskId ?>, this)" class="px-2.5 py-1 bg-purple-500 hover:bg-purple-650 text-white rounded-md transition-colors inline-flex items-center gap-1 shadow-sm font-semibold text-xs">
+                                            <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Verify Completion
+                                        </button>
+                                        <?php endif; ?>
+
+                                        <!-- Verify Rejection (visible to L1 / creator when Pending Verification) -->
+                                        <?php if ($row['status'] === 'Pending Verification' && $isL1): ?>
+                                        <button onclick="openReviewRejectionModal(<?= $taskId ?>)" class="px-2.5 py-1 bg-navy-500 hover:bg-navy-600 text-white rounded-md transition-colors inline-flex items-center gap-1 shadow-sm font-semibold text-xs">
+                                            <i data-lucide="clipboard-list" class="w-3.5 h-3.5"></i> Verify Rejection
+                                        </button>
+                                        <?php endif; ?>
                                     <?php endif; ?>
-                                <?php endif; ?>
+                                </div>
                             </td>
                         </tr>
                         <?php 
@@ -1202,94 +1186,140 @@ function priorityTextCss(string $p): string {
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════════
-     MODAL: Reject Task Workflow
+     MODALS FOR TASK WORKFLOW ACTIONS
 ════════════════════════════════════════════════════════════════════ -->
-<div id="rejectModal" class="hidden fixed inset-0 z-50 overflow-y-auto no-print">
-    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div class="fixed inset-0 transition-opacity bg-slate-900/60 backdrop-blur-sm" onclick="closeRejectModal()"></div>
-        <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
-        
-        <div class="inline-block align-middle bg-white dark:bg-slate-800 rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-slate-200 dark:border-slate-700">
-            <form method="POST" action="reports.php?lang=<?= $lang ?>&tab=<?= $activeTab ?>" enctype="multipart/form-data">
-                <input type="hidden" name="action" value="reject">
-                <input type="hidden" name="task_id" id="reject_task_id">
+<div id="rejectTaskModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white dark:bg-slate-800 w-full max-w-lg rounded-xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-700 m-4">
+        <div class="px-6 py-4 bg-red-600 text-white flex justify-between items-center">
+            <h3 class="font-bold text-lg">Task Rejection Submission</h3>
+            <button type="button" onclick="closeRejectTaskModal()" class="text-white hover:opacity-80"><i data-lucide="x" class="w-6 h-6"></i></button>
+        </div>
+        <form id="rejectTaskForm" onsubmit="submitRejectTask(event)" class="p-6 space-y-4">
+            <input type="hidden" id="rejectTaskId" name="task_id">
+            
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Rejection Reason *</label>
+                <select name="reason" required class="block w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2.5 text-sm focus:ring-red-500">
+                    <option value="">-- Choose Rejection Reason --</option>
+                    <option value="Overlapping Priorities">Overlapping Priorities</option>
+                    <option value="Resource Unavailability">Resource Unavailability</option>
+                    <option value="Outside Area of Responsibility">Outside Area of Responsibility</option>
+                    <option value="Technical Insufficiency">Technical Insufficiency</option>
+                    <option value="Health / Leave Period">Health / Leave Period</option>
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Detailed Remarks *</label>
+                <textarea name="remarks" rows="4" required placeholder="Explain in detail why you are rejecting this task assignment..." class="block w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2.5 text-sm focus:ring-red-500"></textarea>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Proof Upload (Mandatory Document) *</label>
+                <input type="file" name="proof_file" required class="block w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 border border-slate-300 dark:border-slate-600 rounded-lg p-1 dark:bg-slate-700">
+                <p class="text-[10px] text-slate-400 mt-1">Supported formats: PDF, DOC, DOCX, JPG, PNG, ZIP. Max file size: 10MB.</p>
+            </div>
+            
+            <div class="flex justify-end space-x-2 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <button type="button" onclick="closeRejectTaskModal()" class="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-700">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-colors">Submit Rejection</button>
+            </div>
+        </form>
+    </div>
+</div>
 
-                <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-850">
-                    <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <i data-lucide="alert-triangle" class="w-5 h-5 text-red-500"></i>
-                        <span><?= htmlspecialchars($t['btn_reject']) ?> Task</span>
-                    </h3>
-                    <button type="button" onclick="closeRejectModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                        <i data-lucide="x" class="w-5 h-5"></i>
-                    </button>
+<div id="completeTaskModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white dark:bg-slate-800 w-full max-w-lg rounded-xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-700 m-4">
+        <div class="px-6 py-4 bg-blue-600 text-white flex justify-between items-center">
+            <h3 class="font-bold text-lg">Task Completion Submission</h3>
+            <button type="button" onclick="closeCompleteTaskModal()" class="text-white hover:opacity-80"><i data-lucide="x" class="w-6 h-6"></i></button>
+        </div>
+        <form id="completeTaskForm" onsubmit="submitCompleteTask(event)" class="p-6 space-y-4" enctype="multipart/form-data">
+            <input type="hidden" id="completeTaskId" name="task_id">
+            
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Achievements *</label>
+                <textarea name="achievements" rows="4" required placeholder="Detail the outcome of this task. List block-wise targets met, percentages achieved, or field assessments completed..." class="block w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2.5 text-sm focus:ring-blue-500"></textarea>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Proof of Completion (Optional)</label>
+                <input type="file" name="complete_file" class="block w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-slate-300 dark:border-slate-600 rounded-lg p-1 dark:bg-slate-700">
+                <p class="text-[10px] text-slate-400 mt-1">Supported formats: PDF, DOC, DOCX, JPG, PNG, ZIP. Max file size: 10MB.</p>
+            </div>
+            
+            <div class="flex justify-end space-x-2 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <button type="button" onclick="closeCompleteTaskModal()" class="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-700">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors">Submit Completion</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="reviewRejectionModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white dark:bg-slate-800 w-full max-w-lg rounded-xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-700 m-4">
+        <div class="px-6 py-4 bg-navy-500 text-white flex justify-between items-center">
+            <h3 class="font-bold text-lg">Rejection Verification Review</h3>
+            <button type="button" onclick="closeReviewRejectionModal()" class="text-white hover:opacity-80"><i data-lucide="x" class="w-6 h-6"></i></button>
+        </div>
+        <div class="p-6 space-y-4">
+            <input type="hidden" id="reviewTaskId">
+            
+            <div class="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg">
+                <div>
+                    <span class="block text-xs text-slate-400 font-bold uppercase">Employee</span>
+                    <span class="text-sm font-semibold text-slate-800 dark:text-white" id="reviewEmployeeName">Employee Name</span>
                 </div>
-
-                <div class="p-6 space-y-4">
-                    <p class="text-sm text-slate-500 dark:text-slate-400">Task Title: <strong id="reject_task_title_text" class="text-slate-800 dark:text-white"></strong></p>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"><?= htmlspecialchars($t['lbl_reason']) ?> <span class="text-red-500">*</span></label>
-                        <textarea name="reason" required rows="3" placeholder="Provide clear official reasons why this task is being rejected..." class="w-full px-3 py-2 border border-slate-300 dark:border-slate-650 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-navy-500 text-sm"></textarea>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"><?= htmlspecialchars($t['lbl_attachment']) ?></label>
-                        <input type="file" name="attachment" class="block w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 dark:file:bg-slate-700 dark:file:text-slate-300 hover:file:bg-slate-200">
-                    </div>
+                <div>
+                    <span class="block text-xs text-slate-400 font-bold uppercase">Task Name</span>
+                    <span class="text-sm font-semibold text-slate-800 dark:text-white" id="reviewTaskTitle">Task Name</span>
                 </div>
+            </div>
 
-                <div class="px-6 py-4 bg-slate-50 dark:bg-slate-850 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-2.5">
-                    <button type="button" onclick="closeRejectModal()" class="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-750 transition-colors"><?= htmlspecialchars($t['lbl_cancel']) ?></button>
-                    <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm"><?= htmlspecialchars($t['lbl_submit']) ?></button>
+            <div>
+                <span class="block text-xs text-slate-400 font-bold uppercase mb-1">Rejection Reason</span>
+                <span class="text-sm font-semibold text-red-650 dark:text-red-400 bg-red-50 dark:bg-red-950/20 px-3 py-1 rounded-md" id="reviewReason">Reason Description</span>
+            </div>
+
+            <div>
+                <span class="block text-xs text-slate-400 font-bold uppercase mb-1">Detailed Remarks</span>
+                <p class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-900/30 p-3 rounded-lg border border-slate-200 dark:border-slate-700 whitespace-pre-wrap" id="reviewRemarks">Detailed description remarks...</p>
+            </div>
+
+            <div class="border border-slate-200 dark:border-slate-700 p-4 rounded-xl flex justify-between items-center bg-slate-50 dark:bg-slate-900/30">
+                <div class="flex items-center">
+                    <i data-lucide="paperclip" class="w-5 h-5 text-slate-400 mr-2"></i>
+                    <span class="text-sm font-semibold" id="reviewProofName">proof_file.pdf</span>
                 </div>
-            </form>
+                <a href="#" id="reviewProofDownload" target="_blank" class="px-4 py-2 bg-navy-500 hover:bg-navy-600 text-white rounded-lg text-xs font-bold transition-colors">Download Proof</a>
+            </div>
+
+            <div class="flex flex-wrap gap-2 justify-end pt-4 border-t border-slate-200 dark:border-slate-700">
+                <button type="button" onclick="openClarificationModal()" class="px-3.5 py-2 bg-saffron-500 hover:bg-saffron-600 text-white rounded-lg text-xs font-semibold transition-colors">Request Clarification</button>
+                <button type="button" onclick="submitRejectionReview('reject_rejection')" class="px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition-colors">Deny Rejection (Reassign)</button>
+                <button type="button" onclick="submitRejectionReview('approve_rejection')" class="px-3.5 py-2 bg-govgreen-500 hover:bg-govgreen-600 text-white rounded-lg text-xs font-semibold transition-colors">Approve Rejection</button>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════════════
-     MODAL: Complete Task Workflow
-════════════════════════════════════════════════════════════════════ -->
-<div id="completeModal" class="hidden fixed inset-0 z-50 overflow-y-auto no-print">
-    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div class="fixed inset-0 transition-opacity bg-slate-900/60 backdrop-blur-sm" onclick="closeCompleteModal()"></div>
-        <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
-        
-        <div class="inline-block align-middle bg-white dark:bg-slate-800 rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-slate-200 dark:border-slate-700">
-            <form method="POST" action="reports.php?lang=<?= $lang ?>&tab=<?= $activeTab ?>" enctype="multipart/form-data">
-                <input type="hidden" name="action" value="complete">
-                <input type="hidden" name="task_id" id="complete_task_id">
-
-                <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-850">
-                    <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <i data-lucide="check-circle" class="w-5 h-5 text-govgreen-500"></i>
-                        <span><?= htmlspecialchars($t['btn_complete']) ?> Task</span>
-                    </h3>
-                    <button type="button" onclick="closeCompleteModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                        <i data-lucide="x" class="w-5 h-5"></i>
-                    </button>
-                </div>
-
-                <div class="p-6 space-y-4">
-                    <p class="text-sm text-slate-500 dark:text-slate-400">Task Title: <strong id="complete_task_title_text" class="text-slate-800 dark:text-white"></strong></p>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"><?= htmlspecialchars($t['lbl_achievements']) ?> <span class="text-red-500">*</span></label>
-                        <textarea name="achievements" required rows="4" placeholder="Detail the outcome of this task. List block-wise targets met, percentages achieved, or field assessments completed..." class="w-full px-3 py-2 border border-slate-300 dark:border-slate-650 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-navy-500 text-sm"></textarea>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5"><?= htmlspecialchars($t['lbl_attachment']) ?> (Proof of Completion)</label>
-                        <input type="file" name="attachment" class="block w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 dark:file:bg-slate-700 dark:file:text-slate-300 hover:file:bg-slate-200">
-                    </div>
-                </div>
-
-                <div class="px-6 py-4 bg-slate-50 dark:bg-slate-850 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-2.5">
-                    <button type="button" onclick="closeCompleteModal()" class="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-750 transition-colors"><?= htmlspecialchars($t['lbl_cancel']) ?></button>
-                    <button type="submit" class="px-4 py-2 bg-govgreen-500 hover:bg-govgreen-600 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm"><?= htmlspecialchars($t['lbl_submit']) ?></button>
-                </div>
-            </form>
+<div id="clarificationModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white dark:bg-slate-800 w-full max-w-md rounded-xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-700 m-4">
+        <div class="px-6 py-4 bg-saffron-500 text-white flex justify-between items-center">
+            <h3 class="font-bold text-lg">Clarification Message</h3>
+            <button type="button" onclick="closeClarificationModal()" class="text-white hover:opacity-80"><i data-lucide="x" class="w-6 h-6"></i></button>
         </div>
+        <form onsubmit="submitClarification(event)" class="p-6 space-y-4">
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Enter your request or clarification notes *</label>
+                <textarea id="clarificationMessage" required rows="4" placeholder="Please clarify the dates or provide further context..." class="block w-full border border-slate-300 dark:border-slate-650 rounded-lg p-2.5 text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-saffron-500"></textarea>
+            </div>
+            
+            <div class="flex justify-end space-x-2 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <button type="button" onclick="closeClarificationModal()" class="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-700">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-saffron-500 hover:bg-saffron-600 text-white rounded-lg text-sm font-semibold transition-colors">Send Request</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -1317,7 +1347,7 @@ function priorityTextCss(string $p): string {
                 <div>
                     <h4 class="text-lg font-bold text-slate-900 dark:text-white" id="det_title"></h4>
                     <p class="text-xs text-slate-400 dark:text-slate-500 font-mono mt-1" id="det_no"></p>
-                    <p class="text-sm text-slate-600 dark:text-slate-350 mt-3 leading-relaxed" id="det_desc"></p>
+                    <p class="text-sm text-slate-650 dark:text-slate-350 mt-3 leading-relaxed" id="det_desc"></p>
                 </div>
 
                 <!-- KPI Quick View -->
@@ -1360,49 +1390,254 @@ function priorityTextCss(string $p): string {
     </div>
 </div>
 
+<!-- Floating Toast Alert -->
+<div id="toast" class="hidden fixed bottom-6 left-6 z-50 flex items-center gap-3 px-4 py-3 bg-slate-900 text-white dark:bg-white dark:text-slate-950 rounded-xl shadow-lg border border-slate-800 dark:border-slate-205 transition-all duration-300 transform translate-y-10 opacity-0">
+    <i id="toastIcon" data-lucide="check-circle" class="w-5 h-5 text-govgreen-500"></i>
+    <span id="toastMsg" class="text-sm font-medium"></span>
+</div>
+
 <script>
     // Initialize Lucide Icons
     lucide.createIcons();
 
-    // Dark Mode Toggle Logic
-    const themeToggle = document.getElementById('themeToggle');
-    themeToggle.addEventListener('click', () => {
-        if (document.documentElement.classList.contains('dark')) {
-            document.documentElement.classList.remove('dark');
-            document.documentElement.classList.add('light');
-            localStorage.setItem('color-theme', 'light');
-        } else {
-            document.documentElement.classList.remove('light');
-            document.documentElement.classList.add('dark');
-            localStorage.setItem('color-theme', 'dark');
+    // Toast alerts helper
+    function showToast(msg, type = 'success') {
+        const toast = document.getElementById('toast');
+        const toastMsg = document.getElementById('toastMsg');
+        const toastIcon = document.getElementById('toastIcon');
+
+        toastMsg.textContent = msg;
+
+        let icon = 'check-circle';
+        let colorClass = 'text-govgreen-500';
+        if (type === 'warning' || type === 'error') {
+            icon = 'alert-triangle';
+            colorClass = 'text-red-500';
         }
-    });
 
-    // Sidebar toggle (Responsive)
-    const sidebar = document.getElementById('sidebar');
-    const sidebarToggle = document.getElementById('sidebarToggle');
-    sidebarToggle.addEventListener('click', () => {
-        sidebar.classList.toggle('-translate-x-full');
-    });
+        toastIcon.setAttribute('data-lucide', icon);
+        toastIcon.className = `w-5 h-5 ${colorClass}`;
+        lucide.createIcons();
 
-    // Modals control
-    function openRejectModal(id, title) {
-        document.getElementById('reject_task_id').value = id;
-        document.getElementById('reject_task_title_text').textContent = title;
-        document.getElementById('rejectModal').classList.remove('hidden');
-    }
-    function closeRejectModal() {
-        document.getElementById('rejectModal').classList.add('hidden');
+        toast.classList.remove('hidden');
+        setTimeout(() => {
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0)';
+        }, 50);
+
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(10px)';
+            setTimeout(() => toast.classList.add('hidden'), 300);
+        }, 3500);
     }
 
-    // Completion modal actions
-    function openCompleteModal(id, title) {
-        document.getElementById('complete_task_id').value = id;
-        document.getElementById('complete_task_title_text').textContent = title;
-        document.getElementById('completeModal').classList.remove('hidden');
+    // Dynamic runtime counters update
+    function adjustKpiCounters(oldStatus, newStatus) {
+        const kpiPending = document.getElementById('kpi-pending');
+        const kpiInProgress = document.getElementById('kpi-in-progress');
+        const kpiCompleted = document.getElementById('kpi-completed');
+        const kpiRejected = document.getElementById('kpi-rejected');
+
+        if (oldStatus === 'Pending' && kpiPending) {
+            kpiPending.textContent = Math.max(0, parseInt(kpiPending.textContent) - 1);
+        }
+        if (oldStatus === 'In Progress' && kpiInProgress) {
+            kpiInProgress.textContent = Math.max(0, parseInt(kpiInProgress.textContent) - 1);
+        }
+
+        if (newStatus === 'In Progress' && kpiInProgress) {
+            kpiInProgress.textContent = parseInt(kpiInProgress.textContent) + 1;
+        } else if (newStatus === 'Completed' && kpiCompleted) {
+            kpiCompleted.textContent = parseInt(kpiCompleted.textContent) + 1;
+        } else if (newStatus === 'Rejected' && kpiRejected) {
+            kpiRejected.textContent = parseInt(kpiRejected.textContent) + 1;
+        }
     }
-    function closeCompleteModal() {
-        document.getElementById('completeModal').classList.add('hidden');
+
+    // Acknowledge task AJAX logic (accept action)
+    function acknowledgeTask(taskId, buttonElement) {
+        buttonElement.disabled = true;
+        buttonElement.innerHTML = `<i class="w-3.5 h-3.5 animate-spin"></i> Processing...`;
+
+        fetch('api/task_notification_actions.php?action=accept&task_id=' + taskId)
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message);
+                if (data.status === 'success') {
+                    window.location.reload();
+                } else {
+                    buttonElement.disabled = false;
+                    buttonElement.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5"></i> Accept`;
+                    lucide.createIcons();
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Connection failed.');
+                buttonElement.disabled = false;
+                buttonElement.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5"></i> Accept`;
+                lucide.createIcons();
+            });
+    }
+
+    // Modal Control: Reject
+    function openRejectTaskModal(taskId) {
+        document.getElementById('rejectTaskId').value = taskId;
+        document.getElementById('rejectTaskModal').classList.remove('hidden');
+    }
+    function closeRejectTaskModal() {
+        document.getElementById('rejectTaskModal').classList.add('hidden');
+        document.getElementById('rejectTaskForm').reset();
+    }
+    function submitRejectTask(e) {
+        e.preventDefault();
+        const form = document.getElementById('rejectTaskForm');
+        const fd = new FormData(form);
+        fd.append('action', 'reject');
+
+        fetch('api/task_notification_actions.php', {
+            method: 'POST',
+            body: fd
+        })
+        .then(r => r.json())
+        .then(res => {
+            alert(res.message);
+            if (res.status === 'success') {
+                closeRejectTaskModal();
+                window.location.reload();
+            }
+        })
+        .catch(() => alert('Network error submitting rejection. Ensure remarks and file upload size matches.'));
+    }
+
+    // Modal Control: Complete
+    function openCompleteTaskModal(taskId, title) {
+        document.getElementById('completeTaskId').value = taskId;
+        document.getElementById('completeTaskModal').classList.remove('hidden');
+    }
+    function closeCompleteTaskModal() {
+        document.getElementById('completeTaskModal').classList.add('hidden');
+        document.getElementById('completeTaskForm').reset();
+    }
+    function submitCompleteTask(e) {
+        e.preventDefault();
+        const form = document.getElementById('completeTaskForm');
+        const fd = new FormData(form);
+        fd.append('action', 'complete');
+
+        fetch('api/task_notification_actions.php', {
+            method: 'POST',
+            body: fd
+        })
+        .then(r => r.json())
+        .then(res => {
+            alert(res.message);
+            if (res.status === 'success') {
+                closeCompleteTaskModal();
+                window.location.reload();
+            }
+        })
+        .catch(() => alert('Network error submitting completion. Ensure achievements is filled and file upload size matches.'));
+    }
+
+    // L1 Verification Actions
+    function verifyCompletion(taskId, buttonElement) {
+        buttonElement.disabled = true;
+        buttonElement.innerHTML = `<i class="w-3.5 h-3.5 animate-spin"></i> Processing...`;
+        fetch(`api/task_notification_actions.php?action=verify&task_id=${taskId}`)
+            .then(r => r.json())
+            .then(res => {
+                alert(res.message);
+                if (res.status === 'success') {
+                    window.location.reload();
+                } else {
+                    buttonElement.disabled = false;
+                    buttonElement.innerHTML = `<i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Verify Completion`;
+                    lucide.createIcons();
+                }
+            })
+            .catch(() => {
+                buttonElement.disabled = false;
+                buttonElement.innerHTML = `<i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Verify Completion`;
+                lucide.createIcons();
+            });
+    }
+
+    function openReviewRejectionModal(taskId) {
+        document.getElementById('reviewTaskId').value = taskId;
+        
+        fetch(`api/task_notification_actions.php?action=get_rejection_details&task_id=${taskId}`)
+            .then(r => r.json())
+            .then(res => {
+                if (res.status === 'success') {
+                    const rej = res.rejection;
+                    document.getElementById('reviewEmployeeName').innerText = rej.full_name;
+                    document.getElementById('reviewTaskTitle').innerText = `ID: ${taskId}`;
+                    document.getElementById('reviewReason').innerText = rej.rejection_reason;
+                    document.getElementById('reviewRemarks').innerText = rej.remarks;
+                    
+                    const fileName = rej.file_path.split('/').pop();
+                    document.getElementById('reviewProofName').innerText = fileName;
+                    document.getElementById('reviewProofDownload').href = rej.file_path;
+                    
+                    document.getElementById('reviewRejectionModal').classList.remove('hidden');
+                    lucide.createIcons();
+                } else {
+                    alert(res.message);
+                }
+            });
+    }
+
+    function closeReviewRejectionModal() {
+        document.getElementById('reviewRejectionModal').classList.add('hidden');
+    }
+
+    function submitRejectionReview(actionName) {
+        const taskId = document.getElementById('reviewTaskId').value;
+        fetch(`api/task_notification_actions.php?action=${actionName}&task_id=${taskId}`)
+            .then(r => r.json())
+            .then(res => {
+                alert(res.message);
+                if (res.status === 'success') {
+                    closeReviewRejectionModal();
+                    window.location.reload();
+                }
+            });
+    }
+
+    function openClarificationModal() {
+        document.getElementById('clarificationModal').classList.remove('hidden');
+    }
+
+    function closeClarificationModal() {
+        document.getElementById('clarificationModal').classList.add('hidden');
+        document.getElementById('clarificationMessage').value = '';
+    }
+
+    function submitClarification(e) {
+        e.preventDefault();
+        const taskId = document.getElementById('reviewTaskId').value;
+        const message = document.getElementById('clarificationMessage').value;
+
+        const fd = new FormData();
+        fd.append('action', 'request_clarification');
+        fd.append('task_id', taskId);
+        fd.append('message', message);
+
+        fetch('api/task_notification_actions.php', {
+            method: 'POST',
+            body: fd
+        })
+        .then(r => r.json())
+        .then(res => {
+            alert(res.message);
+            if (res.status === 'success') {
+                closeClarificationModal();
+                closeReviewRejectionModal();
+                window.location.reload();
+            }
+        });
     }
 
     // AJAX Details Retrieval & Timeline Loader
@@ -1423,7 +1658,7 @@ function priorityTextCss(string $p): string {
                     const docsContainer = document.getElementById('det_docs');
                     docsContainer.innerHTML = '';
                     if (!data.documents || data.documents.length === 0) {
-                        docsContainer.innerHTML = '<p class="text-xs text-slate-500 italic">No files attached.</p>';
+                        docsContainer.innerHTML = '<p class="text-xs text-slate-500 italic font-medium">No files attached.</p>';
                     } else {
                         data.documents.forEach(doc => {
                             docsContainer.innerHTML += `
@@ -1466,7 +1701,7 @@ function priorityTextCss(string $p): string {
                     lucide.createIcons();
                     document.getElementById('detailsModal').classList.remove('hidden');
                 } else {
-                    alert('Error: ' + data.message);
+                    showToast(data.message || 'Details fetch failed.', 'error');
                 }
             })
             .catch(err => console.error('Details fetch error: ', err));

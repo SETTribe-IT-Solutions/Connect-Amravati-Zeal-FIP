@@ -122,6 +122,10 @@
                     <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3 text-navy-600 dark:text-blue-400"></i>
                     Executive Dashboard
                 </a>
+                <a href="announcements.php" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <i data-lucide="megaphone" class="w-5 h-5 mr-3 text-slate-400"></i>
+                    Announcement Center
+                </a>
                 <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                     <i data-lucide="network" class="w-5 h-5 mr-3 text-slate-400"></i>
                     Task Allocation
