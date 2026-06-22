@@ -1870,46 +1870,7 @@ function masterEventBg(string $event_type, string $status): string {
                     <div class="absolute left-4 top-5 bottom-0 w-0.5 bg-gradient-to-b from-slate-200 to-transparent dark:from-slate-700"></div>
                 </div>
 
-                <!-- Create Status Entry Form (Pending, Completed, Overdue) -->
-                <div class="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
-                    <h4 class="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider mb-3">Create Status Entry</h4>
-                    <form id="modalQuickStatusForm" onsubmit="submitQuickStatus(event)" class="space-y-3">
-                        <input type="hidden" id="mqTaskId" name="pt_task_id">
-                        <input type="hidden" id="mqOldStatus" name="pt_old_status">
-                        <input type="hidden" name="action" value="add_tracking">
-                        <input type="hidden" name="is_ajax" value="1">
-                        
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">New Status</label>
-                                <select id="mqStatus" name="pt_status" required
-                                        class="w-full px-3 py-2 text-xs border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-navy-500">
-                                    <option value="Pending">Pending</option>
-                                    <option value="Completed">Completed</option>
-                                    <option value="Overdue">Overdue</option>
-                                    <option value="Assigned">Assigned</option>
-                                    <option value="In Progress">In Progress</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Actor (Admin/User ID)</label>
-                                <input type="number" name="pt_by" value="1" 
-                                       class="w-full px-3 py-2 text-xs border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none" readonly>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Remarks</label>
-                            <textarea id="mqRemarks" name="pt_remarks" placeholder="Enter status update details..." required
-                                      class="w-full px-3 py-2 text-xs border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-navy-500" rows="2"></textarea>
-                        </div>
-                        <div class="flex justify-end">
-                            <button type="submit" id="mqSubmitBtn"
-                                    class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg text-white bg-navy-600 hover:bg-navy-700 shadow-sm transition-all">
-                                <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Add Status Entry
-                            </button>
-                        </div>
-                    </form>
-                </div>
+
 
             </div>
         </div>
@@ -2389,10 +2350,7 @@ function renderModal(task, events, docs) {
     const timeline = document.getElementById('modalTimeline');
     loader.style.display = 'none';
 
-    // Populate quick status form inputs
-    if (document.getElementById('mqTaskId')) document.getElementById('mqTaskId').value = task.task_id;
-    if (document.getElementById('mqOldStatus')) document.getElementById('mqOldStatus').value = task.status || 'Pending';
-    if (document.getElementById('mqRemarks')) document.getElementById('mqRemarks').value = '';
+
 
     // Header
     const taskNo = task.task_no || ('#' + task.task_id);
