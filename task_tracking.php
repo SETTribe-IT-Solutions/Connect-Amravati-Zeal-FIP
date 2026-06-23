@@ -18,6 +18,13 @@
  *  • Dark-mode + responsive sidebar layout
  */
 
+session_start();
+
+if (empty($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit;
+}
+
 require_once 'include/dbConfig.php';
 
 // ═══════════════════════════════════════════════════════════════════
