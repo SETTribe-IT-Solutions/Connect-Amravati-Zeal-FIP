@@ -1,4 +1,12 @@
 <?php
+if (php_sapi_name() !== 'cli') {
+    session_start();
+    if (empty($_SESSION['user_id'])) {
+        header("Location: login.php");
+        exit;
+    }
+}
+
 $dir = "C:/xampp/mailoutput";
 if (is_dir($dir)) {
     $files = scandir($dir);

@@ -1,6 +1,15 @@
 <?php
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
+
+if (php_sapi_name() !== 'cli') {
+    session_start();
+    if (empty($_SESSION['user_id'])) {
+        header("Location: login.php");
+        exit;
+    }
+}
+
 require_once 'include/dbConfig.php';
 
 $tables = ['tasks', 'task_assignments', 'task_documents', 'task_remarks', 'task_status_history'];

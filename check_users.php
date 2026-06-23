@@ -1,4 +1,12 @@
 <?php
+if (php_sapi_name() !== 'cli') {
+    session_start();
+    if (empty($_SESSION['user_id'])) {
+        header("Location: login.php");
+        exit;
+    }
+}
+
 require_once 'include/dbConfig.php';
 
 $result = $conn->query("SELECT * FROM users LIMIT 10");
