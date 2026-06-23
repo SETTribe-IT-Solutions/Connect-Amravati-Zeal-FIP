@@ -14,6 +14,11 @@
 
 session_start();
 
+if (empty($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit;
+}
+
 // Enable exception reporting for mysqli
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
@@ -177,17 +182,9 @@ require_once 'include/dbConfig.php';
 $db_connected = true;
 
 /* Session details */
-if (empty($_SESSION['user_id'])) {
-    $_SESSION['user_id'] = 1;
-}
-if (empty($_SESSION['user_role'])) {
-    $_SESSION['user_role'] = 'Collector';
-    $_SESSION['user_name'] = 'Hon. Collector';
-}
-
 $userId = (int)$_SESSION['user_id'];
-$sRole  = $_SESSION['user_role'];
-$sName  = $_SESSION['user_name'];
+$sRole  = $_SESSION['user_role'] ?? '';
+$sName  = $_SESSION['user_name'] ?? '';
 
 $isCollector = ($sRole === 'Collector' || $sRole === 'Administrator' || $sRole === 'System Administrator');
 $isL1 = ($isCollector || $sRole === 'Additional Collector' || $sRole === 'Deputy Collector');

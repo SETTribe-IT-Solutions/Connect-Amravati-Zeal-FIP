@@ -8,6 +8,12 @@
  */
 
 session_start();
+
+if (empty($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit;
+}
+
 $lang = isset($_GET['lang']) && $_GET['lang'] === 'mr' ? 'mr' : 'en';
 require_once 'include/dbConfig.php';
 
