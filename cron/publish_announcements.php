@@ -31,9 +31,6 @@ while ($row = $result->fetch_assoc()) {
     // Update announcement status
     $conn->query("UPDATE announcements SET status = 'Published' WHERE announcement_id = $anncId");
     
-    // Clear any leftover recipients
-    $conn->query("DELETE FROM announcement_recipients WHERE announcement_id = $anncId");
-    
     // Fetch target recipients
     $recipients = [];
     if ($audienceType === 'Custom') {

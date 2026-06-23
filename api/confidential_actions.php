@@ -163,9 +163,9 @@ elseif ($action === 'log_access') {
     $authorized = ($isCollector 
         || $doc['created_by'] == $userId
         || $doc['audience_type'] === 'All'
-        || ($doc['audience_type'] === 'L1' && $userLevel = 1)
-        || ($doc['audience_type'] === 'L2' && $userLevel = 2)
-        || ($doc['audience_type'] === 'L3' && $userLevel = 3)
+        || ($doc['audience_type'] === 'L1' && $userLevel == 1)
+        || ($doc['audience_type'] === 'L2' && $userLevel == 2)
+        || ($doc['audience_type'] === 'L3' && $userLevel == 3)
         || $conn->query("SELECT id FROM confidential_document_audience WHERE document_id = $document_id AND user_id = $userId")->num_rows > 0
     );
     
