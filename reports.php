@@ -1059,16 +1059,17 @@ function priorityTextCss(string $p): string {
                     <thead class="bg-slate-50 dark:bg-slate-900/50">
                         <tr>
                             <th class="w-[8%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_task_no']) ?></th>
-                            <th class="w-[28%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_title']) ?></th>
+                            <th class="w-[24%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_title']) ?></th>
                             <?php if ($activeTab === 'allocated'): ?>
-                            <th class="w-[15%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_worker']) ?></th>
+                            <th class="w-[13%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_worker']) ?></th>
                             <?php else: ?>
-                            <th class="w-[15%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_creator']) ?></th>
+                            <th class="w-[13%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_creator']) ?></th>
                             <?php endif; ?>
-                            <th class="w-[9%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_priority']) ?></th>
-                            <th class="w-[12%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_status']) ?></th>
+                            <th class="w-[8%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_priority']) ?></th>
+                            <th class="w-[11%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_status']) ?></th>
                             <th class="w-[10%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_due']) ?></th>
-                            <th class="w-[18%] px-6 py-3.5 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider no-print"><?= htmlspecialchars($t['col_actions']) ?></th>
+                            <th class="w-[10%] px-6 py-3.5 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tracking</th>
+                            <th class="w-[16%] px-6 py-3.5 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider no-print"><?= htmlspecialchars($t['col_actions']) ?></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-800">
@@ -1077,7 +1078,7 @@ function priorityTextCss(string $p): string {
                         if (empty($tasksToDisplay)): 
                         ?>
                         <tr>
-                            <td colspan="7" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400 font-medium">
+                            <td colspan="8" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400 font-medium">
                                 <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 text-slate-400 opacity-60"></i>
                                 <?= htmlspecialchars($t['no_tasks']) ?>
                             </td>
@@ -1134,6 +1135,13 @@ function priorityTextCss(string $p): string {
                             <!-- Due Date -->
                             <td class="px-6 py-4 whitespace-nowrap text-sm due-cell <?= $dueColor ?>">
                                 <?= $dueFormatted ?>
+                            </td>
+                            <!-- Tracking -->
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                                <a href="task_tracking.php?task_id=<?= $taskId ?>" class="inline-flex items-center justify-center px-2 py-1.5 text-navy-600 bg-navy-50 hover:bg-navy-100 dark:text-blue-400 dark:bg-navy-900/40 dark:hover:bg-navy-800 rounded-lg transition-colors border border-transparent hover:border-navy-200 dark:hover:border-navy-700" title="Track Journey">
+                                    <i data-lucide="route" class="w-4 h-4"></i>
+                                    <span class="ml-1.5 font-semibold text-[11px] uppercase tracking-wider">Track</span>
+                                </a>
                             </td>
                             <!-- Actions (no-print) -->
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium no-print">
