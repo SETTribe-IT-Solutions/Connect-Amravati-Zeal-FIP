@@ -255,17 +255,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Update task_no with the real auto-incremented ID
             $conn->query("UPDATE tasks SET task_no = '" . $conn->real_escape_string($task_id_str) . "' WHERE task_id = $new_task_id");
 
+            // ── task_activity_logs ─────────────────────────────────
+            $activity_desc = $conn->real_escape_string("Task created and assigned.");
+            $conn->query("INSERT INTO task_activity_logs (task_id, user_id, activity_type, description, activity_time) VALUES ($new_task_id, $created_by, 'Task Created', '$activity_desc', NOW())");
+
+            // ── task_remarks ───────────────────────────────────────
+            if (!empty($target)) {
+                $conn->query("INSERT INTO task_remarks (task_id, user_id, remark_text, status_after_remark, created_at) VALUES ($new_task_id, $created_by, $tgt_sql, 'Pending', NOW())");
+            }
+
             // ── Attachment record ──────────────────────────────────
             if ($attachment_path && $file_mime) {
                 $safe_path = $conn->real_escape_string($attachment_path);
                 $orig_name = $conn->real_escape_string($_FILES['attachment']['name']);
-                $mime_safe = $conn->real_escape_string($file_mime);
-                $file_size = (int)$_FILES['attachment']['size'];
                 $conn->query(
                     "INSERT INTO task_documents
-                         (task_id, file_path, original_name, file_type, file_size, uploaded_by)
+                         (task_id, file_name, file_path, uploaded_by)
                      VALUES
-                         ($new_task_id, '$safe_path', '$orig_name', '$mime_safe', $file_size, $created_by)"
+                         ($new_task_id, '$orig_name', '$safe_path', $created_by)"
                 );
             }
 
@@ -282,9 +289,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $uid = (int)$ru['user_id'];
                         $conn->query(
                             "INSERT INTO task_assignments
-                                 (task_id, user_id, assigned_by, assigned_at, status)
-                             VALUES ($new_task_id, $uid, $created_by, NOW(), 'Pending')
-                             ON DUPLICATE KEY UPDATE assigned_at = NOW(), status = 'Pending'"
+                                 (task_id, assigned_from_user, assigned_to_user, assigned_to_role, assigned_date, status)
+                             VALUES ($new_task_id, $created_by, $uid, $assigned_role_id, NOW(), 'Pending')"
                         );
                         $assigned_count++;
 
@@ -301,10 +307,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             } elseif ($allocation_type === 'by_name' && $assigned_user_id) {
                 // Single user assignment
+                $role_to_assign = $assigned_role_id ? (int)$assigned_role_id : 'NULL';
                 $conn->query(
-                    "INSERT INTO task_assignments (task_id, user_id, assigned_by, assigned_at, status)
-                     VALUES ($new_task_id, $assigned_user_id, $created_by, NOW(), 'Pending')
-                     ON DUPLICATE KEY UPDATE assigned_at = NOW(), status = 'Pending'"
+                    "INSERT INTO task_assignments (task_id, assigned_from_user, assigned_to_user, assigned_to_role, assigned_date, status)
+                     VALUES ($new_task_id, $created_by, $assigned_user_id, $role_to_assign, NOW(), 'Pending')"
                 );
                 $assigned_count = 1;
 
@@ -495,7 +501,7 @@ $task_id_preview = 'TASK_' . str_pad($next_id, 3, '0', STR_PAD_LEFT);
     <div class="flex-1 overflow-y-auto py-4">
         <nav class="space-y-1 px-3">
             <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-4">Main Modules</p>
-            <a href="blank_wrushabh.php" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+            <a href="dashboard.php" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3 text-slate-400"></i>
                 Executive Dashboard
             </a>
@@ -513,7 +519,7 @@ $task_id_preview = 'TASK_' . str_pad($next_id, 3, '0', STR_PAD_LEFT);
             </a>
 
             <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6">Analytics &amp; Data</p>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+            <a href="reports.php" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <i data-lucide="pie-chart" class="w-5 h-5 mr-3 text-slate-400"></i>
                 Reports &amp; Analytics
             </a>
@@ -568,7 +574,7 @@ $task_id_preview = 'TASK_' . str_pad($next_id, 3, '0', STR_PAD_LEFT);
             </button>
             <!-- Breadcrumb -->
             <nav class="flex items-center text-sm" aria-label="Breadcrumb">
-                <a href="blank_wrushabh.php" class="text-slate-500 dark:text-slate-400 hover:text-navy-600 dark:hover:text-blue-400 transition-colors">Dashboard</a>
+                <a href="dashboard.php" class="text-slate-500 dark:text-slate-400 hover:text-navy-600 dark:hover:text-blue-400 transition-colors">Dashboard</a>
                 <i data-lucide="chevron-right" class="w-4 h-4 mx-2 text-slate-400"></i>
                 <a href="#" class="text-slate-500 dark:text-slate-400 hover:text-navy-600 dark:hover:text-blue-400 transition-colors">Task Allocation</a>
                 <i data-lucide="chevron-right" class="w-4 h-4 mx-2 text-slate-400"></i>
@@ -645,7 +651,7 @@ $task_id_preview = 'TASK_' . str_pad($next_id, 3, '0', STR_PAD_LEFT);
                     <i data-lucide="hash" class="w-3.5 h-3.5 mr-1.5"></i>
                     Auto ID: <span id="taskIdPreview" class="font-bold ml-1"><?= htmlspecialchars($task_id_preview) ?></span>
                 </span>
-                <a href="blank_wrushabh.php" class="inline-flex items-center px-4 py-2 border border-slate-300 dark:border-slate-600 shadow-sm text-sm font-medium rounded-lg text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                <a href="dashboard.php" class="inline-flex items-center px-4 py-2 border border-slate-300 dark:border-slate-600 shadow-sm text-sm font-medium rounded-lg text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                     <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>
                     Back
                 </a>

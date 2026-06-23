@@ -11,6 +11,7 @@ $translations = [
         'brand_name' => 'Amravati Connect',
         'menu_main_modules' => 'Main Modules',
         'menu_dashboard' => 'Executive Dashboard',
+        'menu_announcement_center' => 'Announcement Center',
         'menu_notifications' => 'Notification Center',
         'menu_admin' => 'Administration',
         'menu_users' => 'User Management',
@@ -65,6 +66,7 @@ $translations = [
         'brand_name' => 'अमरावती कनेक्ट',
         'menu_main_modules' => 'मुख्य मॉड्युल्स',
         'menu_dashboard' => 'कार्यकारी डॅशबोर्ड',
+        'menu_announcement_center' => 'घोषणा केंद्र',
         'menu_notifications' => 'सूचना केंद्र',
         'menu_admin' => 'प्रशासन',
         'menu_users' => 'वापरकर्ता व्यवस्थापन',
@@ -467,7 +469,7 @@ $usersResult = $conn->query($usersQuery);
         .dark .nav-active { background:#1e293b; color:#fff; }
     </style>
 </head>
-<body class="h-screen flex overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
+<body class="h-screen flex overflow-hidden bg-navy-50 dark:bg-slate-900 transition-colors duration-200">
 
     <!-- SIDEBAR -->
     <aside id="sidebar"
@@ -490,6 +492,10 @@ $usersResult = $conn->query($usersQuery);
                    class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                     <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3 text-slate-400"></i>
                     <?= htmlspecialchars($t['menu_dashboard']) ?>
+                </a>
+                <a href="announcements.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <i data-lucide="megaphone" class="w-5 h-5 mr-3 text-slate-400"></i>
+                    <?= htmlspecialchars($t['menu_announcement_center'] ?? 'Announcement Center') ?>
                 </a>
                 <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
                     text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
@@ -548,7 +554,9 @@ $usersResult = $conn->query($usersQuery);
 
     <!-- MAIN WRAPPER -->
     <div class="flex-1 flex flex-col overflow-hidden">
-        
+        <!-- National Tricolor Bar -->
+        <div class="h-1.5 w-full bg-gradient-to-r from-[#FF9933] via-white to-[#138808] shrink-0"></div>
+
         <!-- GLOBAL HEADER -->
         <header class="h-16 glass-panel border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 z-10 sticky top-0">
             <div class="flex items-center flex-1">
@@ -623,7 +631,7 @@ $usersResult = $conn->query($usersQuery);
         </header>
 
         <!-- MAIN CONTENT SCROLL AREA -->
-        <main class="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900 p-6 sm:p-8">
+        <main class="flex-1 overflow-y-auto bg-navy-50 dark:bg-slate-900 p-6 sm:p-8">
             
             <!-- Page Header -->
             <div class="flex flex-col md:flex-row md:items-center justify-between mb-8">
@@ -759,7 +767,7 @@ $usersResult = $conn->query($usersQuery);
                                 </button>
                             <?php endif; ?>
                             
-                            <button type="submit" name="save_user" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-navy-600 hover:bg-navy-700 focus:outline-none transition-colors">
+                            <button type="submit" name="save_user" class="inline-flex items-center px-5 py-2.5 border border-transparent shadow-sm text-sm font-bold rounded-md text-white bg-govgreen-600 hover:bg-govgreen-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-govgreen-500 transition-colors">
                                 <i data-lucide="<?= $editData ? 'save' : 'plus' ?>" class="w-4 h-4 mr-2"></i>
                                 <?= $editData ? htmlspecialchars($t['btn_update']) : htmlspecialchars($t['btn_save']) ?>
                             </button>
@@ -793,7 +801,7 @@ $usersResult = $conn->query($usersQuery);
                 
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
-                        <thead class="bg-slate-50 dark:bg-slate-900/50">
+                        <thead class="bg-navy-50 dark:bg-slate-900/50">
                             <tr>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_sr_no']) ?></th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_user_details']) ?></th>
