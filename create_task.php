@@ -9,6 +9,41 @@
 
 require_once 'include/dbConfig.php';
 
+session_start();
+
+// Language Toggle Setup (Support Marathi & English)
+$lang = isset($_GET['lang']) && $_GET['lang'] === 'mr' ? 'mr' : 'en';
+
+if (isset($_GET['role']) && in_array($_GET['role'], ['Collector', 'SDO', 'Tehsildar', 'BDO', 'Talathi', 'Gramsevak'])) {
+    $_SESSION['user_role']       = $_GET['role'];
+    $_SESSION['user_name']       = 'Demo – ' . $_GET['role'];
+    $_SESSION['user_taluka_id']  = 1;
+    $_SESSION['user_village_id'] = 1;
+}
+
+if (isset($_SESSION['role_name'])) {
+    $_SESSION['user_role']       = $_SESSION['role_name'];
+    $_SESSION['user_name']       = $_SESSION['full_name'];
+    $_SESSION['user_taluka_id']  = $_SESSION['taluka_id'];
+    $_SESSION['user_village_id'] = $_SESSION['village_id'];
+}
+
+if (empty($_SESSION['user_role'])) {
+    $_SESSION['user_role']       = 'Collector';
+    $_SESSION['user_name']       = 'Hon. Collector';
+    $_SESSION['user_taluka_id']  = 1;
+    $_SESSION['user_village_id'] = 1;
+}
+
+$sRole      = $_SESSION['user_role'];
+$sName      = $_SESSION['user_name'];
+$sTalukaId  = (int) ($_SESSION['user_taluka_id']  ?? 1);
+$sVillageId = (int) ($_SESSION['user_village_id'] ?? 1);
+
+// Avatar initials
+$parts    = array_filter(explode(' ', trim($sName)));
+$initials = strtoupper(substr($parts[0] ?? 'U', 0, 1) . substr($parts[1] ?? '', 0, 1));
+
 // ═══════════════════════════════════════════════════════════════════
 // HELPER: Create notification + delivery log for one assigned user
 // Adapts to the live DB schema visible in phpMyAdmin screenshots.
@@ -153,7 +188,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $department_id    = !empty($_POST['department_id'])    ? (int)$_POST['department_id']    : null;
     $assigned_role_id = !empty($_POST['assigned_role_id']) ? (int)$_POST['assigned_role_id'] : null;
     $assigned_user_id = !empty($_POST['assigned_user_id']) ? (int)$_POST['assigned_user_id'] : null;
-    $created_by       = 1; // TODO: replace with $_SESSION['user_id']
+    $created_by       = $_SESSION['user_id'] ?? 1;
 
     // DB column `due_date` is DATE — strip the time part sent by datetime-local
     $due_date_raw = trim($_POST['due_date'] ?? '');
@@ -501,11 +536,11 @@ $task_id_preview = 'TASK_' . str_pad($next_id, 3, '0', STR_PAD_LEFT);
     <div class="flex-1 overflow-y-auto py-4">
         <nav class="space-y-1 px-3">
             <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-4">Main Modules</p>
-            <a href="blank_wrushabh.php" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+            <a href="dashboard.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3 text-slate-400"></i>
                 Executive Dashboard
             </a>
-            <a href="create_task.php" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md bg-navy-50 text-navy-700 dark:bg-slate-800 dark:text-white">
+            <a href="create_task.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md bg-navy-50 text-navy-700 dark:bg-slate-800 dark:text-white">
                 <i data-lucide="network" class="w-5 h-5 mr-3 text-navy-600 dark:text-blue-400"></i>
                 Task Allocation
             </a>
@@ -574,9 +609,9 @@ $task_id_preview = 'TASK_' . str_pad($next_id, 3, '0', STR_PAD_LEFT);
             </button>
             <!-- Breadcrumb -->
             <nav class="flex items-center text-sm" aria-label="Breadcrumb">
-                <a href="blank_wrushabh.php" class="text-slate-500 dark:text-slate-400 hover:text-navy-600 dark:hover:text-blue-400 transition-colors">Dashboard</a>
+                <a href="dashboard.php?lang=<?= $lang ?>" class="text-slate-500 dark:text-slate-400 hover:text-navy-600 dark:hover:text-blue-400 transition-colors">Dashboard</a>
                 <i data-lucide="chevron-right" class="w-4 h-4 mx-2 text-slate-400"></i>
-                <a href="#" class="text-slate-500 dark:text-slate-400 hover:text-navy-600 dark:hover:text-blue-400 transition-colors">Task Allocation</a>
+                <a href="create_task.php?lang=<?= $lang ?>" class="text-slate-500 dark:text-slate-400 hover:text-navy-600 dark:hover:text-blue-400 transition-colors">Task Allocation</a>
                 <i data-lucide="chevron-right" class="w-4 h-4 mx-2 text-slate-400"></i>
                 <span class="font-semibold text-slate-800 dark:text-white">Create Task</span>
             </nav>
@@ -594,17 +629,14 @@ $task_id_preview = 'TASK_' . str_pad($next_id, 3, '0', STR_PAD_LEFT);
                 <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
             </button>
             <!-- Notifications -->
-            <button class="relative p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="bell" class="w-5 h-5"></i>
-                <span class="absolute top-1.5 right-1.5 block h-2 w-2 rounded-full bg-saffron-500 ring-2 ring-white dark:ring-slate-900"></span>
-            </button>
+            <?php include 'include/notification_widget.php'; ?>
             <!-- Profile -->
             <div class="flex items-center space-x-3 border-l border-slate-200 dark:border-slate-700 pl-4 ml-2 cursor-pointer">
                 <div class="flex flex-col text-right hidden sm:block">
-                    <span class="text-sm font-semibold text-slate-900 dark:text-white">Hon. Collector</span>
-                    <span class="text-xs text-slate-500 dark:text-slate-400">Amravati District</span>
+                    <span class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($sName) ?></span>
+                    <span class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($sRole) ?></span>
                 </div>
-                <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border-2 border-white dark:border-slate-800 shadow-sm">C</div>
+                <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border-2 border-white dark:border-slate-800 shadow-sm"><?= htmlspecialchars($initials) ?></div>
             </div>
         </div>
     </header>
@@ -651,7 +683,7 @@ $task_id_preview = 'TASK_' . str_pad($next_id, 3, '0', STR_PAD_LEFT);
                     <i data-lucide="hash" class="w-3.5 h-3.5 mr-1.5"></i>
                     Auto ID: <span id="taskIdPreview" class="font-bold ml-1"><?= htmlspecialchars($task_id_preview) ?></span>
                 </span>
-                <a href="blank_wrushabh.php" class="inline-flex items-center px-4 py-2 border border-slate-300 dark:border-slate-600 shadow-sm text-sm font-medium rounded-lg text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                <a href="dashboard.php?lang=<?= $lang ?>" class="inline-flex items-center px-4 py-2 border border-slate-300 dark:border-slate-600 shadow-sm text-sm font-medium rounded-lg text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                     <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>
                     Back
                 </a>
