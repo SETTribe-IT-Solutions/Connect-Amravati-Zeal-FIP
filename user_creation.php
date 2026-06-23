@@ -11,6 +11,7 @@ $translations = [
         'brand_name' => 'Amravati Connect',
         'menu_main_modules' => 'Main Modules',
         'menu_dashboard' => 'Executive Dashboard',
+        'menu_announcement_center' => 'Announcement Center',
         'menu_notifications' => 'Notification Center',
         'menu_admin' => 'Administration',
         'menu_users' => 'User Management',
@@ -65,6 +66,7 @@ $translations = [
         'brand_name' => 'अमरावती कनेक्ट',
         'menu_main_modules' => 'मुख्य मॉड्युल्स',
         'menu_dashboard' => 'कार्यकारी डॅशबोर्ड',
+        'menu_announcement_center' => 'घोषणा केंद्र',
         'menu_notifications' => 'सूचना केंद्र',
         'menu_admin' => 'प्रशासन',
         'menu_users' => 'वापरकर्ता व्यवस्थापन',
@@ -490,6 +492,10 @@ $usersResult = $conn->query($usersQuery);
                    class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                     <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3 text-slate-400"></i>
                     <?= htmlspecialchars($t['menu_dashboard']) ?>
+                </a>
+                <a href="announcements.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <i data-lucide="megaphone" class="w-5 h-5 mr-3 text-slate-400"></i>
+                    <?= htmlspecialchars($t['menu_announcement_center'] ?? 'Announcement Center') ?>
                 </a>
                 <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
                     text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
