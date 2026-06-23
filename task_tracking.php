@@ -692,12 +692,13 @@ function statusBadgeClass(string $status): string {
     return match(strtolower(trim($status))) {
         'pending'     => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800',
         'assigned'    => 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800',
-        'in progress' => 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800',
+        'in progress' => 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border border-purple-200 dark:border-purple-800',
         'on hold'     => 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 border border-orange-200 dark:border-orange-800',
         'completed'   => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800',
         'rejected'    => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800',
+        'cancelled'   => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800',
         'overdue'     => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800',
-        'escalated'   => 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border border-purple-200 dark:border-purple-800',
+        'escalated'   => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800',
         default       => 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600',
     };
 }
@@ -717,7 +718,7 @@ function masterEventIcon(string $event_type, string $status): string {
     $st = strtolower(trim($status));
     if ($et === 'created')                          return 'plus-circle';
     if ($et === 'remark')                           return 'message-square';
-    if ($et === 'overdue')                          return 'alert-octagon';
+    if ($et === 'overdue')                          return 'alert-triangle';
     if ($et === 'escalation')                       return 'alert-triangle';
     if ($et === 'status_change' || $et === 'tracking') return timelineIcon($status);
     if (str_contains($et, 'reassign'))              return 'refresh-cw';
@@ -726,8 +727,9 @@ function masterEventIcon(string $event_type, string $status): string {
     if (str_contains($et, 'start'))                 return 'play-circle';
     if ($st === 'completed'  || str_contains($et, 'complet')) return 'check-circle-2';
     if ($st === 'rejected'   || str_contains($et, 'reject'))  return 'x-circle';
+    if ($st === 'cancelled'  || str_contains($et, 'cancel'))  return 'x-circle';
     if ($st === 'on hold'    || str_contains($et, 'hold'))    return 'pause-circle';
-    if ($st === 'in progress')                      return 'activity';
+    if ($st === 'in progress')                      return 'loader';
     return 'git-commit';
 }
 
@@ -735,11 +737,14 @@ function timelineIcon(string $status): string {
     return match(strtolower(trim($status))) {
         'pending'      => 'clock',
         'assigned'     => 'user-check',
-        'in progress'  => 'activity',
+        'in progress'  => 'loader',
         'on hold'      => 'pause-circle',
         'completed'    => 'check-circle-2',
         'rejected'     => 'x-circle',
+        'cancelled'    => 'x-circle',
         'task created' => 'plus-circle',
+        'overdue'      => 'alert-triangle',
+        'escalated'    => 'alert-triangle',
         default        => 'circle',
     };
 }
@@ -749,17 +754,17 @@ function masterEventColor(string $event_type, string $status): string {
     $st = strtolower(trim($status));
     if ($et === 'created')                   return '#64748b';
     if ($et === 'remark')                    return '#f59e0b';
-    if ($et === 'overdue')                   return '#dc2626';
-    if ($et === 'escalation')                return '#7c3aed';
+    if ($et === 'overdue')                   return '#ef4444';
+    if ($et === 'escalation')                return '#ef4444';
     if (str_contains($et, 'reassign'))       return '#8b5cf6';
     if (str_contains($et, 'assign'))         return '#3b82f6';
     if (str_contains($et, 'upload') || str_contains($et, 'document')) return '#0ea5e9';
     if ($st === 'pending')                   return '#eab308';
     if ($st === 'assigned')                  return '#3b82f6';
-    if ($st === 'in progress')               return '#6366f1';
+    if ($st === 'in progress')               return '#a855f7';
     if ($st === 'on hold')                   return '#f97316';
     if ($st === 'completed')                 return '#22c55e';
-    if ($st === 'rejected' || $st === 'overdue') return '#ef4444';
+    if ($st === 'rejected' || $st === 'cancelled' || $st === 'overdue' || $st === 'escalated') return '#ef4444';
     return '#94a3b8';
 }
 
@@ -769,16 +774,16 @@ function masterEventBg(string $event_type, string $status): string {
     if ($et === 'created')                   return 'from-slate-500 to-slate-600';
     if ($et === 'remark')                    return 'from-amber-400 to-amber-500';
     if ($et === 'overdue')                   return 'from-red-600 to-red-700';
-    if ($et === 'escalation')                return 'from-violet-600 to-violet-700';
+    if ($et === 'escalation')                return 'from-red-600 to-red-700';
     if (str_contains($et, 'reassign'))       return 'from-violet-500 to-violet-600';
     if (str_contains($et, 'assign'))         return 'from-blue-500 to-blue-600';
     if (str_contains($et, 'upload') || str_contains($et, 'document')) return 'from-sky-400 to-sky-500';
     if ($st === 'pending')                   return 'from-yellow-400 to-yellow-500';
     if ($st === 'assigned')                  return 'from-blue-500 to-blue-600';
-    if ($st === 'in progress')               return 'from-indigo-500 to-indigo-600';
+    if ($st === 'in progress')               return 'from-purple-500 to-purple-600';
     if ($st === 'on hold')                   return 'from-orange-500 to-orange-600';
     if ($st === 'completed')                 return 'from-green-500 to-green-600';
-    if ($st === 'rejected' || $st === 'overdue') return 'from-red-500 to-red-600';
+    if ($st === 'rejected' || $st === 'cancelled' || $st === 'overdue' || $st === 'escalated') return 'from-red-500 to-red-600';
     return 'from-slate-400 to-slate-500';
 }
 ?>
@@ -2010,8 +2015,8 @@ const TL_ICONS = {
     remark:       { icon:'message-square',bg:'from-amber-400 to-amber-500',  col:'#f59e0b', label:'Remark'      },
     rejected:     { icon:'x-circle',      bg:'from-red-500 to-red-600',      col:'#ef4444', label:'Rejected'    },
     completed:    { icon:'check-circle-2',bg:'from-green-500 to-green-600',  col:'#22c55e', label:'Completed'   },
-    escalation:   { icon:'alert-triangle',bg:'from-violet-600 to-violet-700',col:'#7c3aed', label:'Escalated'   },
-    overdue:      { icon:'alert-octagon', bg:'from-red-600 to-red-700',      col:'#dc2626', label:'Overdue'     },
+    escalation:   { icon:'alert-triangle',bg:'from-red-600 to-red-700',      col:'#ef4444', label:'Escalated'   },
+    overdue:      { icon:'alert-triangle',bg:'from-red-600 to-red-700',      col:'#ef4444', label:'Overdue'     },
     document:     { icon:'paperclip',     bg:'from-sky-400 to-sky-500',      col:'#0ea5e9', label:'Document'    },
     activity:     { icon:'zap',           bg:'from-slate-400 to-slate-500',  col:'#94a3b8', label:'Activity'    },
 };
@@ -2019,16 +2024,27 @@ const TL_ICONS = {
 const STATUS_COLORS = {
     pending:     'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
     assigned:    'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-    'in progress':'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300',
+    'in progress':'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
     'on hold':   'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
     completed:   'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
     rejected:    'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+    cancelled:   'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
     overdue:     'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-    escalated:   'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+    escalated:   'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
 };
 
 function getStatusClass(s) {
     return STATUS_COLORS[(s||'').toLowerCase()] || 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300';
+}
+
+function getProgressStyle(sl) {
+    if (sl.includes('pending'))   return { bg: 'bg-yellow-500', text: 'text-yellow-600 dark:text-yellow-400', icon: 'clock' };
+    if (sl.includes('assign'))    return { bg: 'bg-blue-500',   text: 'text-blue-600 dark:text-blue-400',   icon: 'user-check' };
+    if (sl.includes('progress'))  return { bg: 'bg-purple-500', text: 'text-purple-600 dark:text-purple-400', icon: 'loader' };
+    if (sl.includes('complet'))   return { bg: 'bg-green-500',  text: 'text-green-600 dark:text-green-400', icon: 'check-circle-2' };
+    if (sl.includes('reject') || sl.includes('cancel')) return { bg: 'bg-red-500', text: 'text-red-600 dark:text-red-400', icon: 'x-circle' };
+    if (sl.includes('overdue') || sl.includes('escalate')) return { bg: 'bg-red-500', text: 'text-red-600 dark:text-red-400', icon: 'alert-triangle' };
+    return { bg: 'bg-slate-500', text: 'text-slate-600 dark:text-slate-400', icon: 'circle' };
 }
 
 function getTlInfo(et) {
@@ -2155,22 +2171,24 @@ function openFullScreen(task, events, docs) {
     document.getElementById('fv-progress-bar').innerHTML = flow.map((s, idx) => {
         const done = idx < curIdx, active = idx === curIdx;
         const sl = s.toLowerCase();
-        let dotBg = 'bg-slate-200 dark:bg-slate-600';
+        let style = getProgressStyle(sl);
+        let dotBg = 'bg-slate-200 dark:bg-slate-700';
         let lbl   = 'text-slate-400 text-[11px]';
         let lineC = 'bg-slate-200 dark:bg-slate-700';
+        
         if (idx <= curIdx) {
-            dotBg = sl === 'completed' ? 'bg-green-500' : (sl === 'rejected' || sl === 'overdue') ? 'bg-red-500' : 'bg-navy-600 dark:bg-blue-500';
-            lbl   = sl === 'completed' ? 'text-green-600 dark:text-green-400 font-semibold text-[11px]' : 'text-navy-600 dark:text-blue-400 font-semibold text-[11px]';
-            lineC = sl === 'rejected'  ? 'bg-red-400' : 'bg-navy-600 dark:bg-blue-500';
+            dotBg = style.bg;
+            lbl   = style.text + ' font-semibold text-[11px]';
+            lineC = style.bg;
         }
         const line  = idx > 0 ? `<div class="absolute top-4 right-1/2 left-0 h-0.5 ${lineC}"></div>` : '';
-        const inner = done   ? `<svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>`
-                    : active ? `<div class="w-3 h-3 rounded-full bg-white"></div>`
+        const inner = (done || active)
+                    ? `<i data-lucide="${style.icon}" class="w-4 h-4 text-white"></i>`
                     : `<div class="w-2 h-2 rounded-full bg-slate-400 dark:bg-slate-500"></div>`;
         return `<div class="flex-1 text-center relative">
             ${line}
             <div class="flex justify-center mb-2">
-                <div class="relative z-10 w-8 h-8 rounded-full ${dotBg} flex items-center justify-center">${inner}</div>
+                <div class="relative z-10 w-8 h-8 rounded-full ${dotBg} flex items-center justify-center shadow-sm">${inner}</div>
             </div>
             <div class="${lbl} leading-tight">${s}</div>
         </div>`;
@@ -2396,22 +2414,24 @@ function renderModal(task, events, docs) {
         const done   = idx < curIdx;
         const active = idx === curIdx;
         const sl     = s.toLowerCase();
-        let dotBg = 'bg-slate-200 dark:bg-slate-600';
+        let style = getProgressStyle(sl);
+        let dotBg = 'bg-slate-200 dark:bg-slate-700';
         let lbl   = 'text-slate-400 text-[10px]';
         let lineC = 'bg-slate-200 dark:bg-slate-700';
+        
         if (idx <= curIdx) {
-            dotBg = sl === 'completed' ? 'bg-green-500' : (sl === 'rejected' || sl === 'overdue') ? 'bg-red-500' : 'bg-navy-600 dark:bg-blue-500';
-            lbl   = sl === 'completed' ? 'text-green-600 dark:text-green-400 font-semibold text-[10px]' : 'text-navy-600 dark:text-blue-400 font-semibold text-[10px]';
-            lineC = sl === 'rejected'  ? 'bg-red-400' : 'bg-navy-600 dark:bg-blue-500';
+            dotBg = style.bg;
+            lbl   = style.text + ' font-semibold text-[10px]';
+            lineC = style.bg;
         }
         const line = idx > 0 ? `<div class="absolute top-3.5 right-1/2 left-0 h-0.5 ${lineC}"></div>` : '';
-        const inner = done ? `<svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>`
-                    : active ? `<div class="w-2 h-2 rounded-full bg-white"></div>`
+        const inner = (done || active)
+                    ? `<i data-lucide="${style.icon}" class="w-3.5 h-3.5 text-white"></i>`
                     : `<div class="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500"></div>`;
         return `<div class="flex-1 text-center relative">
                     ${line}
                     <div class="flex justify-center mb-1.5">
-                        <div class="relative z-10 w-7 h-7 rounded-full ${dotBg} flex items-center justify-center">${inner}</div>
+                        <div class="relative z-10 w-7 h-7 rounded-full ${dotBg} flex items-center justify-center shadow-sm">${inner}</div>
                     </div>
                     <div class="${lbl} leading-tight">${s}</div>
                 </div>`;

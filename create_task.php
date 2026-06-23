@@ -289,9 +289,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $uid = (int)$ru['user_id'];
                         $conn->query(
                             "INSERT INTO task_assignments
-                                 (task_id, assigned_to_user, assigned_from_user, assigned_date, status)
-                             VALUES ($new_task_id, $uid, $created_by, NOW(), 'Pending')
-                             ON DUPLICATE KEY UPDATE assigned_date = NOW(), status = 'Pending'"
+                                 (task_id, assigned_from_user, assigned_to_user, assigned_to_role, assigned_date, status)
+                             VALUES ($new_task_id, $created_by, $uid, $assigned_role_id, NOW(), 'Pending')"
                         );
                         $assigned_count++;
 
@@ -310,9 +309,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Single user assignment
                 $role_to_assign = $assigned_role_id ? (int)$assigned_role_id : 'NULL';
                 $conn->query(
-                    "INSERT INTO task_assignments (task_id, assigned_to_user, assigned_from_user, assigned_date, status)
-                     VALUES ($new_task_id, $assigned_user_id, $created_by, NOW(), 'Pending')
-                     ON DUPLICATE KEY UPDATE assigned_date = NOW(), status = 'Pending'"
+                    "INSERT INTO task_assignments (task_id, assigned_from_user, assigned_to_user, assigned_to_role, assigned_date, status)
+                     VALUES ($new_task_id, $created_by, $assigned_user_id, $role_to_assign, NOW(), 'Pending')"
                 );
                 $assigned_count = 1;
 
