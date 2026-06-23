@@ -18,6 +18,12 @@
  */
 
 session_start();
+
+if (empty($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit;
+}
+
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 require_once 'include/dbConfig.php';
 
@@ -247,14 +253,6 @@ const ROLE_LEVEL_MAP = [
     'Gramsevak'            => 3,
 ];
 
-/* ─── DEV: ?role=Collector in URL switches the demo role ───── */
-if (isset($_GET['role']) && array_key_exists($_GET['role'], ROLE_LEVEL_MAP)) {
-    $_SESSION['user_role']       = $_GET['role'];
-    $_SESSION['user_name']       = 'Demo – ' . $_GET['role'];
-    $_SESSION['user_taluka_id']  = 1;
-    $_SESSION['user_village_id'] = 1;
-}
-
 /* ─── Map login session keys to dashboard variables ────────────────── */
 if (isset($_SESSION['role_name'])) {
     $_SESSION['user_role']       = $_SESSION['role_name'];
@@ -263,18 +261,10 @@ if (isset($_SESSION['role_name'])) {
     $_SESSION['user_village_id'] = $_SESSION['village_id'];
 }
 
-/* ─── Session defaults (dev preview) ───────────────────────── */
-if (empty($_SESSION['user_role'])) {
-    $_SESSION['user_role']       = 'Collector';
-    $_SESSION['user_name']       = 'Hon. Collector';
-    $_SESSION['user_taluka_id']  = 1;
-    $_SESSION['user_village_id'] = 1;
-}
-
-$sRole      = $_SESSION['user_role'];
-$sName      = $_SESSION['user_name'];
-$sTalukaId  = (int) ($_SESSION['user_taluka_id']  ?? 1);
-$sVillageId = (int) ($_SESSION['user_village_id'] ?? 1);
+$sRole      = $_SESSION['user_role'] ?? '';
+$sName      = $_SESSION['user_name'] ?? '';
+$sTalukaId  = (int) ($_SESSION['user_taluka_id']  ?? 0);
+$sVillageId = (int) ($_SESSION['user_village_id'] ?? 0);
 
 /* ============================================================
    HELPER FUNCTIONS
