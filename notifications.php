@@ -1,7 +1,6 @@
 <?php
 session_start();
 require_once 'include/dbConfig.php';
-
 // Language Toggle Setup (Support Marathi & English)
 $lang = isset($_GET['lang']) && $_GET['lang'] === 'mr' ? 'mr' : 'en';
 
