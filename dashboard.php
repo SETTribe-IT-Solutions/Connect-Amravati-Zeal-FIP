@@ -678,7 +678,7 @@ function priorityCss(string $p): string {
                 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <i data-lucide="megaphone" class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($t['menu_announcement_center'] ?? 'Announcement Center') ?>
             </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
+            <a href="create_task.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
                 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <i data-lucide="network"   class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($t['menu_task_alloc']) ?>
             </a>
@@ -868,7 +868,7 @@ function priorityCss(string $p): string {
                                hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none transition-colors">
                     <i data-lucide="download" class="w-4 h-4 mr-2"></i><?= htmlspecialchars($t['btn_export']) ?>
                 </button>
-                <button class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm
+                <button onclick="window.location.href='create_task.php?lang=<?= $lang ?>'" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm
                                text-sm font-medium rounded-md text-white
                                bg-navy-600 hover:bg-navy-700 focus:outline-none transition-colors">
                     <i data-lucide="plus" class="w-4 h-4 mr-2"></i><?= htmlspecialchars($t['btn_allocate']) ?>
