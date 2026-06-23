@@ -221,7 +221,7 @@ $initials = strtoupper(substr($parts[0] ?? 'O', 0, 1) . substr($parts[1] ?? '', 
                         <a href="settings.php?lang=<?= $lang ?>" class="flex items-center px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100">
                             <i data-lucide="settings" class="w-4 h-4 mr-2 text-slate-400"></i><?= $lang==='en'?'Settings':'सेटिंग्ज' ?>
                         </a>
-                        <a href="passwordReset.php?lang=<?= $lang ?>" class="flex items-center px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100">
+                        <a href="passwordChange.php?lang=<?= $lang ?>" class="flex items-center px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100">
                             <i data-lucide="key" class="w-4 h-4 mr-2 text-slate-400"></i><?= $lang==='en'?'Password Change':'पासवर्ड बदला' ?>
                         </a>
                         <a href="logout.php" class="flex items-center px-4 py-2.5 text-xs text-red-600 hover:bg-red-50">

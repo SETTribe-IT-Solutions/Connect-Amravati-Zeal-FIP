@@ -888,7 +888,7 @@ function priorityCss(string $p): string {
                             <i data-lucide="settings" class="w-4 h-4 mr-2.5 text-slate-400"></i>
                             <?= $lang === 'en' ? 'Settings' : 'सेटिंग्ज' ?>
                         </a>
-                        <a href="passwordReset.php?lang=<?= $lang ?>" class="flex items-center px-4 py-2.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors" style="text-decoration: none;">
+                        <a href="passwordChange.php?lang=<?= $lang ?>" class="flex items-center px-4 py-2.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors" style="text-decoration: none;">
                             <i data-lucide="key" class="w-4 h-4 mr-2.5 text-slate-400"></i>
                             <?= $lang === 'en' ? 'Password Change' : 'पासवर्ड बदला' ?>
                         </a>
