@@ -282,9 +282,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $uid = (int)$ru['user_id'];
                         $conn->query(
                             "INSERT INTO task_assignments
-                                 (task_id, user_id, assigned_by, assigned_at, status)
+                                 (task_id, assigned_to_user, assigned_from_user, assigned_date, status)
                              VALUES ($new_task_id, $uid, $created_by, NOW(), 'Pending')
-                             ON DUPLICATE KEY UPDATE assigned_at = NOW(), status = 'Pending'"
+                             ON DUPLICATE KEY UPDATE assigned_date = NOW(), status = 'Pending'"
                         );
                         $assigned_count++;
 
@@ -302,9 +302,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif ($allocation_type === 'by_name' && $assigned_user_id) {
                 // Single user assignment
                 $conn->query(
-                    "INSERT INTO task_assignments (task_id, user_id, assigned_by, assigned_at, status)
+                    "INSERT INTO task_assignments (task_id, assigned_to_user, assigned_from_user, assigned_date, status)
                      VALUES ($new_task_id, $assigned_user_id, $created_by, NOW(), 'Pending')
-                     ON DUPLICATE KEY UPDATE assigned_at = NOW(), status = 'Pending'"
+                     ON DUPLICATE KEY UPDATE assigned_date = NOW(), status = 'Pending'"
                 );
                 $assigned_count = 1;
 
@@ -513,7 +513,7 @@ $task_id_preview = 'TASK_' . str_pad($next_id, 3, '0', STR_PAD_LEFT);
             </a>
 
             <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6">Analytics &amp; Data</p>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+            <a href="reports.php" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <i data-lucide="pie-chart" class="w-5 h-5 mr-3 text-slate-400"></i>
                 Reports &amp; Analytics
             </a>
