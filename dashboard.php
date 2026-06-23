@@ -21,6 +21,56 @@ session_start();
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 require_once 'include/dbConfig.php';
 
+// Fetch real-time dashboard statistics from the database
+$totalActiveTasks = 0;
+$pendingTasks = 0;
+$completedTasks = 0;
+$overdueTasks = 0;
+$completionLabels = [];
+$completionCounts = [];
+
+try {
+    // 1. Total Active Tasks
+    $res = $conn->query("SELECT COUNT(*) AS cnt FROM tasks WHERE status IN ('Pending','Assigned','In Progress','Active')");
+    if ($res && $row = $res->fetch_assoc()) {
+        $totalActiveTasks = (int)$row['cnt'];
+    }
+
+    // 2. Pending Tasks
+    $res = $conn->query("SELECT COUNT(*) AS cnt FROM tasks WHERE status = 'Pending'");
+    if ($res && $row = $res->fetch_assoc()) {
+        $pendingTasks = (int)$row['cnt'];
+    }
+
+    // 3. Completed Tasks
+    $res = $conn->query("SELECT COUNT(*) AS cnt FROM tasks WHERE status = 'Completed'");
+    if ($res && $row = $res->fetch_assoc()) {
+        $completedTasks = (int)$row['cnt'];
+    }
+
+    // 4. Escalated / Overdue Tasks
+    $res = $conn->query("SELECT COUNT(*) AS cnt FROM tasks WHERE (status <> 'Completed' AND due_date < CURDATE()) OR status = 'Escalated'");
+    if ($res && $row = $res->fetch_assoc()) {
+        $overdueTasks = (int)$row['cnt'];
+    }
+
+    // Task Completion Trend Query (completed tasks date-wise)
+    $q = "SELECT DATE(completion_date) AS completion_day, COUNT(*) AS completed_count
+          FROM tasks
+          WHERE status='Completed' AND completion_date IS NOT NULL
+          GROUP BY DATE(completion_date)
+          ORDER BY completion_day ASC";
+    $resTrend = $conn->query($q);
+    if ($resTrend) {
+        while ($row = $resTrend->fetch_assoc()) {
+            $completionLabels[] = $row['completion_day'];
+            $completionCounts[] = (int)$row['completed_count'];
+        }
+    }
+} catch (Exception $e) {
+    error_log("Real-time dashboard card stats or trend query error: " . $e->getMessage());
+}
+
 // Language Toggle Setup (Support Marathi & English)
 $lang = isset($_GET['lang']) && $_GET['lang'] === 'mr' ? 'mr' : 'en';
 $translations = [
@@ -63,7 +113,7 @@ $translations = [
         'kpi_completed' => 'Tasks Completed',
         'kpi_overdue' => 'Escalated / Overdue',
         
-        'chart_trend' => 'Task Completion Trend (District Wide)',
+        'chart_trend' => 'Task Completion Trend (Date Wise)',
         'chart_taluka' => 'Taluka Performance',
         'chart_village' => 'Village Performance',
         'chart_distribution' => 'Task Status Distribution',
@@ -163,7 +213,7 @@ $translations = [
         'kpi_completed' => 'पूर्ण झालेली कार्ये',
         'kpi_overdue' => 'गंभीर / थकीत',
         
-        'chart_trend' => 'कार्य पूर्णतेचा कल (जिल्हाव्यापी)',
+        'chart_trend' => 'कार्य पूर्णतेचा कल (दिनांकानुसार)',
         'chart_taluka' => 'तालुका कामगिरी',
         'chart_village' => 'गावाची कामगिरी',
         'chart_distribution' => 'कार्य स्थिती वितरण',
@@ -306,11 +356,10 @@ function getDistrictStats(mysqli $conn): array {
         $r = $conn->query("
             SELECT
               COUNT(*)                                                     AS total,
-              COUNT(CASE WHEN status != 'Completed' THEN 1 END)           AS active,
+              COUNT(CASE WHEN status IN ('Pending','Assigned','In Progress','Active') THEN 1 END) AS active,
               COUNT(CASE WHEN status  = 'Pending'   THEN 1 END)           AS pending,
               COUNT(CASE WHEN status  = 'Completed' THEN 1 END)           AS completed,
-              COUNT(CASE WHEN due_date < CURDATE()
-                         AND status  != 'Completed' THEN 1 END)           AS overdue
+              COUNT(CASE WHEN (status <> 'Completed' AND due_date < CURDATE()) OR status = 'Escalated' THEN 1 END) AS overdue
             FROM tasks
         ")->fetch_assoc();
         if ($r) {
@@ -322,23 +371,24 @@ function getDistrictStats(mysqli $conn): array {
         }
 
         /* ── Taluka-wise breakdown ─────────────────────────────── */
-        // TODO: Join with `locations` table using location_id FK once schema is confirmed.
         $res = $conn->query("
             SELECT
-              COALESCE(location_name,'Unknown')                            AS taluka,
+              COALESCE(t.taluka_name, 'Unknown')                           AS taluka,
               COUNT(*)                                                     AS total,
               COUNT(CASE WHEN status = 'Completed' THEN 1 END)            AS completed,
               COUNT(CASE WHEN status = 'Pending'   THEN 1 END)            AS pending,
-              COUNT(CASE WHEN due_date < CURDATE()
-                         AND status != 'Completed' THEN 1 END)            AS overdue,
+              COUNT(CASE WHEN (status <> 'Completed' AND due_date < CURDATE()) OR status = 'Escalated' THEN 1 END) AS overdue,
               ROUND(COUNT(CASE WHEN status='Completed' THEN 1 END)
                     / NULLIF(COUNT(*),0)*100, 1)                           AS rate
-            FROM tasks
-            GROUP BY location_name
+            FROM tasks tk
+            LEFT JOIN talukas t ON tk.taluka_id = t.taluka_id
+            GROUP BY tk.taluka_id
             ORDER BY rate DESC
             LIMIT 10
         ");
-        while ($row = $res->fetch_assoc()) $out['talukas'][] = $row;
+        if ($res) {
+            while ($row = $res->fetch_assoc()) $out['talukas'][] = $row;
+        }
 
     } catch (mysqli_sql_exception $e) {
         error_log('getDistrictStats: ' . $e->getMessage());
@@ -354,15 +404,13 @@ function getTalukaStats(mysqli $conn, int $talukaId): array {
     $out = ['total'=>0,'active'=>0,'pending'=>0,'completed'=>0,'overdue'=>0,'villages'=>[]];
     try {
         /* ── Taluka KPIs ──────────────────────────────────────── */
-        // TODO: Replace `taluka_id` with actual FK column name from schema.
         $st = $conn->prepare("
             SELECT
               COUNT(*)                                                     AS total,
-              COUNT(CASE WHEN status != 'Completed' THEN 1 END)           AS active,
+              COUNT(CASE WHEN status IN ('Pending','Assigned','In Progress','Active') THEN 1 END) AS active,
               COUNT(CASE WHEN status  = 'Pending'   THEN 1 END)           AS pending,
               COUNT(CASE WHEN status  = 'Completed' THEN 1 END)           AS completed,
-              COUNT(CASE WHEN due_date < CURDATE()
-                         AND status  != 'Completed' THEN 1 END)           AS overdue
+              COUNT(CASE WHEN (status <> 'Completed' AND due_date < CURDATE()) OR status = 'Escalated' THEN 1 END) AS overdue
             FROM tasks WHERE taluka_id = ?
         ");
         $st->bind_param('i', $talukaId);
@@ -374,16 +422,17 @@ function getTalukaStats(mysqli $conn, int $talukaId): array {
         $st->close();
 
         /* ── Village breakdown ─────────────────────────────────── */
-        // TODO: Join `villages` table for proper village names.
         $st = $conn->prepare("
             SELECT
-              COALESCE(village_name,'Unknown')                             AS village,
+              COALESCE(v.village_name, 'Unknown')                          AS village,
               COUNT(*)                                                     AS total,
               COUNT(CASE WHEN status='Completed' THEN 1 END)              AS completed,
               COUNT(CASE WHEN status='Pending'   THEN 1 END)              AS pending,
-              COUNT(CASE WHEN due_date<CURDATE()
-                         AND status!='Completed' THEN 1 END)              AS overdue
-            FROM tasks WHERE taluka_id=? GROUP BY village_name
+              COUNT(CASE WHEN (status <> 'Completed' AND due_date < CURDATE()) OR status = 'Escalated' THEN 1 END) AS overdue
+            FROM tasks tk
+            LEFT JOIN villages v ON tk.village_id = v.village_id
+            WHERE tk.taluka_id = ?
+            GROUP BY tk.village_id
             ORDER BY total DESC LIMIT 10
         ");
         $st->bind_param('i', $talukaId);
@@ -406,16 +455,14 @@ function getVillageStats(mysqli $conn, int $villageId): array {
     $out = ['total'=>0,'active'=>0,'pending'=>0,'completed'=>0,'overdue'=>0,'tasks'=>[]];
     try {
         /* ── Village KPIs ─────────────────────────────────────── */
-        // TODO: Replace `assigned_village_id` with actual column once confirmed.
         $st = $conn->prepare("
             SELECT
               COUNT(*)                                                     AS total,
-              COUNT(CASE WHEN status != 'Completed' THEN 1 END)           AS active,
+              COUNT(CASE WHEN status IN ('Pending','Assigned','In Progress','Active') THEN 1 END) AS active,
               COUNT(CASE WHEN status  = 'Pending'   THEN 1 END)           AS pending,
               COUNT(CASE WHEN status  = 'Completed' THEN 1 END)           AS completed,
-              COUNT(CASE WHEN due_date < CURDATE()
-                         AND status  != 'Completed' THEN 1 END)           AS overdue
-            FROM tasks WHERE assigned_village_id = ?
+              COUNT(CASE WHEN (status <> 'Completed' AND due_date < CURDATE()) OR status = 'Escalated' THEN 1 END) AS overdue
+            FROM tasks WHERE village_id = ?
         ");
         $st->bind_param('i', $villageId);
         $st->execute();
@@ -426,12 +473,13 @@ function getVillageStats(mysqli $conn, int $villageId): array {
         $st->close();
 
         /* ── Task list ──────────────────────────────────────────── */
-        // TODO: JOIN users table for assigned_to_name once FK is available.
         $st = $conn->prepare("
-            SELECT task_id, title, status, due_date, priority, assigned_to_name
-            FROM tasks WHERE assigned_village_id = ?
-            ORDER BY FIELD(status,'Overdue','Pending','In Progress','Completed'),
-                     due_date ASC LIMIT 20
+            SELECT tk.task_id, tk.task_title AS title, tk.status, tk.due_date, tk.priority, COALESCE(u.full_name, 'Unassigned') AS assigned_to_name
+            FROM tasks tk
+            LEFT JOIN users u ON tk.assigned_user_id = u.user_id
+            WHERE tk.village_id = ?
+            ORDER BY FIELD(tk.status,'Overdue','Pending','In Progress','Completed'),
+                     tk.due_date ASC LIMIT 20
         ");
         $st->bind_param('i', $villageId);
         $st->execute();
@@ -504,6 +552,22 @@ $showL3     = true;
 $distData   = $showL1 ? getDistrictStats($conn)             : _mockDistrict();
 $talData    = $showL2 ? getTalukaStats($conn, $sTalukaId)   : _mockTaluka();
 $vilData    =           getVillageStats($conn, $sVillageId);
+
+// Replace hardcoded / mock counts with the real-time values from database
+$distData['active']    = $totalActiveTasks;
+$distData['pending']   = $pendingTasks;
+$distData['completed'] = $completedTasks;
+$distData['overdue']   = $overdueTasks;
+
+$talData['active']     = $totalActiveTasks;
+$talData['pending']    = $pendingTasks;
+$talData['completed']  = $completedTasks;
+$talData['overdue']    = $overdueTasks;
+
+$vilData['active']     = $totalActiveTasks;
+$vilData['pending']    = $pendingTasks;
+$vilData['completed']  = $completedTasks;
+$vilData['overdue']    = $overdueTasks;
 
 /* Friendly role label */
 $roleKey = match($sRole) {
@@ -924,7 +988,7 @@ function priorityCss(string $p): string {
                                         <p class="text-3xl font-bold
                                            <?= $clr==='red' ? 'text-red-600 dark:text-red-400'
                                                            : 'text-slate-900 dark:text-white' ?>">
-                                            <?= number_format($val) ?>
+                                            <?php echo number_format($val); ?>
                                         </p>
                                         <p class="ml-2 flex items-baseline text-sm font-semibold
                                            <?= $trendUp ? 'text-govgreen-600 dark:text-green-400'
@@ -1159,7 +1223,7 @@ function priorityCss(string $p): string {
                                         <p class="text-3xl font-bold
                                            <?= $clr==='red' ? 'text-red-600 dark:text-red-400'
                                                            : 'text-slate-900 dark:text-white' ?>">
-                                            <?= number_format($val) ?>
+                                            <?php echo number_format($val); ?>
                                         </p>
                                         <p class="ml-2 flex items-baseline text-sm font-semibold
                                            <?= $tUp ? 'text-govgreen-600 dark:text-green-400'
@@ -1342,7 +1406,7 @@ function priorityCss(string $p): string {
                                         <p class="text-3xl font-bold
                                            <?= $clr==='red' ? 'text-red-600 dark:text-red-400'
                                                            : 'text-slate-900 dark:text-white' ?>">
-                                            <?= number_format($val) ?>
+                                            <?php echo number_format($val); ?>
                                         </p>
                                         <p class="ml-2 flex items-baseline text-sm font-semibold
                                            <?= $tUp ? 'text-govgreen-600 dark:text-green-400'
@@ -1699,28 +1763,30 @@ function buildAllCharts(isDark) {
     }
 
     /* ── PHP data injected as JS ─────────────────────────── */
+    var completionLabels = <?php echo json_encode($completionLabels); ?>;
+    var completionCounts = <?php echo json_encode($completionCounts); ?>;
+    var statusSeries = [
+        <?php echo $totalActiveTasks; ?>,
+        <?php echo $pendingTasks; ?>,
+        <?php echo $completedTasks; ?>,
+        <?php echo $overdueTasks; ?>
+    ];
+
     <?php if ($showL1): ?>
     /* District */
     charts.dTrend = new ApexCharts(
         document.querySelector('#chart-dist-trend'),
         areaOpts([
-            { name:<?= json_encode($t['chart_assigned_tasks']) ?>,  data:[310,400,280,510,420,609,500] },
-            { name:<?= json_encode($t['chart_completed_tasks']) ?>, data:[250,320,240,480,390,580,490] }
-        ], ['Jan','Feb','Mar','Apr','May','Jun','Jul'], ['#1a365d','#2e7d32'])
+            { name:<?= json_encode($t['chart_completed_tasks']) ?>, data: completionCounts }
+        ], completionLabels, ['#2e7d32'])
     );
     charts.dTrend.render();
 
     charts.dDonut = new ApexCharts(
         document.querySelector('#chart-dist-donut'),
         donutOpts(
-            [<?= inProgress($distData['active'],$distData['pending']) ?>,
-             <?= $distData['pending'] ?>,
-             <?= $distData['completed'] ?>,
-             <?= $distData['overdue'] ?>],
-            [<?= json_encode($t['chart_in_progress']) ?>,
-             <?= json_encode($t['chart_pending']) ?>,
-             <?= json_encode($t['chart_completed_tasks']) ?>,
-             <?= json_encode($t['chart_overdue']) ?>],
+            statusSeries,
+            ['Active', 'Pending', 'Completed', 'Overdue'],
             ['#3b82f6','#f57c00','#2e7d32','#ef4444']
         )
     );
@@ -1744,23 +1810,16 @@ function buildAllCharts(isDark) {
     charts.tTrend = new ApexCharts(
         document.querySelector('#chart-tal-trend'),
         areaOpts([
-            { name:<?= json_encode($t['chart_assigned_tasks']) ?>,  data:[80,110,75,140,110,180,155] },
-            { name:<?= json_encode($t['chart_completed_tasks']) ?>, data:[60, 95,60,125, 95,165,140] }
-        ], ['Jan','Feb','Mar','Apr','May','Jun','Jul'], ['#f57c00','#2e7d32'])
+            { name:<?= json_encode($t['chart_completed_tasks']) ?>, data: completionCounts }
+        ], completionLabels, ['#2e7d32'])
     );
     charts.tTrend.render();
 
     charts.tDonut = new ApexCharts(
         document.querySelector('#chart-tal-donut'),
         donutOpts(
-            [<?= inProgress($talData['active'],$talData['pending']) ?>,
-             <?= $talData['pending'] ?>,
-             <?= $talData['completed'] ?>,
-             <?= $talData['overdue'] ?>],
-            [<?= json_encode($t['chart_in_progress']) ?>,
-             <?= json_encode($t['chart_pending']) ?>,
-             <?= json_encode($t['chart_completed_tasks']) ?>,
-             <?= json_encode($t['chart_overdue']) ?>],
+            statusSeries,
+            ['Active', 'Pending', 'Completed', 'Overdue'],
             ['#3b82f6','#f57c00','#2e7d32','#ef4444']
         )
     );
@@ -1794,23 +1853,16 @@ function buildAllCharts(isDark) {
     charts.vTrend = new ApexCharts(
         document.querySelector('#chart-vil-trend'),
         areaOpts([
-            { name:<?= json_encode($t['chart_assigned_tasks']) ?>,  data:[8,12,9,14,11,18,15] },
-            { name:<?= json_encode($t['chart_completed_tasks']) ?>, data:[6,10,7,12,10,16,14] }
-        ], ['Jan','Feb','Mar','Apr','May','Jun','Jul'], ['#2e7d32','#f57c00'])
+            { name:<?= json_encode($t['chart_completed_tasks']) ?>, data: completionCounts }
+        ], completionLabels, ['#2e7d32'])
     );
     charts.vTrend.render();
 
     charts.vDonut = new ApexCharts(
         document.querySelector('#chart-vil-donut'),
         donutOpts(
-            [<?= inProgress($vilData['active'],$vilData['pending']) ?>,
-             <?= $vilData['pending'] ?>,
-             <?= $vilData['completed'] ?>,
-             <?= $vilData['overdue'] ?>],
-            [<?= json_encode($t['chart_in_progress']) ?>,
-             <?= json_encode($t['chart_pending']) ?>,
-             <?= json_encode($t['chart_completed_tasks']) ?>,
-             <?= json_encode($t['chart_overdue']) ?>],
+            statusSeries,
+            ['Active', 'Pending', 'Completed', 'Overdue'],
             ['#3b82f6','#f57c00','#2e7d32','#ef4444']
         )
     );
