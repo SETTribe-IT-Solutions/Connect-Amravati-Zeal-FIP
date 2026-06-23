@@ -1,20 +1,18 @@
 <?php
 session_start();
 
+if (empty($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit;
+}
+
 // Database Connection
 require_once 'include/dbConfig.php';
 $db_connected = true;
 
-// Session Defaults for Dev
-if (empty($_SESSION['user_id'])) {
-    $_SESSION['user_id'] = 1;
-    $_SESSION['user_role'] = 'Collector';
-    $_SESSION['user_name'] = 'Hon. Collector';
-}
-
 $userId = (int)$_SESSION['user_id'];
-$sRole  = $_SESSION['user_role'] ?? 'L3';
-$sName  = $_SESSION['user_name'] ?? 'Employee';
+$sRole  = $_SESSION['user_role'] ?? '';
+$sName  = $_SESSION['user_name'] ?? '';
 
 $lang = isset($_GET['lang']) && $_GET['lang'] === 'mr' ? 'mr' : 'en';
 
