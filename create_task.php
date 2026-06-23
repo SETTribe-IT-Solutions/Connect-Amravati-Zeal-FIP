@@ -255,17 +255,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Update task_no with the real auto-incremented ID
             $conn->query("UPDATE tasks SET task_no = '" . $conn->real_escape_string($task_id_str) . "' WHERE task_id = $new_task_id");
 
+            // ── task_activity_logs ─────────────────────────────────
+            $activity_desc = $conn->real_escape_string("Task created and assigned.");
+            $conn->query("INSERT INTO task_activity_logs (task_id, user_id, activity_type, description, activity_time) VALUES ($new_task_id, $created_by, 'Task Created', '$activity_desc', NOW())");
+
+            // ── task_remarks ───────────────────────────────────────
+            if (!empty($target)) {
+                $conn->query("INSERT INTO task_remarks (task_id, user_id, remark_text, status_after_remark, created_at) VALUES ($new_task_id, $created_by, $tgt_sql, 'Pending', NOW())");
+            }
+
             // ── Attachment record ──────────────────────────────────
             if ($attachment_path && $file_mime) {
                 $safe_path = $conn->real_escape_string($attachment_path);
                 $orig_name = $conn->real_escape_string($_FILES['attachment']['name']);
-                $mime_safe = $conn->real_escape_string($file_mime);
-                $file_size = (int)$_FILES['attachment']['size'];
                 $conn->query(
                     "INSERT INTO task_documents
-                         (task_id, file_path, original_name, file_type, file_size, uploaded_by)
+                         (task_id, file_name, file_path, uploaded_by)
                      VALUES
-                         ($new_task_id, '$safe_path', '$orig_name', '$mime_safe', $file_size, $created_by)"
+                         ($new_task_id, '$orig_name', '$safe_path', $created_by)"
                 );
             }
 
@@ -282,9 +289,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $uid = (int)$ru['user_id'];
                         $conn->query(
                             "INSERT INTO task_assignments
-                                 (task_id, assigned_to_user, assigned_from_user, assigned_date, status)
-                             VALUES ($new_task_id, $uid, $created_by, NOW(), 'Pending')
-                             ON DUPLICATE KEY UPDATE assigned_date = NOW(), status = 'Pending'"
+                                 (task_id, assigned_from_user, assigned_to_user, assigned_to_role, assigned_date, status)
+                             VALUES ($new_task_id, $created_by, $uid, $assigned_role_id, NOW(), 'Pending')"
                         );
                         $assigned_count++;
 
@@ -301,10 +307,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             } elseif ($allocation_type === 'by_name' && $assigned_user_id) {
                 // Single user assignment
+                $role_to_assign = $assigned_role_id ? (int)$assigned_role_id : 'NULL';
                 $conn->query(
-                    "INSERT INTO task_assignments (task_id, assigned_to_user, assigned_from_user, assigned_date, status)
-                     VALUES ($new_task_id, $assigned_user_id, $created_by, NOW(), 'Pending')
-                     ON DUPLICATE KEY UPDATE assigned_date = NOW(), status = 'Pending'"
+                    "INSERT INTO task_assignments (task_id, assigned_from_user, assigned_to_user, assigned_to_role, assigned_date, status)
+                     VALUES ($new_task_id, $created_by, $assigned_user_id, $role_to_assign, NOW(), 'Pending')"
                 );
                 $assigned_count = 1;
 

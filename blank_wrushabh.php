@@ -267,7 +267,7 @@
                         <i data-lucide="download" class="w-4 h-4 mr-2"></i>
                         Export Report
                     </button>
-                    <button class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-navy-600 hover:bg-navy-700 focus:outline-none transition-colors">
+                    <button onclick="window.location.href='create_task.php'" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-navy-600 hover:bg-navy-700 focus:outline-none transition-colors">
                         <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
                         Allocate Task
                     </button>
