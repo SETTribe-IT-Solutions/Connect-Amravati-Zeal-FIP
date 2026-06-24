@@ -20,27 +20,28 @@ try {
     $countQuery = "SELECT COUNT(*) as unread_count 
                    FROM notifications 
                    WHERE status = 'Unread' AND receiver_id = $userId";
-    $stmtCount = $conn->prepare($countQuery);
-    $stmtCount->execute();
-    $countResult = $stmtCount->get_result();
+    $countResult = $conn->query($countQuery);
+    if (!$countResult) {
+        throw new Exception($conn->error);
+    }
     $unreadCount = $countResult->fetch_assoc()['unread_count'];
-    $stmtCount->close();
 
     // 2. Get Latest 100 Notifications
     $notifQuery = "SELECT n.notification_id, n.title, n.message, n.notification_type, n.status as n_status, 
-                          n.created_at as notif_created_at, n.task_id, ndl.delivery_time, 
-                          t.task_title, t.task_description, t.priority AS task_priority, 
-                          t.due_date AS task_due_date, t.status AS task_status, 
-                          t.assigned_user_id, u.full_name AS sender_name
-                   FROM notifications n
-                   LEFT JOIN notification_delivery_logs ndl ON n.notification_id = ndl.notification_id
-                   LEFT JOIN tasks t ON n.task_id = t.task_id
-                   LEFT JOIN users u ON n.sender_id = u.user_id
-                   WHERE n.receiver_id = $userId
-                   ORDER BY COALESCE(ndl.delivery_time, n.created_at) DESC LIMIT 100";
-    $stmtNotif = $conn->prepare($notifQuery);
-    $stmtNotif->execute();
-    $notifResult = $stmtNotif->get_result();
+                           n.created_at as notif_created_at, n.task_id, ndl.delivery_time, 
+                           t.task_title, t.task_description, t.priority AS task_priority, 
+                           t.due_date AS task_due_date, t.status AS task_status, 
+                           t.assigned_user_id, u.full_name AS sender_name
+                    FROM notifications n
+                    LEFT JOIN notification_delivery_logs ndl ON n.notification_id = ndl.notification_id
+                    LEFT JOIN tasks t ON n.task_id = t.task_id
+                    LEFT JOIN users u ON n.sender_id = u.user_id
+                    WHERE n.receiver_id = $userId
+                    ORDER BY COALESCE(ndl.delivery_time, n.created_at) DESC LIMIT 100";
+    $notifResult = $conn->query($notifQuery);
+    if (!$notifResult) {
+        throw new Exception($conn->error);
+    }
     
     $notifications = [];
     while ($row = $notifResult->fetch_assoc()) {
@@ -97,7 +98,6 @@ try {
             'actions' => $actions
         ];
     }
-    $stmtNotif->close();
 
     echo json_encode([
         'status' => 'success',

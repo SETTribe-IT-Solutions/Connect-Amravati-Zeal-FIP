@@ -683,7 +683,7 @@ function getRejectionAnalysis(mysqli $conn, string $scopeType, int $scopeId): ar
 
 function getUserPerformance(mysqli $conn, string $scopeType, int $scopeId): array {
     $out = [];
-    $query = "SELECT u.full_name, u.username,
+    $query = "SELECT u.full_name, u.employee_code,
                      COUNT(DISTINCT t.task_id) as total_tasks,
                      COUNT(DISTINCT CASE WHEN t.status = 'Completed' THEN t.task_id END) as completed_tasks
               FROM users u
@@ -716,7 +716,7 @@ function getUserPerformance(mysqli $conn, string $scopeType, int $scopeId): arra
                 $completed = (int)$row['completed_tasks'];
                 $rate = $total > 0 ? round(($completed / $total) * 100, 1) : 0;
                 $out[] = [
-                    'name' => $row['full_name'] ?: $row['username'],
+                    'name' => $row['full_name'] ?: $row['employee_code'],
                     'total' => $total,
                     'completed' => $completed,
                     'rate' => $rate

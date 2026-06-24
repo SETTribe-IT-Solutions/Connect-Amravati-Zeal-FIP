@@ -57,7 +57,8 @@ $translations = [
         'badge_level' => 'Level',
         'priority_high' => 'High',
         'priority_medium' => 'Medium',
-        'priority_low' => 'Low'
+        'priority_low' => 'Low',
+        'btn_ask_ai' => 'Ask Amravati AI'
     ],
     'mr' => [
         'title' => 'सूचना केंद्र - अमरावती कनेक्ट',
@@ -110,7 +111,8 @@ $translations = [
         'badge_level' => 'स्तर',
         'priority_high' => 'उच्च',
         'priority_medium' => 'मध्यम',
-        'priority_low' => 'कमी'
+        'priority_low' => 'कमी',
+        'btn_ask_ai' => 'अमरावती एआय विचारा'
     ]
 ];
 $t = $translations[$lang];
