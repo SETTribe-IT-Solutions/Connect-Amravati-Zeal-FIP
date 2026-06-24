@@ -255,7 +255,7 @@ if (!isset($lang)) {
     };
 
     // Start polling
-    setInterval(fetchNotifications, 5000);
+    setInterval(fetchNotifications, 60000);
     fetchNotifications();
 })();
 </script>

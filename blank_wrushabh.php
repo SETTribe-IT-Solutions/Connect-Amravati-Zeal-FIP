@@ -768,8 +768,8 @@
             }).then(() => fetchNotifications());
         }
 
-        // Poll every 30 seconds
-        setInterval(fetchNotifications, 30000);
+        // Poll every 60 seconds
+        setInterval(fetchNotifications, 60000);
         // Initial fetch
         fetchNotifications();
 

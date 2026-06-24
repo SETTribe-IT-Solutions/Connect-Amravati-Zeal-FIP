@@ -1024,7 +1024,7 @@ close_db_connection();
             }).then(() => fetchNotifications());
         }
 
-        setInterval(fetchNotifications, 30000);
+        setInterval(fetchNotifications, 60000);
         fetchNotifications();
     </script>
 </body>

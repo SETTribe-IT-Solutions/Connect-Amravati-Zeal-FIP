@@ -2813,7 +2813,7 @@ function markAllAsRead() {
     }).then(() => fetchNotifications());
 }
 
-setInterval(fetchNotifications, 5000);
+setInterval(fetchNotifications, 60000);
 fetchNotifications();
 </script>
 

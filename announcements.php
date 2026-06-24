@@ -2456,8 +2456,8 @@ close_db_connection();
             }).then(() => fetchNotifications());
         }
 
-        // Live Poll (5 seconds)
-        setInterval(fetchNotifications, 5000);
+        // Live Poll (60 seconds)
+        setInterval(fetchNotifications, 60000);
     </script>
 
     <!-- MODALS FOR TASK WORKFLOW ACTIONS -->

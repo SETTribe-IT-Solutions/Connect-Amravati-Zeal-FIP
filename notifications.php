@@ -982,11 +982,11 @@ close_db_connection();
                 });
         }
 
-        // Poll notifications every 5 seconds for live dashboard updates
+        // Poll notifications every 60 seconds for live dashboard updates
         setInterval(() => {
             fetchNotifications();
             loadCenterNotifications();
-        }, 5000);
+        }, 60000);
     </script>
 </body>
 </html>

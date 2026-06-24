@@ -13,15 +13,19 @@ define('DB_USER', 'u196817721_districCNTZEAL');
 define('DB_PASS', 'districtCNTDB@2026');
 define('DB_NAME', 'u196817721_districtCNTDB');
 
-// Create MySQLi connection (@ suppresses printed warning; error is handled via connect_error check below)
-$conn = @new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
-// Create MySQLi connection (@ suppresses printed warning; error is handled via connect_error check below)
-$conn = @new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+// Disable persistent connections at runtime level for MySQLi
+ini_set('mysqli.allow_persistent', '0');
 
-// Check connection
-if ($conn->connect_error) {
-    throw new RuntimeException("DB Connection failed: " . $conn->connect_error);
-    throw new RuntimeException("DB Connection failed: " . $conn->connect_error);
+// Create MySQLi connection with graceful error handling
+try {
+    $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+} catch (mysqli_sql_exception $e) {
+    // Check if the hourly connection limit is exceeded
+    if (strpos($e->getMessage(), 'max_connections_per_hour') !== false) {
+        die("<h3>Database Connection Error</h3><p>The database has temporarily reached its hourly request limit. This limit will reset shortly. Please try again in a few minutes.</p>");
+    }
+    // General connection error
+    die("<h3>Database Connection Error</h3><p>Unable to connect to the database. Please try again later.</p>");
 }
 
 // Set character set to UTF-8
