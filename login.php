@@ -9,8 +9,23 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
+// Set secure session cookie parameters before starting the session
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path' => '/',
+    'domain' => $_SERVER['HTTP_HOST'] ?? '',
+    'secure' => isset($_SERVER['HTTPS']),
+    'httponly' => true,
+    'samesite' => 'Lax'
+]);
+
 // Start standard session handling for role-based tracking
 session_start();
+
+// Generate CSRF token if not exists
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
 
 // Database Configuration File Inclusion
 include("include\dbConfig.php");
@@ -57,10 +72,32 @@ $error_message = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username_input = trim($_POST['username'] ?? '');
     $password_input = $_POST['password'] ?? '';
-    
-    if ($username_input === '' || $password_input === '') {
-        $error_message = $t['err_invalid'];
+    $csrf_token_input = $_POST['csrf_token'] ?? '';
+    $ip_address = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
+    $device_info = substr($_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN', 0, 255);
+
+    // CSRF Validation
+    if (!hash_equals($_SESSION['csrf_token'], $csrf_token_input)) {
+        $error_message = "Invalid request. Please try again.";
+        log_login_attempt($conn, null, $ip_address, $device_info, 'Failed - CSRF Token Mismatch');
     } else {
+        // Rate Limiting: Check for > 5 failed attempts in the last 15 minutes from this IP
+        $rate_limit_sql = "SELECT COUNT(*) as attempt_count FROM login_history 
+                           WHERE ip_address = ? AND status LIKE 'Failed%' 
+                           AND login_time >= DATE_SUB(NOW(), INTERVAL 15 MINUTE)";
+        $rl_stmt = mysqli_prepare($conn, $rate_limit_sql);
+        mysqli_stmt_bind_param($rl_stmt, "s", $ip_address);
+        mysqli_stmt_execute($rl_stmt);
+        $rl_result = mysqli_stmt_get_result($rl_stmt);
+        $rl_row = mysqli_fetch_assoc($rl_result);
+        mysqli_stmt_close($rl_stmt);
+
+        if ($rl_row && $rl_row['attempt_count'] >= 5) {
+            $error_message = "Too many failed attempts. Please try again after 15 minutes.";
+            log_login_attempt($conn, null, $ip_address, $device_info, 'Failed - Rate Limited');
+        } elseif ($username_input === '' || $password_input === '') {
+            $error_message = $t['err_invalid'];
+        } else {
       
         // SQL Statement joining users and roles based on structure constraints
         $sql = "SELECT u.user_id, u.employee_code, u.full_name, u.email, u.password_hash, u.status, 
@@ -94,6 +131,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 log_login_attempt($conn, $user_id_for_log, $ip_address, $device_info, 'Success');
                 
+                // Prevent Session Fixation
+                session_regenerate_id(true);
+                
                 // Populate global session maps
                 $_SESSION['user_id'] = $user['user_id'];
                 $_SESSION['employee_code'] = $user['employee_code'];
@@ -113,6 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $error_message = $t['err_invalid'];
             log_login_attempt($conn, null, $ip_address, $device_info, 'Failed - User Not Found');
+        }
         }
     }
 }
@@ -242,6 +283,7 @@ function log_login_attempt($conn, $user_id, $ip, $device, $status) {
                 <?php endif; ?>
 
                 <form action="login.php?lang=<?php echo $lang; ?>" method="POST" autocomplete="off" class="space-y-5">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                     
                     <div>
                         <label for="username" class="block text-sm font-semibold text-slate-700 mb-1.5"><?php echo htmlspecialchars($t['label_username']); ?></label>
