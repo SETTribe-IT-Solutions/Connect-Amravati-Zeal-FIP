@@ -764,14 +764,7 @@ function statusBadgeCss(string $s): string {
     };
 }
 
-function priorityTextCss(string $p): string {
-    return match($p) {
-        'Critical' => 'text-purple-600 font-bold dark:text-purple-400',
-        'High'     => 'text-red-650 font-semibold dark:text-red-400',
-        'Medium'   => 'text-orange-500 font-medium dark:text-orange-400',
-        default    => 'text-slate-500 dark:text-slate-400',
-    };
-}
+close_db_connection();
 ?>
 <!DOCTYPE html>
 <html lang="<?= $lang ?>" class="light">
@@ -883,6 +876,70 @@ function priorityTextCss(string $p): string {
         .dark .badge-l1 { background: #1e3a8a33; color: #93c5fd; border-color: #1e40af; }
         .dark .badge-l2 { background: #92400e33; color: #fcd34d; border-color: #b45309; }
         .dark .badge-l3 { background: #065f4633; color: #6ee7b7; border-color: #047857; }
+
+        .dark .badge-l3 { background: #065f4633; color: #6ee7b7; border-color: #047857; }
+
+        /* ── Status Progress Bar ──────────────────────────── */
+        .progress-step { flex:1; text-align:center; position:relative; }
+        .progress-step::before {
+            content:''; position:absolute; top:16px; left:-50%; right:50%;
+            height:2px; background:#e2e8f0; z-index:0;
+        }
+        .dark .progress-step::before { background:#334155; }
+        .progress-step:first-child::before { display:none; }
+        .progress-step.active::before,
+        .progress-step.done::before { background:#152b4a; }
+        .dark .progress-step.active::before,
+        .dark .progress-step.done::before { background:#60a5fa; }
+
+        /* ── Timeline ─────────────────────────────── */
+        .timeline-wrapper { position:relative; }
+        .timeline-line {
+            position:absolute; left:19px; top:44px; bottom:0;
+            width:2px;
+            background:linear-gradient(to bottom, #cbd5e1 0%, #cbd5e1 88%, transparent 100%);
+        }
+        .dark .timeline-line { background:linear-gradient(to bottom, #334155 0%, #334155 88%, transparent 100%); }
+
+        .tl-node { position:relative; padding-left:56px; padding-bottom:32px; }
+        .tl-node:last-child { padding-bottom:0; }
+
+        .tl-dot {
+            position:absolute; left:0; top:0;
+            width:40px; height:40px; border-radius:50%;
+            display:flex; align-items:center; justify-content:center;
+            box-shadow:0 0 0 4px #fff, 0 2px 10px rgba(0,0,0,.12);
+            z-index:2;
+            transition:transform .2s;
+        }
+        .dark .tl-dot { box-shadow:0 0 0 4px #0f172a, 0 2px 10px rgba(0,0,0,.3); }
+        .tl-node:hover .tl-dot { transform:scale(1.08); }
+
+        .tl-card {
+            border-radius:14px;
+            padding:16px 20px;
+            position:relative;
+            background:#fff;
+            border:1px solid #e2e8f0;
+            box-shadow:0 1px 4px rgba(0,0,0,.05);
+            transition:box-shadow .2s, transform .2s;
+        }
+        .dark .tl-card { background:#1e293b; border-color:#334155; }
+        .tl-card:hover { box-shadow:0 6px 24px rgba(0,0,0,.09); transform:translateY(-1px); }
+
+        /* Change badge (old → new) */
+        .change-badge {
+            display:inline-flex; align-items:center; gap:6px;
+            padding:3px 10px; border-radius:999px;
+            font-size:11px; font-weight:700; font-family:monospace;
+            background:rgba(99,102,241,.1); color:#4338ca;
+            border:1px solid rgba(99,102,241,.2);
+        }
+        .dark .change-badge { background:rgba(99,102,241,.15); color:#a5b4fc; border-color:rgba(99,102,241,.3); }
+
+        /* Animations */
+        @keyframes fadeSlideIn { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+        .animate-in { animation:fadeSlideIn .35s ease both; }
 
         /* Print styles */
         @media print {
@@ -1224,16 +1281,17 @@ function priorityTextCss(string $p): string {
                     <thead class="bg-slate-50 dark:bg-slate-900/50">
                         <tr>
                             <th class="w-[8%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_task_no']) ?></th>
-                            <th class="w-[28%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_title']) ?></th>
+                            <th class="w-[24%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_title']) ?></th>
                             <?php if ($activeTab === 'allocated'): ?>
-                            <th class="w-[15%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_worker']) ?></th>
+                            <th class="w-[13%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_worker']) ?></th>
                             <?php else: ?>
-                            <th class="w-[15%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_creator']) ?></th>
+                            <th class="w-[13%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_creator']) ?></th>
                             <?php endif; ?>
-                            <th class="w-[9%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_priority']) ?></th>
-                            <th class="w-[12%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_status']) ?></th>
+                            <th class="w-[8%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_priority']) ?></th>
+                            <th class="w-[11%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_status']) ?></th>
                             <th class="w-[10%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_due']) ?></th>
-                            <th class="w-[18%] px-6 py-3.5 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider no-print"><?= htmlspecialchars($t['col_actions']) ?></th>
+                            <th class="w-[10%] px-6 py-3.5 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tracking</th>
+                            <th class="w-[16%] px-6 py-3.5 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider no-print"><?= htmlspecialchars($t['col_actions']) ?></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-800">
@@ -1248,7 +1306,7 @@ function priorityTextCss(string $p): string {
                         if (empty($tasksToDisplay)): 
                         ?>
                         <tr>
-                            <td colspan="7" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400 font-medium">
+                            <td colspan="8" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400 font-medium">
                                 <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 text-slate-400 opacity-60"></i>
                                 <?= htmlspecialchars($t['no_tasks']) ?>
                             </td>
@@ -1308,6 +1366,13 @@ function priorityTextCss(string $p): string {
                             <!-- Due Date -->
                             <td class="px-6 py-4 whitespace-nowrap text-sm due-cell <?= $dueColor ?>">
                                 <?= $dueFormatted ?>
+                            </td>
+                            <!-- Tracking -->
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                                <button type="button" onclick="openDetails(<?= $taskId ?>)" class="inline-flex items-center justify-center px-2 py-1.5 text-navy-600 bg-navy-50 hover:bg-navy-100 dark:text-blue-400 dark:bg-navy-900/40 dark:hover:bg-navy-800 rounded-lg transition-colors border border-transparent hover:border-navy-200 dark:hover:border-navy-700" title="Track Journey">
+                                    <i data-lucide="route" class="w-4 h-4"></i>
+                                    <span class="ml-1.5 font-semibold text-[11px] uppercase tracking-wider">Track</span>
+                                </button>
                             </td>
                             <!-- Actions (no-print) -->
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium no-print">
@@ -1509,39 +1574,52 @@ function priorityTextCss(string $p): string {
         <div class="fixed inset-0 transition-opacity bg-slate-900/60 backdrop-blur-sm" onclick="closeDetails()"></div>
         <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
         
-        <div class="inline-block align-middle bg-white dark:bg-slate-800 rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full border border-slate-200 dark:border-slate-700">
-            <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-850">
-                <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <i data-lucide="info" class="w-5 h-5 text-navy-600 dark:text-blue-400"></i>
-                    <span><?= htmlspecialchars($t['details_title']) ?></span>
-                </h3>
-                <button type="button" onclick="closeDetails()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                    <i data-lucide="x" class="w-5 h-5"></i>
+        <div class="inline-block align-middle bg-white dark:bg-slate-800 rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full border border-slate-200 dark:border-slate-700">
+            <!-- Dark Navy Header like task_tracking -->
+            <div class="px-6 py-5 bg-navy-700 dark:bg-slate-900 flex justify-between items-start">
+                <div class="flex items-center gap-4">
+                    <div class="w-11 h-11 rounded-xl bg-navy-600/50 flex items-center justify-center border border-navy-500/30">
+                        <i data-lucide="git-branch" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-bold text-blue-300 uppercase tracking-wider mb-0.5" id="det_no"></p>
+                        <h3 class="text-lg font-bold text-white leading-tight" id="det_title"></h3>
+                    </div>
+                </div>
+                <button type="button" onclick="closeDetails()" class="text-slate-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
                 </button>
             </div>
 
             <div class="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
-                <!-- Task Header Info -->
-                <div>
-                    <h4 class="text-lg font-bold text-slate-900 dark:text-white" id="det_title"></h4>
-                    <p class="text-xs text-slate-400 dark:text-slate-500 font-mono mt-1" id="det_no"></p>
-                    <p class="text-sm text-slate-650 dark:text-slate-350 mt-3 leading-relaxed" id="det_desc"></p>
-                </div>
-
                 <!-- KPI Quick View -->
-                <div class="grid grid-cols-3 gap-4 p-4 bg-slate-50 dark:bg-slate-900 rounded-xl">
+                <div class="grid grid-cols-4 gap-4 pb-2">
                     <div>
-                        <span class="block text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase">Allocated By</span>
-                        <span class="text-sm font-medium text-slate-800 dark:text-slate-200" id="det_creator"></span>
+                        <span class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Task ID</span>
+                        <span class="text-sm font-bold text-slate-900 dark:text-white" id="det_id_val"></span>
                     </div>
                     <div>
-                        <span class="block text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase">Assigned To</span>
+                        <span class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Assigned To</span>
                         <span class="text-sm font-medium text-slate-800 dark:text-slate-200" id="det_assignee"></span>
                     </div>
                     <div>
-                        <span class="block text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase">Due Date</span>
-                        <span class="text-sm font-medium text-slate-800 dark:text-slate-200" id="det_due"></span>
+                        <span class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Priority</span>
+                        <span class="text-sm font-bold" id="det_priority"></span>
                     </div>
+                    <div>
+                        <span class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Due Date</span>
+                        <span class="text-sm font-bold text-red-600 dark:text-red-400" id="det_due"></span>
+                    </div>
+                </div>
+
+                <div>
+                    <span class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Description</span>
+                    <p class="text-sm text-slate-650 dark:text-slate-350 leading-relaxed" id="det_desc"></p>
+                </div>
+
+                <!-- HORIZONTAL STATUS BAR -->
+                <div class="border-y border-slate-100 dark:border-slate-700/50 py-6">
+                    <div id="det_progress" class="flex items-start w-full"></div>
                 </div>
 
                 <!-- Documents List -->
@@ -1553,11 +1631,11 @@ function priorityTextCss(string $p): string {
                 </div>
 
                 <!-- Status History timeline -->
-                <div>
-                    <h5 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-1">
+                <div class="mt-4">
+                    <h5 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-5 flex items-center gap-1">
                         <i data-lucide="activity" class="w-4 h-4"></i> <?= htmlspecialchars($t['lbl_history']) ?>
                     </h5>
-                    <div id="det_history" class="relative border-l-2 border-slate-200 dark:border-slate-700 ml-3 space-y-4"></div>
+                    <div id="det_history" class="timeline-wrapper pt-2"></div>
                 </div>
             </div>
 
@@ -1826,11 +1904,125 @@ function priorityTextCss(string $p): string {
                 if (data.status === 'success') {
                     const task = data.task;
                     document.getElementById('det_title').textContent = task.task_title;
-                    document.getElementById('det_no').textContent = '#' + task.task_no;
+                    document.getElementById('det_no').textContent = task.task_no || ('#' + task.task_id);
+                    document.getElementById('det_id_val').textContent = task.task_no || ('#' + task.task_id);
                     document.getElementById('det_desc').textContent = task.task_description || 'No description provided.';
-                    document.getElementById('det_creator').textContent = task.creator_name || 'N/A';
-                    document.getElementById('det_assignee').textContent = task.assignee_name || 'N/A';
-                    document.getElementById('det_due').textContent = task.due_date || 'N/A';
+                    
+                    document.getElementById('det_assignee').textContent = task.assignee_name || 'Unassigned';
+                    
+                    const prioritySpan = document.getElementById('det_priority');
+                    prioritySpan.textContent = task.priority || '—';
+                    if(task.priority === 'Critical') prioritySpan.className = 'text-sm font-bold text-purple-600 dark:text-purple-400';
+                    else if(task.priority === 'High') prioritySpan.className = 'text-sm font-bold text-red-600 dark:text-red-400';
+                    else if(task.priority === 'Medium') prioritySpan.className = 'text-sm font-bold text-orange-500 dark:text-orange-400';
+                    else prioritySpan.className = 'text-sm font-bold text-slate-500 dark:text-slate-400';
+
+                    function formatSimpleDate(dateStr) {
+                        if(!dateStr) return '';
+                        const d = new Date(dateStr);
+                        if(isNaN(d)) return dateStr;
+                        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                        return `${d.getDate().toString().padStart(2, '0')} ${months[d.getMonth()]} ${d.getFullYear()}`;
+                    }
+                    document.getElementById('det_due').textContent = formatSimpleDate(task.due_date) || '—';
+
+                    // HORIZONTAL PROGRESS BAR LOGIC
+                    const currentStatus = task.status || 'Pending';
+                    const baseFlow = ['Pending', 'Assigned', 'In Progress', 'Completed'];
+                    let statuses = [...baseFlow];
+                    if (currentStatus.toLowerCase() === 'overdue' || currentStatus.toLowerCase() === 'escalated') {
+                        statuses = ['Pending', 'Assigned', 'In Progress', 'Completed', 'Overdue'];
+                    } else if (currentStatus.toLowerCase() === 'rejected') {
+                        statuses = ['Pending', 'Assigned', 'In Progress', 'Rejected'];
+                    }
+                    if (!statuses.includes(currentStatus) && !['overdue', 'escalated'].includes(currentStatus.toLowerCase())) {
+                        if (currentStatus.toLowerCase() !== 'accepted') {
+                            statuses.push(currentStatus);
+                        }
+                    }
+                    let currentIdx = statuses.indexOf(currentStatus);
+                    if (currentStatus.toLowerCase() === 'accepted') {
+                        currentIdx = statuses.indexOf('Assigned'); // Treat Accepted similar to Assigned for UI progression if not explicit
+                    }
+                    if(currentIdx === -1) currentIdx = statuses.length - 1; // Fallback
+                    
+                    const progressContainer = document.getElementById('det_progress');
+                    progressContainer.innerHTML = '';
+                    statuses.forEach((s, idx) => {
+                        let cls = '';
+                        if (idx < currentIdx) cls = 'done';
+                        else if (idx === currentIdx) cls = 'active';
+                        
+                        let dotBg = 'bg-slate-200 dark:bg-slate-600';
+                        let labelCls = 'text-slate-400 dark:text-slate-500';
+                        let innerDot = `<div class="w-2 h-2 rounded-full bg-slate-400 dark:bg-slate-500"></div>`;
+                        let dotColorHtml = ``;
+                        let inlineLineStyle = '';
+
+                        if (idx <= currentIdx) {
+                            const sl = s.toLowerCase();
+                            if (sl === 'escalated' || sl === 'overdue' || sl === 'rejected') {
+                                dotColorHtml = `style="background-color: #ef4444; border-color: #ef4444;"`;
+                                labelCls = 'text-red-600 dark:text-red-400 font-bold';
+                                inlineLineStyle = 'background-color: #ef4444;';
+                            } else if (sl === 'completed') {
+                                dotColorHtml = `style="background-color: #22c55e; border-color: #22c55e;"`;
+                                labelCls = 'text-green-600 dark:text-green-400 font-bold';
+                                inlineLineStyle = 'background-color: #22c55e;';
+                            } else if (sl === 'in progress') {
+                                dotColorHtml = `style="background-color: #a855f7; border-color: #a855f7;"`;
+                                labelCls = 'text-purple-600 dark:text-purple-400 font-bold';
+                                inlineLineStyle = 'background-color: #a855f7;';
+                            } else if (sl === 'assigned') {
+                                dotColorHtml = `style="background-color: #3b82f6; border-color: #3b82f6;"`;
+                                labelCls = 'text-blue-600 dark:text-blue-400 font-bold';
+                                inlineLineStyle = 'background-color: #3b82f6;';
+                            } else if (sl === 'pending') {
+                                dotColorHtml = `style="background-color: #eab308; border-color: #eab308;"`;
+                                labelCls = 'text-yellow-600 dark:text-yellow-400 font-bold';
+                                inlineLineStyle = 'background-color: #eab308;';
+                            } else {
+                                dotColorHtml = `style="background-color: #1e3a8a; border-color: #1e3a8a;"`;
+                                labelCls = 'text-navy-600 dark:text-blue-400 font-semibold';
+                                inlineLineStyle = 'background-color: #1e3a8a;';
+                            }
+                        }
+                        
+                        let iconName = '';
+                        if (idx < currentIdx) {
+                            iconName = 'check';
+                        } else if (idx === currentIdx) {
+                            const sl = s.toLowerCase();
+                            if (sl === 'pending') iconName = 'clock';
+                            else if (sl === 'assigned') iconName = 'user-check';
+                            else if (sl === 'in progress') iconName = 'loader';
+                            else if (sl === 'completed') iconName = 'check-circle-2';
+                            else if (sl === 'overdue' || sl === 'rejected') iconName = 'alert-triangle';
+                            else iconName = 'activity';
+                        }
+                        
+                        if (idx <= currentIdx) {
+                            innerDot = `<i data-lucide="${iconName}" class="w-4 h-4 text-white"></i>`;
+                        }
+                        
+                        let lineHtml = '';
+                        if (idx > 0) {
+                            const lineBg = idx <= currentIdx ? '' : 'bg-slate-200 dark:bg-slate-600';
+                            lineHtml = `<div class="absolute top-4 right-1/2 left-0 h-0.5 ${lineBg}" style="${idx <= currentIdx ? inlineLineStyle : ''}; z-index: 1;"></div>`;
+                        }
+
+                        progressContainer.innerHTML += `
+                            <div class="progress-step ${cls} flex-1">
+                                <div class="relative flex justify-center mb-2">
+                                    ${lineHtml}
+                                    <div class="relative w-8 h-8 rounded-full ${idx <= currentIdx ? '' : dotBg} flex items-center justify-center" ${dotColorHtml} style="z-index: 2;">
+                                        ${innerDot}
+                                    </div>
+                                </div>
+                                <div class="text-[11px] text-center leading-tight mt-2 ${labelCls}">${s}</div>
+                            </div>
+                        `;
+                    });
 
                     // Documents List
                     const docsContainer = document.getElementById('det_docs');
@@ -1854,22 +2046,156 @@ function priorityTextCss(string $p): string {
                         });
                     }
 
+                    // Helper to format date like '22 Jun 2026 06:59 am'
+                    function formatTimelineDate(dateStr) {
+                        if(!dateStr) return '';
+                        const d = new Date(dateStr);
+                        if(isNaN(d)) return dateStr;
+                        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                        let hours = d.getHours();
+                        const ampm = hours >= 12 ? 'pm' : 'am';
+                        hours = hours % 12;
+                        hours = hours ? hours : 12; // the hour '0' should be '12'
+                        const mins = d.getMinutes().toString().padStart(2, '0');
+                        return `${d.getDate().toString().padStart(2, '0')} ${months[d.getMonth()]} ${d.getFullYear()} &middot; ${hours.toString().padStart(2, '0')}:${mins} ${ampm}`;
+                    }
+
                     // History Timeline
                     const historyContainer = document.getElementById('det_history');
-                    historyContainer.innerHTML = '';
-                    if (!data.history || data.history.length === 0) {
-                        historyContainer.innerHTML = '<p class="text-xs text-slate-500 italic ml-4">No logged history found.</p>';
-                    } else {
-                        data.history.forEach(log => {
-                            const remarkText = log.remarks ? `<p class="text-xs text-slate-500 dark:text-slate-400 italic bg-slate-50 dark:bg-slate-900 p-2 border border-slate-150 dark:border-slate-800 rounded-md mt-1.5">${log.remarks}</p>` : '';
+                    historyContainer.innerHTML = '<div class="timeline-line"></div>';
+                    
+                    const createdDate = formatTimelineDate(task.created_at) || 'Initial';
+                    const hasAssignment = task.assignee_name && task.assignee_name !== 'Unassigned' && task.assignee_name !== 'N/A';
+                    const hasMoreEvents = hasAssignment || (data.history && data.history.length > 0);
+
+                    historyContainer.innerHTML += `
+                        <div class="tl-node animate-in">
+                            <div class="tl-dot bg-gradient-to-br from-slate-500 to-slate-600">
+                                <i data-lucide="plus-circle" class="w-[18px] h-[18px] text-white"></i>
+                            </div>
+                            <div class="tl-card" style="border-left:4px solid #64748b">
+                                <div class="absolute -top-2.5 left-4">
+                                    <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 shadow-sm">
+                                        CREATED
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-2 mt-1 mb-2 flex-wrap">
+                                    <h4 class="text-base font-bold text-slate-900 dark:text-white">Task Created</h4>
+                                    ${!hasMoreEvents ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-gradient-to-r from-navy-600 to-navy-500 text-white"><i data-lucide="sparkles" class="w-2.5 h-2.5"></i> LATEST</span>' : ''}
+                                </div>
+                                <div class="mb-2.5">
+                                    <span class="change-badge">
+                                        &mdash; <i data-lucide="arrow-right" class="w-3 h-3"></i> Pending
+                                    </span>
+                                </div>
+                                <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-3">
+                                    "${task.task_title || task.task_no}" was created and added to the system.
+                                </p>
+                                <div class="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-700 pt-3 mt-1">
+                                    <div class="flex items-center gap-1.5">
+                                        <i data-lucide="user" class="w-3 h-3 flex-shrink-0"></i>
+                                        <strong class="text-slate-700 dark:text-slate-200 font-semibold">${task.creator_name || 'System'}</strong>
+                                        <span class="text-slate-400 dark:text-slate-500">&middot; Creator</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <i data-lucide="clock" class="w-3 h-3 flex-shrink-0"></i>
+                                        <span class="font-mono">${createdDate}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    if (hasAssignment) {
+                        const assignedDate = formatTimelineDate(task.assigned_at || task.created_at) || 'Initial';
+                        const isLatestAssignment = !data.history || data.history.length === 0;
+                        historyContainer.innerHTML += `
+                            <div class="tl-node animate-in">
+                                <div class="tl-dot bg-gradient-to-br from-blue-500 to-blue-600">
+                                    <i data-lucide="user-plus" class="w-[18px] h-[18px] text-white"></i>
+                                </div>
+                                <div class="tl-card" style="border-left:4px solid #3b82f6">
+                                    <div class="absolute -top-2.5 left-4">
+                                        <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 shadow-sm">
+                                            ASSIGNMENT
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center gap-2 mt-1 mb-2 flex-wrap">
+                                        <h4 class="text-base font-bold text-slate-900 dark:text-white">Task Assigned</h4>
+                                        ${isLatestAssignment ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-gradient-to-r from-navy-600 to-navy-500 text-white"><i data-lucide="sparkles" class="w-2.5 h-2.5"></i> LATEST</span>' : ''}
+                                    </div>
+                                    <div class="mb-2.5">
+                                        <span class="change-badge">
+                                            Pending <i data-lucide="arrow-right" class="w-3 h-3"></i> Assigned
+                                        </span>
+                                    </div>
+                                    <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-3">
+                                        Task assigned to <strong>${task.assignee_name}</strong>.
+                                    </p>
+                                    <div class="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-700 pt-3 mt-1">
+                                        <div class="flex items-center gap-1.5">
+                                            <i data-lucide="user" class="w-3 h-3 flex-shrink-0"></i>
+                                            <strong class="text-slate-700 dark:text-slate-200 font-semibold">System</strong>
+                                            <span class="text-slate-400 dark:text-slate-500">&middot; Allocator</span>
+                                        </div>
+                                        <div class="flex items-center gap-1.5">
+                                            <i data-lucide="clock" class="w-3 h-3 flex-shrink-0"></i>
+                                            <span class="font-mono">${assignedDate}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    if (data.history && data.history.length > 0) {
+                        const chronHistory = data.history.slice().reverse();
+                        chronHistory.forEach((log, idx) => {
+                            const isLatest = idx === chronHistory.length - 1;
+                            const latestBadge = isLatest ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-gradient-to-r from-navy-600 to-navy-500 text-white"><i data-lucide="sparkles" class="w-2.5 h-2.5"></i> LATEST</span>` : '';
+                            const remarkText = log.remarks ? `<p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-3">${log.remarks}</p>` : '';
+                            
+                            let ev_icon = 'refresh-cw';
+                            let ev_bg_cls = 'from-indigo-500 to-indigo-600';
+                            let ev_color = '#6366f1';
+                            if(log.new_status === 'Completed') { ev_bg_cls = 'from-green-500 to-green-600'; ev_color = '#22c55e'; ev_icon = 'check-circle'; }
+                            else if(log.new_status === 'Rejected' || log.new_status === 'Overdue') { ev_bg_cls = 'from-red-500 to-red-600'; ev_color = '#ef4444'; ev_icon = 'alert-triangle'; }
+                            else if(log.new_status === 'In Progress') { ev_bg_cls = 'from-purple-500 to-purple-600'; ev_color = '#a855f7'; ev_icon = 'play-circle'; }
+                            else if(log.new_status === 'Accepted') { ev_bg_cls = 'from-blue-500 to-blue-600'; ev_color = '#3b82f6'; ev_icon = 'thumbs-up'; }
+                            else if(log.new_status === 'Assigned' || log.new_status === 'Reassigned') { ev_bg_cls = 'from-blue-500 to-blue-600'; ev_color = '#3b82f6'; ev_icon = 'user-plus'; }
+
                             historyContainer.innerHTML += `
-                                <div class="relative pl-6 pb-2">
-                                    <div class="absolute -left-1.5 top-1.5 w-3 h-3 rounded-full bg-navy-600 dark:bg-blue-400 ring-4 ring-white dark:ring-slate-800"></div>
-                                    <div class="text-xs">
-                                        <span class="font-bold text-slate-800 dark:text-white">${log.new_status}</span>
-                                        <span class="text-slate-400 opacity-70">from ${log.old_status || 'Start'}</span>
-                                        <span class="block text-[10px] text-slate-450 dark:text-slate-500 mt-0.5">${log.change_date} &middot; by ${log.changer_name || 'System'}</span>
+                                <div class="tl-node animate-in">
+                                    <div class="tl-dot bg-gradient-to-br ${ev_bg_cls}">
+                                        <i data-lucide="${ev_icon}" class="w-[18px] h-[18px] text-white"></i>
+                                    </div>
+                                    <div class="tl-card" style="border-left:4px solid ${ev_color}">
+                                        <div class="absolute -top-2.5 left-4">
+                                            <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 shadow-sm">
+                                                STATUS CHANGED
+                                            </span>
+                                        </div>
+                                        <div class="flex items-center gap-2 mt-1 mb-2 flex-wrap">
+                                            <h4 class="text-base font-bold text-slate-900 dark:text-white">Status Changed</h4>
+                                            ${latestBadge}
+                                        </div>
+                                        <div class="mb-2.5">
+                                            <span class="change-badge">
+                                                ${log.old_status || 'Start'} <i data-lucide="arrow-right" class="w-3 h-3"></i> ${log.new_status}
+                                            </span>
+                                        </div>
                                         ${remarkText}
+                                        <div class="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-700 pt-3 mt-1">
+                                            <div class="flex items-center gap-1.5">
+                                                <i data-lucide="user" class="w-3 h-3 flex-shrink-0"></i>
+                                                <strong class="text-slate-700 dark:text-slate-200 font-semibold">${log.changer_name || 'System'}</strong>
+                                                <span class="text-slate-400 dark:text-slate-500">&middot; User</span>
+                                            </div>
+                                            <div class="flex items-center gap-1.5">
+                                                <i data-lucide="clock" class="w-3 h-3 flex-shrink-0"></i>
+                                                <span class="font-mono">${formatTimelineDate(log.change_date)}</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             `;

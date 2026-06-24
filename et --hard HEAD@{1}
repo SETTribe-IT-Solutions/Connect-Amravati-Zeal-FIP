@@ -1,0 +1,10 @@
+[33m76e1f3c[m[33m ([m[1;36mHEAD -> [m[1;32mdev[m[33m)[m HEAD@{0}: pull origin dev: Fast-forward
+[33m8a7b4c7[m[33m ([m[1;32mmain[m[33m, [m[1;32mashwini/dev/loginpage[m[33m)[m HEAD@{1}: checkout: moving from mangesh/feature/dashboard to dev
+[33mbc89eda[m[33m ([m[1;32mmangesh/feature/dashboard[m[33m)[m HEAD@{2}: commit: Added user_Creation.php from ashwini/dev/usercreation
+[33md78d361[m HEAD@{3}: commit: Added login.php from ashwini/dev/loginpage
+[33m393f0f9[m[33m ([m[1;31morigin/mangesh/feature/dashboard[m[33m)[m HEAD@{4}: commit: dashboard
+[33m8a7b4c7[m[33m ([m[1;32mmain[m[33m, [m[1;32mashwini/dev/loginpage[m[33m)[m HEAD@{5}: checkout: moving from ashwini/dev/loginpage to mangesh/feature/dashboard
+[33m8a7b4c7[m[33m ([m[1;32mmain[m[33m, [m[1;32mashwini/dev/loginpage[m[33m)[m HEAD@{6}: checkout: moving from main to ashwini/dev/loginpage
+[33m8a7b4c7[m[33m ([m[1;32mmain[m[33m, [m[1;32mashwini/dev/loginpage[m[33m)[m HEAD@{7}: pull origin dev: Fast-forward
+[33mac756c8[m HEAD@{8}: pull origin dev: Fast-forward
+[33m00b7a05[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{9}: clone: from https://github.com/SETTribe-IT-Solutions/Connect-Amravati-Zeal-FIP.git

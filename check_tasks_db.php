@@ -17,4 +17,5 @@ foreach ($tables as $t) {
     }
     echo "\n";
 }
+close_db_connection();
 ?>

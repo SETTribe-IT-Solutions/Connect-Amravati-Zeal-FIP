@@ -7,9 +7,9 @@
  * either by name (user) or by role (all users with that role get the task).
  */
 
+session_start();
 require_once 'include/dbConfig.php';
 
-session_start();
 
 // Language Toggle Setup (Support Marathi & English)
 $lang = isset($_GET['lang']) && $_GET['lang'] === 'mr' ? 'mr' : 'en';
@@ -136,6 +136,10 @@ function createTaskNotification(
 // ═══════════════════════════════════════════════════════════════════
 if (isset($_GET['ajax']) && $_GET['ajax'] === 'role_users' && isset($_GET['role_id'])) {
     header('Content-Type: application/json');
+    if (!$conn) {
+        echo json_encode(['users' => [], 'count' => 0, 'error' => 'Database connection unavailable']);
+        exit;
+    }
     $role_id = (int)$_GET['role_id'];
     $res = $conn->query(
         "SELECT user_id, full_name, designation, department_id
@@ -159,17 +163,17 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'role_users' && isset($_GET['role_
 
 // ─── Fetch dropdown data ─────────────────────────────────────────────
 // users table: primary key = user_id, name column = full_name
-$users_result = $conn->query(
+$users_result = $conn ? $conn->query(
     "SELECT user_id, full_name, designation FROM users WHERE status = 'Active' ORDER BY full_name"
-);
+) : false;
 // roles table: primary key = role_id, name column = role_name
-$roles_result = $conn->query(
+$roles_result = $conn ? $conn->query(
     "SELECT role_id, role_name, role_level FROM roles WHERE status = 'Active' ORDER BY role_level, role_name"
-);
+) : false;
 // departments table
-$departments_result = $conn->query(
+$departments_result = $conn ? $conn->query(
     "SELECT id, department_name FROM departments ORDER BY department_name"
-);
+) : false;
 
 // ─── Handle Form Submission ───────────────────────────────────────────
 $success_msg    = '';
@@ -177,10 +181,12 @@ $error_msg      = '';
 $assigned_count = 0; // how many users received the task (for role-based)
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
-    // ── Sanitise inputs ────────────────────────────────────────────
-    $task_title       = $conn->real_escape_string(trim($_POST['task_title']       ?? ''));
-    $task_description = $conn->real_escape_string(trim($_POST['task_description'] ?? ''));
+    if (!$conn) {
+        $error_msg = "Database connection unavailable. Cannot create task.";
+    } else {
+        // ── Sanitise inputs ────────────────────────────────────────────
+        $task_title       = $conn->real_escape_string(trim($_POST['task_title']       ?? ''));
+        $task_description = $conn->real_escape_string(trim($_POST['task_description'] ?? ''));
     $allocation_type  = trim($_POST['allocation_type'] ?? 'by_name');
     $priority         = $conn->real_escape_string(trim($_POST['priority']         ?? 'Medium'));
     $task_category    = $conn->real_escape_string(trim($_POST['task_category']    ?? ''));
@@ -366,12 +372,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $success_msg = "Task <strong>$task_id_str</strong> created successfully!$count_label";
         } else {
             $error_msg = 'Database error: ' . $conn->error;
-        }
-    }
+        // (End of task creation logic)
+    } // End of if(!$conn) check
 }
 
 // ─── Auto-generate Task No preview ─────────────────────────────────
-$result  = $conn->query("SELECT AUTO_INCREMENT AS next_id FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tasks'");
+$result  = $conn ? $conn->query("SELECT AUTO_INCREMENT AS next_id FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tasks'") : false;
 $row     = $result ? $result->fetch_assoc() : null;
 $next_id = (int)($row['next_id'] ?? 1);
 $task_id_preview = 'TASK_' . str_pad($next_id, 3, '0', STR_PAD_LEFT);

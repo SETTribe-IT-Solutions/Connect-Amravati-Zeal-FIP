@@ -355,6 +355,7 @@ $usersQuery = "SELECT u.*, d.department_name, r.role_name
                ORDER BY u.user_id DESC";
 $usersResult = $conn->query($usersQuery);
 
+close_db_connection();
 ?>
 <!DOCTYPE html>
 <html lang="<?= $lang ?>" class="light">
