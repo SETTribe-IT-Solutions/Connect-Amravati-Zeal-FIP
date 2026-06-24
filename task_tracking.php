@@ -18,7 +18,34 @@
  *  • Dark-mode + responsive sidebar layout
  */
 
+session_start();
 require_once 'include/dbConfig.php';
+
+/* ─── Map login session keys to dashboard variables ────────────────── */
+if (isset($_SESSION['role_name'])) {
+    $_SESSION['user_role']       = $_SESSION['role_name'];
+    $_SESSION['user_name']       = $_SESSION['full_name'];
+    $_SESSION['user_taluka_id']  = $_SESSION['taluka_id'] ?? 1;
+    $_SESSION['user_village_id'] = $_SESSION['village_id'] ?? 1;
+}
+
+/* ─── Session defaults (dev preview) ───────────────────────── */
+if (empty($_SESSION['user_role'])) {
+    $_SESSION['user_role']       = 'Collector';
+    $_SESSION['user_name']       = 'Hon. Collector';
+    $_SESSION['user_taluka_id']  = 1;
+    $_SESSION['user_village_id'] = 1;
+}
+
+$sRole      = $_SESSION['user_role'];
+$sName      = $_SESSION['user_name'];
+
+/* Avatar initials */
+$parts    = array_filter(explode(' ', trim($sName)));
+$first    = $parts[0] ?? 'U';
+$second   = isset($parts[1]) ? $parts[1] : '';
+$initials = strtoupper(substr($first, 0, 1) . substr($second, 0, 1));
+
 
 // ═══════════════════════════════════════════════════════════════════
 // AJAX: Return task timeline as JSON (for modal panel)
@@ -1010,10 +1037,10 @@ function masterEventBg(string $event_type, string $status): string {
             </button>
             <div class="flex items-center gap-3 border-l border-slate-200 dark:border-slate-700 pl-3 ml-1">
                 <div class="hidden sm:flex flex-col text-right leading-tight">
-                    <span class="text-sm font-semibold text-slate-900 dark:text-white">Hon. Collector</span>
-                    <span class="text-xs text-slate-500">Amravati District</span>
+                    <span class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($sName) ?></span>
+                    <span class="text-xs text-slate-500"><?= htmlspecialchars($sRole) ?></span>
                 </div>
-                <div class="h-9 w-9 rounded-full bg-gradient-to-br from-navy-600 to-navy-500 flex items-center justify-center text-white font-bold text-sm border-2 border-white dark:border-slate-800 shadow-sm">C</div>
+                <div class="h-9 w-9 rounded-full bg-gradient-to-br from-navy-600 to-navy-500 flex items-center justify-center text-white font-bold text-sm border-2 border-white dark:border-slate-800 shadow-sm"><?= htmlspecialchars($initials) ?></div>
             </div>
         </div>
     </header>
@@ -1059,6 +1086,7 @@ function masterEventBg(string $event_type, string $status): string {
         <!-- ══════════════════════════════════════════════════════════
              SEARCH CARD
         ══════════════════════════════════════════════════════════ -->
+        <?php if (!$selected_task_id): ?>
         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden mb-6 animate-in">
             <div class="flex items-center gap-3 px-6 py-4 border-b border-slate-100 dark:border-slate-700">
                 <div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
@@ -1120,6 +1148,7 @@ function masterEventBg(string $event_type, string $status): string {
                 </form>
             </div>
         </div>
+        <?php endif; ?>
 
         <!-- No Results -->
         <?php if (!empty($search_error) && !$task): ?>
@@ -1210,15 +1239,17 @@ function masterEventBg(string $event_type, string $status): string {
         <!-- Status Progress Bar -->
         <?php
         $current_status = $task['status'] ?? 'Pending';
-        $base_flow = ['Pending', 'Assigned', 'In Progress'];
-        if (strtolower($current_status) === 'escalation' || strtolower($current_status) === 'escalated') {
-            $statuses = array_merge($base_flow, ['Escalated']);
-        } elseif (strtolower($current_status) === 'on hold') {
-            $statuses = array_merge($base_flow, ['On Hold', 'Completed']);
+        $base_flow = ['Pending', 'Assigned', 'Accepted', 'In Progress'];
+        if (strtolower($current_status) === 'overdue' || strtolower($current_status) === 'escalated') {
+            $statuses = array_merge($base_flow, ['Overdue']);
+        } elseif (strtolower($current_status) === 'rejected') {
+            $statuses = array_merge($base_flow, ['Rejected']);
         } else {
             $statuses = array_merge($base_flow, ['Completed']);
         }
-        if (!in_array($current_status, $statuses)) $statuses[] = $current_status;
+        if (!in_array($current_status, $statuses) && !in_array(strtolower($current_status), ['overdue', 'escalated'])) {
+            $statuses[] = $current_status;
+        }
         $current_idx = array_search($current_status, $statuses);
         if ($current_idx === false) $current_idx = -1;
         ?>
@@ -1709,8 +1740,8 @@ function masterEventBg(string $event_type, string $status): string {
             </p>
             <div class="flex flex-wrap justify-center gap-3">
                 <?php foreach ([
-                    ['#eab308','Pending'],['#3b82f6','Assigned'],['#6366f1','In Progress'],
-                    ['#f97316','On Hold'],['#22c55e','Completed'],['#ef4444','Rejected'],
+                    ['#eab308','Pending'],['#3b82f6','Assigned'],['#8b5cf6','Accepted'],
+                    ['#6366f1','In Progress'],['#22c55e','Completed'],['#ef4444','Overdue'],
                 ] as [$c, $l]): ?>
                 <div class="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-600 dark:text-slate-400">
                     <span class="w-2.5 h-2.5 rounded-full" style="background:<?= $c ?>"></span>
