@@ -419,7 +419,7 @@ close_db_connection();
                     <i data-lucide="megaphone" class="w-5 h-5 mr-3 text-navy-500 dark:text-blue-400"></i>
                     <?= htmlspecialchars($t['menu_announcement_center']) ?>
                 </a>
-                <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                <a href="create_task.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                     <i data-lucide="network" class="w-5 h-5 mr-3 text-slate-400"></i>
                     <?= htmlspecialchars($t['menu_task_alloc']) ?>
                 </a>
@@ -469,29 +469,7 @@ close_db_connection();
                 </button>
 
                 <!-- Notifications -->
-                <div class="relative">
-                    <button id="notificationBtn" class="relative p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none">
-                        <i data-lucide="bell" class="w-5 h-5"></i>
-                        <span id="unreadCountBadge" style="display:none;" class="absolute top-0 right-0 flex items-center justify-center h-4 w-4 text-[10px] font-bold text-white rounded-full bg-saffron-500 ring-2 ring-white dark:ring-slate-900">0</span>
-                    </button>
-                    <!-- Dropdown -->
-                    <div id="notificationDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 z-50">
-                        <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-t-lg">
-                            <h3 class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($t['menu_notifications'] ?? 'Notifications') ?></h3>
-                            <button onclick="markAllAsRead()" class="text-xs text-navy-600 dark:text-blue-400 hover:text-navy-800 dark:hover:text-blue-300 font-medium">
-                                <?= $lang === 'en' ? 'Mark all as read' : 'सर्व वाचलेले म्हणून चिन्हांकित करा' ?>
-                            </button>
-                        </div>
-                        <div id="notificationList" class="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/50">
-                            <!-- Populated via AJAX -->
-                        </div>
-                        <div class="border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-b-lg">
-                            <a href="notifications.php?lang=<?= $lang ?>" class="block w-full text-center px-4 py-3 text-xs font-medium text-slate-500 hover:text-navy-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors">
-                                <?= $lang === 'en' ? 'View All Notifications' : 'सर्व सूचना पहा' ?>
-                            </a>
-                        </div>
-                    </div>
-                </div>
+                <?php include 'include/notification_widget.php'; ?>
                 
                 <!-- Profile -->
                 <div class="flex items-center space-x-3 border-l border-slate-200 dark:border-slate-700 pl-4">

@@ -153,9 +153,9 @@ elseif ($action === 'list_events') {
     
     $whereClause = "WHERE audience_type = 'All' 
                     OR created_by = $userId 
-                    OR (audience_type = 'L1' AND $userLevel = 1)
-                    OR (audience_type = 'L2' AND $userLevel = 2)
-                    OR (audience_type = 'L3' AND $userLevel = 3)
+                    OR (audience_type = 'L1' AND $userLevel == 1)
+                    OR (audience_type = 'L2' AND $userLevel == 2)
+                    OR (audience_type = 'L3' AND $userLevel == 3)
                     OR meeting_id IN (SELECT meeting_id FROM meeting_participants WHERE user_id = $userId)";
                     
     $res = $conn->query("SELECT * FROM meetings $whereClause");

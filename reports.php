@@ -47,6 +47,7 @@ $translations = [
         'btn_excel' => 'Export Excel',
         'tab_assigned' => 'Assigned to Me',
         'tab_allocated' => 'Allocated by Me',
+        'tab_tracking' => 'Task Tracking',
         'kpi_total' => 'Total Tasks',
         'kpi_pending' => 'Pending Acknowledge',
         'kpi_in_progress' => 'In Progress',
@@ -122,6 +123,7 @@ $translations = [
         'btn_excel' => 'एक्सेल निर्यात',
         'tab_assigned' => 'मला सोपवलेली कार्ये',
         'tab_allocated' => 'मी दिलेली कार्ये',
+        'tab_tracking' => 'कार्य मागोवा',
         'kpi_total' => 'एकूण कार्ये',
         'kpi_pending' => 'स्वीकृती प्रलंबित',
         'kpi_in_progress' => 'प्रगतीपथावर',
@@ -177,17 +179,27 @@ require_once 'include/dbConfig.php';
 $db_connected = true;
 
 /* Session details */
+if (isset($_SESSION['role_name'])) {
+    $_SESSION['user_role']       = $_SESSION['role_name'];
+    $_SESSION['user_name']       = $_SESSION['full_name'];
+    $_SESSION['user_taluka_id']  = $_SESSION['taluka_id'];
+    $_SESSION['user_village_id'] = $_SESSION['village_id'];
+}
 if (empty($_SESSION['user_id'])) {
     $_SESSION['user_id'] = 1;
 }
 if (empty($_SESSION['user_role'])) {
     $_SESSION['user_role'] = 'Collector';
     $_SESSION['user_name'] = 'Hon. Collector';
+    $_SESSION['user_taluka_id'] = 1;
+    $_SESSION['user_village_id'] = 1;
 }
 
-$userId = (int)$_SESSION['user_id'];
-$sRole  = $_SESSION['user_role'];
-$sName  = $_SESSION['user_name'];
+$userId     = (int)$_SESSION['user_id'];
+$sRole      = $_SESSION['user_role'];
+$sName      = $_SESSION['user_name'];
+$sTalukaId  = (int)($_SESSION['user_taluka_id']  ?? 1);
+$sVillageId = (int)($_SESSION['user_village_id'] ?? 1);
 
 $isCollector = ($sRole === 'Collector' || $sRole === 'Administrator' || $sRole === 'System Administrator');
 $isL1 = ($isCollector || $sRole === 'Additional Collector' || $sRole === 'Deputy Collector');
@@ -444,30 +456,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 $search = $_GET['search'] ?? '';
 $filterStatus = $_GET['status'] ?? 'All';
 $filterPriority = $_GET['priority'] ?? 'All';
-$activeTab = $_GET['tab'] ?? 'assigned'; // 'assigned' or 'allocated'
+$filterUser = $_GET['filter_user'] ?? 'All';
+$dateStart = $_GET['date_start'] ?? '';
+$dateEnd = $_GET['date_end'] ?? '';
+$activeTab = $_GET['tab'] ?? 'assigned'; // 'assigned' or 'allocated' or 'tracking'
 
 $assignedTasks = [];
 $allocatedTasks = [];
+$trackingTasks = [];
+$usersList = [];
+
+// Determine level
+$level = match($sRole) {
+    'Administrator', 'System Administrator', 'Collector', 'Additional Collector', 'Deputy Collector' => 1,
+    'SDO', 'Tehsildar', 'BDO' => 2,
+    'Talathi', 'Gramsevak' => 3,
+    default => 3
+};
 
 if ($db_connected) {
+    // Fetch users for filter dropdown
+    $userRes = $conn->query("SELECT user_id, full_name, employee_code FROM users ORDER BY full_name ASC");
+    if ($userRes) {
+        while ($uRow = $userRes->fetch_assoc()) {
+            $usersList[] = $uRow;
+        }
+    }
+
     $whereAssigned = "WHERE (t.assigned_user_id = $userId OR t.task_id IN (SELECT ta.task_id FROM task_assignments ta WHERE ta.assigned_to_user = $userId))";
     $whereAllocated = "WHERE (t.created_by = $userId OR t.task_id IN (SELECT ta.task_id FROM task_assignments ta WHERE ta.assigned_from_user = $userId))";
+    
+    // Tracking scope where clause
+    if ($level === 2) {
+        $whereTracking = "WHERE (t.taluka_id = $sTalukaId OR creator.taluka_id = $sTalukaId)";
+    } elseif ($level === 3) {
+        $whereTracking = "WHERE (t.village_id = $sVillageId OR creator.village_id = $sVillageId)";
+    } else {
+        $whereTracking = "WHERE 1=1";
+    }
 
     if (!empty($search)) {
         $searchEsc = $conn->real_escape_string($search);
         $searchCond = " AND (t.task_title LIKE '%$searchEsc%' OR t.task_no LIKE '%$searchEsc%' OR t.task_description LIKE '%$searchEsc%')";
         $whereAssigned .= $searchCond;
         $whereAllocated .= $searchCond;
+        $whereTracking .= $searchCond;
     }
 
     if ($filterStatus !== 'All') {
         $statusEsc = $conn->real_escape_string($filterStatus);
         if ($statusEsc === 'Overdue') {
-            $whereAssigned .= " AND t.due_date < CURDATE() AND t.status != 'Completed'";
-            $whereAllocated .= " AND t.due_date < CURDATE() AND t.status != 'Completed'";
+            $overdueCond = " AND t.due_date < CURDATE() AND t.status != 'Completed'";
+            $whereAssigned .= $overdueCond;
+            $whereAllocated .= $overdueCond;
+            $whereTracking .= $overdueCond;
         } else {
             $whereAssigned .= " AND t.status = '$statusEsc'";
             $whereAllocated .= " AND t.status = '$statusEsc'";
+            $whereTracking .= " AND t.status = '$statusEsc'";
         }
     }
 
@@ -475,6 +521,28 @@ if ($db_connected) {
         $priorityEsc = $conn->real_escape_string($filterPriority);
         $whereAssigned .= " AND t.priority = '$priorityEsc'";
         $whereAllocated .= " AND t.priority = '$priorityEsc'";
+        $whereTracking .= " AND t.priority = '$priorityEsc'";
+    }
+
+    if ($filterUser !== 'All') {
+        $userFilterId = (int)$filterUser;
+        $whereAssigned .= " AND (t.created_by = $userFilterId)";
+        $whereAllocated .= " AND (t.assigned_user_id = $userFilterId OR t.task_id IN (SELECT ta3.task_id FROM task_assignments ta3 WHERE ta3.assigned_to_user = $userFilterId))";
+        $whereTracking .= " AND (t.created_by = $userFilterId OR t.assigned_user_id = $userFilterId OR t.task_id IN (SELECT ta3.task_id FROM task_assignments ta3 WHERE ta3.assigned_to_user = $userFilterId))";
+    }
+
+    if (!empty($dateStart)) {
+        $dateStartEsc = $conn->real_escape_string($dateStart);
+        $whereAssigned .= " AND t.created_at >= '$dateStartEsc 00:00:00'";
+        $whereAllocated .= " AND t.created_at >= '$dateStartEsc 00:00:00'";
+        $whereTracking .= " AND t.created_at >= '$dateStartEsc 00:00:00'";
+    }
+
+    if (!empty($dateEnd)) {
+        $dateEndEsc = $conn->real_escape_string($dateEnd);
+        $whereAssigned .= " AND t.created_at <= '$dateEndEsc 23:59:59'";
+        $whereAllocated .= " AND t.created_at <= '$dateEndEsc 23:59:59'";
+        $whereTracking .= " AND t.created_at <= '$dateEndEsc 23:59:59'";
     }
 
     $assignedRes = $conn->query("SELECT t.*, u.full_name AS creator_name FROM tasks t LEFT JOIN users u ON t.created_by = u.user_id $whereAssigned ORDER BY t.created_at DESC");
@@ -485,6 +553,23 @@ if ($db_connected) {
     $allocatedRes = $conn->query("SELECT t.*, u.full_name AS assignee_name, r.role_name AS assigned_role_name FROM tasks t LEFT JOIN users u ON t.assigned_user_id = u.user_id LEFT JOIN roles r ON t.assigned_role_id = r.role_id $whereAllocated ORDER BY t.created_at DESC");
     if ($allocatedRes) {
         while ($row = $allocatedRes->fetch_assoc()) $allocatedTasks[] = $row;
+    }
+
+    $trackingRes = $conn->query("
+        SELECT 
+            t.*, 
+            creator.full_name AS creator_name,
+            GROUP_CONCAT(DISTINCT COALESCE(assignee.full_name, assignee.employee_code, 'Unassigned') SEPARATOR ', ') AS assigned_to_name
+        FROM tasks t
+        LEFT JOIN users creator ON t.created_by = creator.user_id
+        LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
+        LEFT JOIN users assignee ON ta.assigned_to_user = assignee.user_id
+        $whereTracking
+        GROUP BY t.task_id
+        ORDER BY t.created_at DESC
+    ");
+    if ($trackingRes) {
+        while ($row = $trackingRes->fetch_assoc()) $trackingTasks[] = $row;
     }
 } else {
     // Generate Mock Tasks if Database is offline
@@ -527,6 +612,21 @@ if ($db_connected) {
         ]
     ];
 
+    $mockListTracking = [
+        [
+            'task_id' => 301, 'task_no' => 'TSK_301', 'task_title' => 'Emergency Disaster Drill Plan',
+            'task_description' => 'Coordinate block emergency teams mockup drills.', 'creator_name' => 'Hon. Collector',
+            'assigned_to_name' => 'Sanjay Deshmukh', 'priority' => 'High', 'status' => 'Pending', 'due_date' => '2026-06-28',
+            'task_category' => 'Disaster Management', 'created_at' => '2026-06-20'
+        ],
+        [
+            'task_id' => 302, 'task_no' => 'TSK_302', 'task_title' => 'Land Record Digitization Audit',
+            'task_description' => 'Audit computerized 7/12 record accuracy.', 'creator_name' => 'SDO',
+            'assigned_to_name' => 'Rajesh Kolhe', 'priority' => 'Critical', 'status' => 'In Progress', 'due_date' => '2026-06-30',
+            'task_category' => 'Revenue', 'created_at' => '2026-06-22'
+        ]
+    ];
+
     // Filter Mock List in PHP
     foreach ($mockListAssigned as $t_item) {
         $match = true;
@@ -551,6 +651,18 @@ if ($db_connected) {
         if ($filterPriority !== 'All' && $t_item['priority'] !== $filterPriority) $match = false;
         if ($match) $allocatedTasks[] = $t_item;
     }
+
+    foreach ($mockListTracking as $t_item) {
+        $match = true;
+        if (!empty($search) && stripos($t_item['task_title'], $search) === false && stripos($t_item['task_no'], $search) === false) $match = false;
+        if ($filterStatus !== 'All') {
+            if ($filterStatus === 'Overdue') {
+                if ($t_item['status'] === 'Completed' || strtotime($t_item['due_date']) >= time()) $match = false;
+            } elseif ($t_item['status'] !== $filterStatus) $match = false;
+        }
+        if ($filterPriority !== 'All' && $t_item['priority'] !== $filterPriority) $match = false;
+        if ($match) $trackingTasks[] = $t_item;
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -558,6 +670,7 @@ if ($db_connected) {
 // ═══════════════════════════════════════════════════════════════════
 $kpiAssigned = ['total' => 0, 'pending' => 0, 'in_progress' => 0, 'completed' => 0, 'rejected' => 0, 'overdue' => 0];
 $kpiAllocated = ['total' => 0, 'pending' => 0, 'in_progress' => 0, 'completed' => 0, 'rejected' => 0, 'overdue' => 0];
+$kpiTracking = ['total' => 0, 'pending' => 0, 'in_progress' => 0, 'completed' => 0, 'rejected' => 0, 'overdue' => 0];
 
 if ($db_connected) {
     $assignedKpiRes = $conn->query("SELECT t.status, t.due_date FROM tasks t WHERE t.assigned_user_id = $userId OR t.task_id IN (SELECT ta.task_id FROM task_assignments ta WHERE ta.assigned_to_user = $userId)");
@@ -591,13 +704,42 @@ if ($db_connected) {
             }
         }
     }
+
+    $whereTrackingKpi = "";
+    if ($level === 2) {
+        $whereTrackingKpi = "WHERE (t.taluka_id = $sTalukaId OR creator.taluka_id = $sTalukaId)";
+    } elseif ($level === 3) {
+        $whereTrackingKpi = "WHERE (t.village_id = $sVillageId OR creator.village_id = $sVillageId)";
+    } else {
+        $whereTrackingKpi = "WHERE 1=1";
+    }
+    $trackingKpiRes = $conn->query("SELECT t.status, t.due_date FROM tasks t LEFT JOIN users creator ON t.created_by = creator.user_id $whereTrackingKpi");
+    if ($trackingKpiRes) {
+        while ($row = $trackingKpiRes->fetch_assoc()) {
+            $kpiTracking['total']++;
+            $status = $row['status'];
+            if ($status === 'Pending') $kpiTracking['pending']++;
+            elseif ($status === 'In Progress') $kpiTracking['in_progress']++;
+            elseif ($status === 'Completed') $kpiTracking['completed']++;
+            elseif ($status === 'Rejected') $kpiTracking['rejected']++;
+            
+            if ($status !== 'Completed' && !empty($row['due_date']) && strtotime($row['due_date']) < time()) {
+                $kpiTracking['overdue']++;
+            }
+        }
+    }
 } else {
     // Hardcoded stats based on Mock database lists
     $kpiAssigned = ['total' => 3, 'pending' => 1, 'in_progress' => 1, 'completed' => 1, 'rejected' => 0, 'overdue' => 1];
     $kpiAllocated = ['total' => 3, 'pending' => 1, 'in_progress' => 0, 'completed' => 1, 'rejected' => 1, 'overdue' => 1];
+    $kpiTracking = ['total' => 2, 'pending' => 1, 'in_progress' => 1, 'completed' => 0, 'rejected' => 0, 'overdue' => 0];
 }
 
-$currentKpis = ($activeTab === 'allocated') ? $kpiAllocated : $kpiAssigned;
+$currentKpis = match($activeTab) {
+    'allocated' => $kpiAllocated,
+    'tracking' => $kpiTracking,
+    default => $kpiAssigned,
+};
 
 /* User Badge configurations */
 $parts    = array_filter(explode(' ', trim($sName)));
@@ -734,6 +876,70 @@ close_db_connection();
         .dark .badge-l1 { background: #1e3a8a33; color: #93c5fd; border-color: #1e40af; }
         .dark .badge-l2 { background: #92400e33; color: #fcd34d; border-color: #b45309; }
         .dark .badge-l3 { background: #065f4633; color: #6ee7b7; border-color: #047857; }
+
+        .dark .badge-l3 { background: #065f4633; color: #6ee7b7; border-color: #047857; }
+
+        /* ── Status Progress Bar ──────────────────────────── */
+        .progress-step { flex:1; text-align:center; position:relative; }
+        .progress-step::before {
+            content:''; position:absolute; top:16px; left:-50%; right:50%;
+            height:2px; background:#e2e8f0; z-index:0;
+        }
+        .dark .progress-step::before { background:#334155; }
+        .progress-step:first-child::before { display:none; }
+        .progress-step.active::before,
+        .progress-step.done::before { background:#152b4a; }
+        .dark .progress-step.active::before,
+        .dark .progress-step.done::before { background:#60a5fa; }
+
+        /* ── Timeline ─────────────────────────────── */
+        .timeline-wrapper { position:relative; }
+        .timeline-line {
+            position:absolute; left:19px; top:44px; bottom:0;
+            width:2px;
+            background:linear-gradient(to bottom, #cbd5e1 0%, #cbd5e1 88%, transparent 100%);
+        }
+        .dark .timeline-line { background:linear-gradient(to bottom, #334155 0%, #334155 88%, transparent 100%); }
+
+        .tl-node { position:relative; padding-left:56px; padding-bottom:32px; }
+        .tl-node:last-child { padding-bottom:0; }
+
+        .tl-dot {
+            position:absolute; left:0; top:0;
+            width:40px; height:40px; border-radius:50%;
+            display:flex; align-items:center; justify-content:center;
+            box-shadow:0 0 0 4px #fff, 0 2px 10px rgba(0,0,0,.12);
+            z-index:2;
+            transition:transform .2s;
+        }
+        .dark .tl-dot { box-shadow:0 0 0 4px #0f172a, 0 2px 10px rgba(0,0,0,.3); }
+        .tl-node:hover .tl-dot { transform:scale(1.08); }
+
+        .tl-card {
+            border-radius:14px;
+            padding:16px 20px;
+            position:relative;
+            background:#fff;
+            border:1px solid #e2e8f0;
+            box-shadow:0 1px 4px rgba(0,0,0,.05);
+            transition:box-shadow .2s, transform .2s;
+        }
+        .dark .tl-card { background:#1e293b; border-color:#334155; }
+        .tl-card:hover { box-shadow:0 6px 24px rgba(0,0,0,.09); transform:translateY(-1px); }
+
+        /* Change badge (old → new) */
+        .change-badge {
+            display:inline-flex; align-items:center; gap:6px;
+            padding:3px 10px; border-radius:999px;
+            font-size:11px; font-weight:700; font-family:monospace;
+            background:rgba(99,102,241,.1); color:#4338ca;
+            border:1px solid rgba(99,102,241,.2);
+        }
+        .dark .change-badge { background:rgba(99,102,241,.15); color:#a5b4fc; border-color:rgba(99,102,241,.3); }
+
+        /* Animations */
+        @keyframes fadeSlideIn { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+        .animate-in { animation:fadeSlideIn .35s ease both; }
 
         /* Print styles */
         @media print {
@@ -890,7 +1096,8 @@ close_db_connection();
                 <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
             </button>
 
-            <!-- Profile Info -->
+            <!-- Notifications -->
+            <?php include 'include/notification_widget.php'; ?>
             <div class="flex items-center space-x-3 border-l border-slate-200 dark:border-slate-700 pl-4 ml-2 cursor-pointer">
                 <div class="flex flex-col text-right hidden sm:block">
                     <span class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($sName) ?></span>
@@ -917,7 +1124,7 @@ close_db_connection();
         <!-- Printable Header (Only displayed during Print) -->
         <div class="hidden print-header mb-6">
             <h1 class="text-2xl font-bold text-center text-black">Amravati Connect - Task Allocation Report</h1>
-            <p class="text-center text-sm text-slate-600">Report Type: <?= $activeTab === 'allocated' ? 'Allocated by Me' : 'Assigned to Me' ?> | Date: <?= date('Y-m-d H:i') ?></p>
+            <p class="text-center text-sm text-slate-600">Report Type: <?= $activeTab === 'allocated' ? 'Allocated by Me' : ($activeTab === 'tracking' ? 'Task Tracking' : 'Assigned to Me') ?> | Date: <?= date('Y-m-d H:i') ?></p>
             <p class="text-center text-sm text-slate-600">User: <?= htmlspecialchars($sName) ?> (<?= htmlspecialchars($sRole) ?>)</p>
             <hr class="my-4 border-slate-300">
         </div>
@@ -940,15 +1147,15 @@ close_db_connection();
                     <i data-lucide="shield" class="w-3.5 h-3.5"></i>
                     <?= htmlspecialchars($sRole) ?> (L<?= $level ?>)
                 </span>
-                <button onclick="window.print()" class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-600 shadow-sm text-sm font-medium rounded-lg text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors">
+                <button onclick="window.print()" class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-600 shadow-sm text-sm font-medium rounded-lg text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-755 transition-colors">
                     <i data-lucide="printer" class="w-4 h-4 mr-2"></i>
                     <?= htmlspecialchars($t['btn_print']) ?>
                 </button>
-                <button onclick="triggerPDFExport()" class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-600 shadow-sm text-sm font-medium rounded-lg text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors">
+                <button onclick="triggerPDFExport()" class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-600 shadow-sm text-sm font-medium rounded-lg text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-755 transition-colors">
                     <i data-lucide="file-down" class="w-4 h-4 mr-2 text-red-500"></i>
                     <?= htmlspecialchars($t['btn_pdf']) ?>
                 </button>
-                <button onclick="triggerExcelExport()" class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-600 shadow-sm text-sm font-medium rounded-lg text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors">
+                <button onclick="triggerExcelExport()" class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-600 shadow-sm text-sm font-medium rounded-lg text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-755 transition-colors">
                     <i data-lucide="file-spreadsheet" class="w-4 h-4 mr-2 text-govgreen-500"></i>
                     <?= htmlspecialchars($t['btn_excel']) ?>
                 </button>
@@ -964,6 +1171,10 @@ close_db_connection();
             <a href="reports.php?lang=<?= $lang ?>&tab=allocated" class="px-6 py-3 text-sm font-medium border-b-2 transition-all duration-150 <?= $activeTab === 'allocated' ? 'border-navy-600 text-navy-600 dark:border-blue-400 dark:text-blue-400 font-bold' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-200' ?>">
                 <i data-lucide="network" class="inline-block w-4 h-4 mr-2 -mt-0.5"></i>
                 <?= htmlspecialchars($t['tab_allocated']) ?> (<?= $kpiAllocated['total'] ?>)
+            </a>
+            <a href="reports.php?lang=<?= $lang ?>&tab=tracking" class="px-6 py-3 text-sm font-medium border-b-2 transition-all duration-150 <?= $activeTab === 'tracking' ? 'border-navy-600 text-navy-600 dark:border-blue-400 dark:text-blue-400 font-bold' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-200' ?>">
+                <i data-lucide="line-chart" class="inline-block w-4 h-4 mr-2 -mt-0.5"></i>
+                <?= htmlspecialchars($t['tab_tracking']) ?> (<?= $kpiTracking['total'] ?>)
             </a>
         </div>
 
@@ -983,28 +1194,24 @@ close_db_connection();
             </div>
             <div class="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 kpi-card">
                 <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_completed']) ?></p>
-                <p id="kpi-completed" class="text-2xl font-bold mt-2 text-govgreen-600 dark:text-green-450"><?= $currentKpis['completed'] ?></p>
+                <p id="kpi-completed" class="text-2xl font-bold mt-2 text-govgreen-600 dark:text-govgreen-450"><?= $currentKpis['completed'] ?></p>
             </div>
             <div class="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 kpi-card col-span-2 lg:col-span-1">
-                <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_rejected']) ?> / <?= htmlspecialchars($t['status_overdue']) ?></p>
-                <div class="flex items-baseline gap-2">
-                    <p id="kpi-rejected" class="text-2xl font-bold mt-2 text-red-600 dark:text-red-400"><?= $currentKpis['rejected'] ?></p>
-                    <span class="text-xs text-slate-400 dark:text-slate-500">/</span>
-                    <p id="kpi-overdue" class="text-sm font-semibold text-red-500 dark:text-red-400"><?= $currentKpis['overdue'] ?> overdue</p>
-                </div>
+                <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_overdue']) ?></p>
+                <p id="kpi-overdue" class="text-2xl font-bold mt-2 text-red-600 dark:text-red-400"><?= $currentKpis['overdue'] ?></p>
             </div>
         </div>
 
         <!-- Filter Panel -->
         <div class="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 mb-6 no-print">
-            <form method="GET" action="reports.php" class="flex flex-wrap gap-4 items-end">
-                <input type="hidden" name="lang" value="<?= $lang ?>">
-                <input type="hidden" name="tab" value="<?= $activeTab ?>">
+            <form method="GET" action="reports.php" class="flex flex-wrap items-end gap-4">
+                <input type="hidden" name="lang" value="<?= htmlspecialchars($lang) ?>">
+                <input type="hidden" name="tab" value="<?= htmlspecialchars($activeTab) ?>">
 
                 <div class="flex-1 min-w-[240px]">
-                    <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Text Search</label>
+                    <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Search</label>
                     <div class="relative">
-                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                             <i data-lucide="search" class="w-4 h-4 text-slate-400"></i>
                         </span>
                         <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="<?= htmlspecialchars($t['search_placeholder']) ?>" class="block w-full pl-10 pr-3 py-2 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-950 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-navy-500">
@@ -1025,13 +1232,35 @@ close_db_connection();
 
                 <div>
                     <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Filter Priority</label>
-                    <select name="priority" class="block w-44 px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-950 dark:text-white focus:outline-none">
+                    <select name="priority" class="block w-44 px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-955 dark:text-white focus:outline-none">
                         <option value="All" <?= $filterPriority === 'All' ? 'selected' : '' ?>><?= htmlspecialchars($t['filter_all_priority']) ?></option>
                         <option value="Critical" <?= $filterPriority === 'Critical' ? 'selected' : '' ?>><?= htmlspecialchars($t['priority_critical']) ?></option>
                         <option value="High" <?= $filterPriority === 'High' ? 'selected' : '' ?>><?= htmlspecialchars($t['priority_high']) ?></option>
                         <option value="Medium" <?= $filterPriority === 'Medium' ? 'selected' : '' ?>><?= htmlspecialchars($t['priority_medium']) ?></option>
                         <option value="Low" <?= $filterPriority === 'Low' ? 'selected' : '' ?>><?= htmlspecialchars($t['priority_low']) ?></option>
                     </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">User/Officer</label>
+                    <select name="filter_user" class="block w-44 px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-955 dark:text-white focus:outline-none">
+                        <option value="All" <?= $filterUser === 'All' ? 'selected' : '' ?>>All Officers</option>
+                        <?php foreach ($usersList as $uRow): ?>
+                            <option value="<?= $uRow['user_id'] ?>" <?= (string)$filterUser === (string)$uRow['user_id'] ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($uRow['full_name'] ?: $uRow['employee_code']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Start Date</label>
+                    <input type="date" name="date_start" value="<?= htmlspecialchars($dateStart) ?>" class="block w-40 px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-955 dark:text-white focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">End Date</label>
+                    <input type="date" name="date_end" value="<?= htmlspecialchars($dateEnd) ?>" class="block w-40 px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-955 dark:text-white focus:outline-none">
                 </div>
 
                 <div class="flex gap-2">
@@ -1052,25 +1281,32 @@ close_db_connection();
                     <thead class="bg-slate-50 dark:bg-slate-900/50">
                         <tr>
                             <th class="w-[8%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_task_no']) ?></th>
-                            <th class="w-[28%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_title']) ?></th>
+                            <th class="w-[24%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_title']) ?></th>
                             <?php if ($activeTab === 'allocated'): ?>
-                            <th class="w-[15%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_worker']) ?></th>
+                            <th class="w-[13%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_worker']) ?></th>
                             <?php else: ?>
-                            <th class="w-[15%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_creator']) ?></th>
+                            <th class="w-[13%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_creator']) ?></th>
                             <?php endif; ?>
-                            <th class="w-[9%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_priority']) ?></th>
-                            <th class="w-[12%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_status']) ?></th>
+                            <th class="w-[8%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_priority']) ?></th>
+                            <th class="w-[11%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_status']) ?></th>
                             <th class="w-[10%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_due']) ?></th>
-                            <th class="w-[18%] px-6 py-3.5 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider no-print"><?= htmlspecialchars($t['col_actions']) ?></th>
+                            <th class="w-[10%] px-6 py-3.5 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tracking</th>
+                            <th class="w-[16%] px-6 py-3.5 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider no-print"><?= htmlspecialchars($t['col_actions']) ?></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-800">
                         <?php 
-                        $tasksToDisplay = ($activeTab === 'allocated') ? $allocatedTasks : $assignedTasks;
+                        if ($activeTab === 'allocated') {
+                            $tasksToDisplay = $allocatedTasks;
+                        } elseif ($activeTab === 'tracking') {
+                            $tasksToDisplay = $trackingTasks;
+                        } else {
+                            $tasksToDisplay = $assignedTasks;
+                        }
                         if (empty($tasksToDisplay)): 
                         ?>
                         <tr>
-                            <td colspan="7" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400 font-medium">
+                            <td colspan="8" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400 font-medium">
                                 <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 text-slate-400 opacity-60"></i>
                                 <?= htmlspecialchars($t['no_tasks']) ?>
                             </td>
@@ -1106,6 +1342,9 @@ close_db_connection();
                                 <?php if ($activeTab === 'allocated'): ?>
                                     <div class="text-slate-900 dark:text-white font-medium"><?= htmlspecialchars($row['assignee_name'] ?: 'N/A') ?></div>
                                     <div class="text-xs text-slate-400 dark:text-slate-500"><?= htmlspecialchars($row['assigned_role_name'] ?: 'Role Assigned') ?></div>
+                                <?php elseif ($activeTab === 'tracking'): ?>
+                                    <div class="text-slate-900 dark:text-white font-medium">To: <?= htmlspecialchars($row['assigned_to_name'] ?: 'Unassigned') ?></div>
+                                    <div class="text-xs text-slate-400 dark:text-slate-500">By: <?= htmlspecialchars($row['creator_name'] ?: 'N/A') ?></div>
                                 <?php else: ?>
                                     <div class="text-slate-900 dark:text-white font-medium"><?= htmlspecialchars($row['creator_name'] ?: 'N/A') ?></div>
                                 <?php endif; ?>
@@ -1128,9 +1367,20 @@ close_db_connection();
                             <td class="px-6 py-4 whitespace-nowrap text-sm due-cell <?= $dueColor ?>">
                                 <?= $dueFormatted ?>
                             </td>
+                            <!-- Tracking -->
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                                <button type="button" onclick="openDetails(<?= $taskId ?>)" class="inline-flex items-center justify-center px-2 py-1.5 text-navy-600 bg-navy-50 hover:bg-navy-100 dark:text-blue-400 dark:bg-navy-900/40 dark:hover:bg-navy-800 rounded-lg transition-colors border border-transparent hover:border-navy-200 dark:hover:border-navy-700" title="Track Journey">
+                                    <i data-lucide="route" class="w-4 h-4"></i>
+                                    <span class="ml-1.5 font-semibold text-[11px] uppercase tracking-wider">Track</span>
+                                </button>
+                            </td>
                             <!-- Actions (no-print) -->
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium no-print">
                                 <div class="flex flex-wrap justify-end gap-1.5">
+                                    <button onclick="openDetails(<?= $taskId ?>)" class="px-2.5 py-1 bg-slate-105 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-750 dark:text-slate-250 rounded-md transition-colors inline-flex items-center gap-1 shadow-sm font-semibold text-xs" title="View Details">
+                                        <i data-lucide="eye" class="w-3.5 h-3.5"></i> <?= htmlspecialchars($t['btn_view']) ?>
+                                    </button>
+
                                     <?php if ($activeTab === 'assigned'): ?>
                                         <?php if ($row['status'] === 'Pending' || $row['status'] === 'Reassigned'): ?>
                                         <button onclick="acknowledgeTask(<?= $taskId ?>, this)" class="px-2.5 py-1 bg-govgreen-500 hover:bg-govgreen-600 text-white rounded-md transition-colors inline-flex items-center gap-1 shadow-sm font-semibold text-xs">
@@ -1324,39 +1574,52 @@ close_db_connection();
         <div class="fixed inset-0 transition-opacity bg-slate-900/60 backdrop-blur-sm" onclick="closeDetails()"></div>
         <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
         
-        <div class="inline-block align-middle bg-white dark:bg-slate-800 rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full border border-slate-200 dark:border-slate-700">
-            <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-850">
-                <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <i data-lucide="info" class="w-5 h-5 text-navy-600 dark:text-blue-400"></i>
-                    <span><?= htmlspecialchars($t['details_title']) ?></span>
-                </h3>
-                <button type="button" onclick="closeDetails()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                    <i data-lucide="x" class="w-5 h-5"></i>
+        <div class="inline-block align-middle bg-white dark:bg-slate-800 rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full border border-slate-200 dark:border-slate-700">
+            <!-- Dark Navy Header like task_tracking -->
+            <div class="px-6 py-5 bg-navy-700 dark:bg-slate-900 flex justify-between items-start">
+                <div class="flex items-center gap-4">
+                    <div class="w-11 h-11 rounded-xl bg-navy-600/50 flex items-center justify-center border border-navy-500/30">
+                        <i data-lucide="git-branch" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-bold text-blue-300 uppercase tracking-wider mb-0.5" id="det_no"></p>
+                        <h3 class="text-lg font-bold text-white leading-tight" id="det_title"></h3>
+                    </div>
+                </div>
+                <button type="button" onclick="closeDetails()" class="text-slate-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
                 </button>
             </div>
 
             <div class="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
-                <!-- Task Header Info -->
-                <div>
-                    <h4 class="text-lg font-bold text-slate-900 dark:text-white" id="det_title"></h4>
-                    <p class="text-xs text-slate-400 dark:text-slate-500 font-mono mt-1" id="det_no"></p>
-                    <p class="text-sm text-slate-650 dark:text-slate-350 mt-3 leading-relaxed" id="det_desc"></p>
-                </div>
-
                 <!-- KPI Quick View -->
-                <div class="grid grid-cols-3 gap-4 p-4 bg-slate-50 dark:bg-slate-900 rounded-xl">
+                <div class="grid grid-cols-4 gap-4 pb-2">
                     <div>
-                        <span class="block text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase">Allocated By</span>
-                        <span class="text-sm font-medium text-slate-800 dark:text-slate-200" id="det_creator"></span>
+                        <span class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Task ID</span>
+                        <span class="text-sm font-bold text-slate-900 dark:text-white" id="det_id_val"></span>
                     </div>
                     <div>
-                        <span class="block text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase">Assigned To</span>
+                        <span class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Assigned To</span>
                         <span class="text-sm font-medium text-slate-800 dark:text-slate-200" id="det_assignee"></span>
                     </div>
                     <div>
-                        <span class="block text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase">Due Date</span>
-                        <span class="text-sm font-medium text-slate-800 dark:text-slate-200" id="det_due"></span>
+                        <span class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Priority</span>
+                        <span class="text-sm font-bold" id="det_priority"></span>
                     </div>
+                    <div>
+                        <span class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Due Date</span>
+                        <span class="text-sm font-bold text-red-600 dark:text-red-400" id="det_due"></span>
+                    </div>
+                </div>
+
+                <div>
+                    <span class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">Description</span>
+                    <p class="text-sm text-slate-650 dark:text-slate-350 leading-relaxed" id="det_desc"></p>
+                </div>
+
+                <!-- HORIZONTAL STATUS BAR -->
+                <div class="border-y border-slate-100 dark:border-slate-700/50 py-6">
+                    <div id="det_progress" class="flex items-start w-full"></div>
                 </div>
 
                 <!-- Documents List -->
@@ -1368,11 +1631,11 @@ close_db_connection();
                 </div>
 
                 <!-- Status History timeline -->
-                <div>
-                    <h5 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-1">
+                <div class="mt-4">
+                    <h5 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-5 flex items-center gap-1">
                         <i data-lucide="activity" class="w-4 h-4"></i> <?= htmlspecialchars($t['lbl_history']) ?>
                     </h5>
-                    <div id="det_history" class="relative border-l-2 border-slate-200 dark:border-slate-700 ml-3 space-y-4"></div>
+                    <div id="det_history" class="timeline-wrapper pt-2"></div>
                 </div>
             </div>
 
@@ -1641,11 +1904,125 @@ close_db_connection();
                 if (data.status === 'success') {
                     const task = data.task;
                     document.getElementById('det_title').textContent = task.task_title;
-                    document.getElementById('det_no').textContent = '#' + task.task_no;
+                    document.getElementById('det_no').textContent = task.task_no || ('#' + task.task_id);
+                    document.getElementById('det_id_val').textContent = task.task_no || ('#' + task.task_id);
                     document.getElementById('det_desc').textContent = task.task_description || 'No description provided.';
-                    document.getElementById('det_creator').textContent = task.creator_name || 'N/A';
-                    document.getElementById('det_assignee').textContent = task.assignee_name || 'N/A';
-                    document.getElementById('det_due').textContent = task.due_date || 'N/A';
+                    
+                    document.getElementById('det_assignee').textContent = task.assignee_name || 'Unassigned';
+                    
+                    const prioritySpan = document.getElementById('det_priority');
+                    prioritySpan.textContent = task.priority || '—';
+                    if(task.priority === 'Critical') prioritySpan.className = 'text-sm font-bold text-purple-600 dark:text-purple-400';
+                    else if(task.priority === 'High') prioritySpan.className = 'text-sm font-bold text-red-600 dark:text-red-400';
+                    else if(task.priority === 'Medium') prioritySpan.className = 'text-sm font-bold text-orange-500 dark:text-orange-400';
+                    else prioritySpan.className = 'text-sm font-bold text-slate-500 dark:text-slate-400';
+
+                    function formatSimpleDate(dateStr) {
+                        if(!dateStr) return '';
+                        const d = new Date(dateStr);
+                        if(isNaN(d)) return dateStr;
+                        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                        return `${d.getDate().toString().padStart(2, '0')} ${months[d.getMonth()]} ${d.getFullYear()}`;
+                    }
+                    document.getElementById('det_due').textContent = formatSimpleDate(task.due_date) || '—';
+
+                    // HORIZONTAL PROGRESS BAR LOGIC
+                    const currentStatus = task.status || 'Pending';
+                    const baseFlow = ['Pending', 'Assigned', 'In Progress', 'Completed'];
+                    let statuses = [...baseFlow];
+                    if (currentStatus.toLowerCase() === 'overdue' || currentStatus.toLowerCase() === 'escalated') {
+                        statuses = ['Pending', 'Assigned', 'In Progress', 'Completed', 'Overdue'];
+                    } else if (currentStatus.toLowerCase() === 'rejected') {
+                        statuses = ['Pending', 'Assigned', 'In Progress', 'Rejected'];
+                    }
+                    if (!statuses.includes(currentStatus) && !['overdue', 'escalated'].includes(currentStatus.toLowerCase())) {
+                        if (currentStatus.toLowerCase() !== 'accepted') {
+                            statuses.push(currentStatus);
+                        }
+                    }
+                    let currentIdx = statuses.indexOf(currentStatus);
+                    if (currentStatus.toLowerCase() === 'accepted') {
+                        currentIdx = statuses.indexOf('Assigned'); // Treat Accepted similar to Assigned for UI progression if not explicit
+                    }
+                    if(currentIdx === -1) currentIdx = statuses.length - 1; // Fallback
+                    
+                    const progressContainer = document.getElementById('det_progress');
+                    progressContainer.innerHTML = '';
+                    statuses.forEach((s, idx) => {
+                        let cls = '';
+                        if (idx < currentIdx) cls = 'done';
+                        else if (idx === currentIdx) cls = 'active';
+                        
+                        let dotBg = 'bg-slate-200 dark:bg-slate-600';
+                        let labelCls = 'text-slate-400 dark:text-slate-500';
+                        let innerDot = `<div class="w-2 h-2 rounded-full bg-slate-400 dark:bg-slate-500"></div>`;
+                        let dotColorHtml = ``;
+                        let inlineLineStyle = '';
+
+                        if (idx <= currentIdx) {
+                            const sl = s.toLowerCase();
+                            if (sl === 'escalated' || sl === 'overdue' || sl === 'rejected') {
+                                dotColorHtml = `style="background-color: #ef4444; border-color: #ef4444;"`;
+                                labelCls = 'text-red-600 dark:text-red-400 font-bold';
+                                inlineLineStyle = 'background-color: #ef4444;';
+                            } else if (sl === 'completed') {
+                                dotColorHtml = `style="background-color: #22c55e; border-color: #22c55e;"`;
+                                labelCls = 'text-green-600 dark:text-green-400 font-bold';
+                                inlineLineStyle = 'background-color: #22c55e;';
+                            } else if (sl === 'in progress') {
+                                dotColorHtml = `style="background-color: #a855f7; border-color: #a855f7;"`;
+                                labelCls = 'text-purple-600 dark:text-purple-400 font-bold';
+                                inlineLineStyle = 'background-color: #a855f7;';
+                            } else if (sl === 'assigned') {
+                                dotColorHtml = `style="background-color: #3b82f6; border-color: #3b82f6;"`;
+                                labelCls = 'text-blue-600 dark:text-blue-400 font-bold';
+                                inlineLineStyle = 'background-color: #3b82f6;';
+                            } else if (sl === 'pending') {
+                                dotColorHtml = `style="background-color: #eab308; border-color: #eab308;"`;
+                                labelCls = 'text-yellow-600 dark:text-yellow-400 font-bold';
+                                inlineLineStyle = 'background-color: #eab308;';
+                            } else {
+                                dotColorHtml = `style="background-color: #1e3a8a; border-color: #1e3a8a;"`;
+                                labelCls = 'text-navy-600 dark:text-blue-400 font-semibold';
+                                inlineLineStyle = 'background-color: #1e3a8a;';
+                            }
+                        }
+                        
+                        let iconName = '';
+                        if (idx < currentIdx) {
+                            iconName = 'check';
+                        } else if (idx === currentIdx) {
+                            const sl = s.toLowerCase();
+                            if (sl === 'pending') iconName = 'clock';
+                            else if (sl === 'assigned') iconName = 'user-check';
+                            else if (sl === 'in progress') iconName = 'loader';
+                            else if (sl === 'completed') iconName = 'check-circle-2';
+                            else if (sl === 'overdue' || sl === 'rejected') iconName = 'alert-triangle';
+                            else iconName = 'activity';
+                        }
+                        
+                        if (idx <= currentIdx) {
+                            innerDot = `<i data-lucide="${iconName}" class="w-4 h-4 text-white"></i>`;
+                        }
+                        
+                        let lineHtml = '';
+                        if (idx > 0) {
+                            const lineBg = idx <= currentIdx ? '' : 'bg-slate-200 dark:bg-slate-600';
+                            lineHtml = `<div class="absolute top-4 right-1/2 left-0 h-0.5 ${lineBg}" style="${idx <= currentIdx ? inlineLineStyle : ''}; z-index: 1;"></div>`;
+                        }
+
+                        progressContainer.innerHTML += `
+                            <div class="progress-step ${cls} flex-1">
+                                <div class="relative flex justify-center mb-2">
+                                    ${lineHtml}
+                                    <div class="relative w-8 h-8 rounded-full ${idx <= currentIdx ? '' : dotBg} flex items-center justify-center" ${dotColorHtml} style="z-index: 2;">
+                                        ${innerDot}
+                                    </div>
+                                </div>
+                                <div class="text-[11px] text-center leading-tight mt-2 ${labelCls}">${s}</div>
+                            </div>
+                        `;
+                    });
 
                     // Documents List
                     const docsContainer = document.getElementById('det_docs');
@@ -1669,22 +2046,156 @@ close_db_connection();
                         });
                     }
 
+                    // Helper to format date like '22 Jun 2026 06:59 am'
+                    function formatTimelineDate(dateStr) {
+                        if(!dateStr) return '';
+                        const d = new Date(dateStr);
+                        if(isNaN(d)) return dateStr;
+                        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                        let hours = d.getHours();
+                        const ampm = hours >= 12 ? 'pm' : 'am';
+                        hours = hours % 12;
+                        hours = hours ? hours : 12; // the hour '0' should be '12'
+                        const mins = d.getMinutes().toString().padStart(2, '0');
+                        return `${d.getDate().toString().padStart(2, '0')} ${months[d.getMonth()]} ${d.getFullYear()} &middot; ${hours.toString().padStart(2, '0')}:${mins} ${ampm}`;
+                    }
+
                     // History Timeline
                     const historyContainer = document.getElementById('det_history');
-                    historyContainer.innerHTML = '';
-                    if (!data.history || data.history.length === 0) {
-                        historyContainer.innerHTML = '<p class="text-xs text-slate-500 italic ml-4">No logged history found.</p>';
-                    } else {
-                        data.history.forEach(log => {
-                            const remarkText = log.remarks ? `<p class="text-xs text-slate-500 dark:text-slate-400 italic bg-slate-50 dark:bg-slate-900 p-2 border border-slate-150 dark:border-slate-800 rounded-md mt-1.5">${log.remarks}</p>` : '';
+                    historyContainer.innerHTML = '<div class="timeline-line"></div>';
+                    
+                    const createdDate = formatTimelineDate(task.created_at) || 'Initial';
+                    const hasAssignment = task.assignee_name && task.assignee_name !== 'Unassigned' && task.assignee_name !== 'N/A';
+                    const hasMoreEvents = hasAssignment || (data.history && data.history.length > 0);
+
+                    historyContainer.innerHTML += `
+                        <div class="tl-node animate-in">
+                            <div class="tl-dot bg-gradient-to-br from-slate-500 to-slate-600">
+                                <i data-lucide="plus-circle" class="w-[18px] h-[18px] text-white"></i>
+                            </div>
+                            <div class="tl-card" style="border-left:4px solid #64748b">
+                                <div class="absolute -top-2.5 left-4">
+                                    <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 shadow-sm">
+                                        CREATED
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-2 mt-1 mb-2 flex-wrap">
+                                    <h4 class="text-base font-bold text-slate-900 dark:text-white">Task Created</h4>
+                                    ${!hasMoreEvents ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-gradient-to-r from-navy-600 to-navy-500 text-white"><i data-lucide="sparkles" class="w-2.5 h-2.5"></i> LATEST</span>' : ''}
+                                </div>
+                                <div class="mb-2.5">
+                                    <span class="change-badge">
+                                        &mdash; <i data-lucide="arrow-right" class="w-3 h-3"></i> Pending
+                                    </span>
+                                </div>
+                                <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-3">
+                                    "${task.task_title || task.task_no}" was created and added to the system.
+                                </p>
+                                <div class="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-700 pt-3 mt-1">
+                                    <div class="flex items-center gap-1.5">
+                                        <i data-lucide="user" class="w-3 h-3 flex-shrink-0"></i>
+                                        <strong class="text-slate-700 dark:text-slate-200 font-semibold">${task.creator_name || 'System'}</strong>
+                                        <span class="text-slate-400 dark:text-slate-500">&middot; Creator</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <i data-lucide="clock" class="w-3 h-3 flex-shrink-0"></i>
+                                        <span class="font-mono">${createdDate}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    if (hasAssignment) {
+                        const assignedDate = formatTimelineDate(task.assigned_at || task.created_at) || 'Initial';
+                        const isLatestAssignment = !data.history || data.history.length === 0;
+                        historyContainer.innerHTML += `
+                            <div class="tl-node animate-in">
+                                <div class="tl-dot bg-gradient-to-br from-blue-500 to-blue-600">
+                                    <i data-lucide="user-plus" class="w-[18px] h-[18px] text-white"></i>
+                                </div>
+                                <div class="tl-card" style="border-left:4px solid #3b82f6">
+                                    <div class="absolute -top-2.5 left-4">
+                                        <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 shadow-sm">
+                                            ASSIGNMENT
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center gap-2 mt-1 mb-2 flex-wrap">
+                                        <h4 class="text-base font-bold text-slate-900 dark:text-white">Task Assigned</h4>
+                                        ${isLatestAssignment ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-gradient-to-r from-navy-600 to-navy-500 text-white"><i data-lucide="sparkles" class="w-2.5 h-2.5"></i> LATEST</span>' : ''}
+                                    </div>
+                                    <div class="mb-2.5">
+                                        <span class="change-badge">
+                                            Pending <i data-lucide="arrow-right" class="w-3 h-3"></i> Assigned
+                                        </span>
+                                    </div>
+                                    <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-3">
+                                        Task assigned to <strong>${task.assignee_name}</strong>.
+                                    </p>
+                                    <div class="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-700 pt-3 mt-1">
+                                        <div class="flex items-center gap-1.5">
+                                            <i data-lucide="user" class="w-3 h-3 flex-shrink-0"></i>
+                                            <strong class="text-slate-700 dark:text-slate-200 font-semibold">System</strong>
+                                            <span class="text-slate-400 dark:text-slate-500">&middot; Allocator</span>
+                                        </div>
+                                        <div class="flex items-center gap-1.5">
+                                            <i data-lucide="clock" class="w-3 h-3 flex-shrink-0"></i>
+                                            <span class="font-mono">${assignedDate}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    if (data.history && data.history.length > 0) {
+                        const chronHistory = data.history.slice().reverse();
+                        chronHistory.forEach((log, idx) => {
+                            const isLatest = idx === chronHistory.length - 1;
+                            const latestBadge = isLatest ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-gradient-to-r from-navy-600 to-navy-500 text-white"><i data-lucide="sparkles" class="w-2.5 h-2.5"></i> LATEST</span>` : '';
+                            const remarkText = log.remarks ? `<p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-3">${log.remarks}</p>` : '';
+                            
+                            let ev_icon = 'refresh-cw';
+                            let ev_bg_cls = 'from-indigo-500 to-indigo-600';
+                            let ev_color = '#6366f1';
+                            if(log.new_status === 'Completed') { ev_bg_cls = 'from-green-500 to-green-600'; ev_color = '#22c55e'; ev_icon = 'check-circle'; }
+                            else if(log.new_status === 'Rejected' || log.new_status === 'Overdue') { ev_bg_cls = 'from-red-500 to-red-600'; ev_color = '#ef4444'; ev_icon = 'alert-triangle'; }
+                            else if(log.new_status === 'In Progress') { ev_bg_cls = 'from-purple-500 to-purple-600'; ev_color = '#a855f7'; ev_icon = 'play-circle'; }
+                            else if(log.new_status === 'Accepted') { ev_bg_cls = 'from-blue-500 to-blue-600'; ev_color = '#3b82f6'; ev_icon = 'thumbs-up'; }
+                            else if(log.new_status === 'Assigned' || log.new_status === 'Reassigned') { ev_bg_cls = 'from-blue-500 to-blue-600'; ev_color = '#3b82f6'; ev_icon = 'user-plus'; }
+
                             historyContainer.innerHTML += `
-                                <div class="relative pl-6 pb-2">
-                                    <div class="absolute -left-1.5 top-1.5 w-3 h-3 rounded-full bg-navy-600 dark:bg-blue-400 ring-4 ring-white dark:ring-slate-800"></div>
-                                    <div class="text-xs">
-                                        <span class="font-bold text-slate-800 dark:text-white">${log.new_status}</span>
-                                        <span class="text-slate-400 opacity-70">from ${log.old_status || 'Start'}</span>
-                                        <span class="block text-[10px] text-slate-450 dark:text-slate-500 mt-0.5">${log.change_date} &middot; by ${log.changer_name || 'System'}</span>
+                                <div class="tl-node animate-in">
+                                    <div class="tl-dot bg-gradient-to-br ${ev_bg_cls}">
+                                        <i data-lucide="${ev_icon}" class="w-[18px] h-[18px] text-white"></i>
+                                    </div>
+                                    <div class="tl-card" style="border-left:4px solid ${ev_color}">
+                                        <div class="absolute -top-2.5 left-4">
+                                            <span class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 shadow-sm">
+                                                STATUS CHANGED
+                                            </span>
+                                        </div>
+                                        <div class="flex items-center gap-2 mt-1 mb-2 flex-wrap">
+                                            <h4 class="text-base font-bold text-slate-900 dark:text-white">Status Changed</h4>
+                                            ${latestBadge}
+                                        </div>
+                                        <div class="mb-2.5">
+                                            <span class="change-badge">
+                                                ${log.old_status || 'Start'} <i data-lucide="arrow-right" class="w-3 h-3"></i> ${log.new_status}
+                                            </span>
+                                        </div>
                                         ${remarkText}
+                                        <div class="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-700 pt-3 mt-1">
+                                            <div class="flex items-center gap-1.5">
+                                                <i data-lucide="user" class="w-3 h-3 flex-shrink-0"></i>
+                                                <strong class="text-slate-700 dark:text-slate-200 font-semibold">${log.changer_name || 'System'}</strong>
+                                                <span class="text-slate-400 dark:text-slate-500">&middot; User</span>
+                                            </div>
+                                            <div class="flex items-center gap-1.5">
+                                                <i data-lucide="clock" class="w-3 h-3 flex-shrink-0"></i>
+                                                <span class="font-mono">${formatTimelineDate(log.change_date)}</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             `;
@@ -1704,50 +2215,74 @@ close_db_connection();
         document.getElementById('detailsModal').classList.add('hidden');
     }
 
-    // Excel Export function (using SheetJS)
+    // Excel Export function (using SheetJS with server-side fallback)
     function triggerExcelExport() {
-        const table = document.getElementById('tasks-table');
-        const filename = 'Amravati_Connect_Tasks_<?= $activeTab ?>.xlsx';
-        
-        const cloneTable = table.cloneNode(true);
-        const rows = cloneTable.querySelectorAll('tr');
-        rows.forEach(row => {
-            const cells = row.querySelectorAll('th, td');
-            if(cells.length > 0) {
-                cells[cells.length - 1].remove();
-            }
-        });
+        if (typeof XLSX !== 'undefined') {
+            try {
+                const table = document.getElementById('tasks-table');
+                const filename = 'Amravati_Connect_Tasks_<?= $activeTab ?>.xlsx';
+                
+                const cloneTable = table.cloneNode(true);
+                const rows = cloneTable.querySelectorAll('tr');
+                rows.forEach(row => {
+                    const cells = row.querySelectorAll('th, td');
+                    if(cells.length > 0) {
+                        cells[cells.length - 1].remove();
+                    }
+                });
 
-        const wb = XLSX.utils.table_to_book(cloneTable, { sheet: "Tasks Report" });
-        XLSX.writeFile(wb, filename);
+                const wb = XLSX.utils.table_to_book(cloneTable, { sheet: "Tasks Report" });
+                XLSX.writeFile(wb, filename);
+                return;
+            } catch (err) {
+                console.error('Client-side Excel export failed, falling back to server-side', err);
+            }
+        }
+        // Server-side fallback / network-blocked workaround
+        const url = `api/export_data.php?type=excel&scope=reports&tab=<?= $activeTab ?>&search=<?= urlencode($search) ?>&status=<?= urlencode($filterStatus) ?>&priority=<?= urlencode($filterPriority) ?>&lang=<?= $lang ?>`;
+        window.location.href = url;
     }
 
-    // PDF Export function (using html2pdf)
+    // PDF Export function (using html2pdf with print-dialog fallback)
     function triggerPDFExport() {
-        const element = document.getElementById('report-container');
-        const filename = 'Amravati_Connect_Tasks_<?= $activeTab ?>.pdf';
-        
-        const style = document.createElement('style');
-        style.innerHTML = `
-            #report-container .no-print, 
-            #report-container th:last-child, 
-            #report-container td:last-child {
-                display: none !important;
-            }
-        `;
-        document.head.appendChild(style);
+        if (typeof html2pdf === 'undefined') {
+            alert('PDF generation library is offline. Opening print dialog as fallback. Please choose "Save as PDF" in your print options.');
+            window.print();
+            return;
+        }
+        try {
+            const element = document.getElementById('report-container');
+            const filename = 'Amravati_Connect_Tasks_<?= $activeTab ?>.pdf';
+            
+            const style = document.createElement('style');
+            style.innerHTML = `
+                #report-container .no-print, 
+                #report-container th:last-child, 
+                #report-container td:last-child {
+                    display: none !important;
+                }
+            `;
+            document.head.appendChild(style);
 
-        const opt = {
-            margin:       0.3,
-            filename:     filename,
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true },
-            jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
-        };
+            const opt = {
+                margin:       0.3,
+                filename:     filename,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
+            };
 
-        html2pdf().set(opt).from(element).save().then(() => {
-            style.remove();
-        });
+            html2pdf().set(opt).from(element).save().then(() => {
+                style.remove();
+            }).catch(err => {
+                console.error(err);
+                style.remove();
+                window.print();
+            });
+        } catch (e) {
+            console.error(e);
+            window.print();
+        }
     }
 </script>
 </body>

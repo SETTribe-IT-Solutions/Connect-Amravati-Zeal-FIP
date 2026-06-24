@@ -31,9 +31,6 @@ while ($row = $result->fetch_assoc()) {
     // Update announcement status
     $conn->query("UPDATE announcements SET status = 'Published' WHERE announcement_id = $anncId");
     
-    // Clear any leftover recipients
-    $conn->query("DELETE FROM announcement_recipients WHERE announcement_id = $anncId");
-    
     // Fetch target recipients
     $recipients = [];
     if ($audienceType === 'Custom') {
@@ -89,7 +86,7 @@ while ($row = $result->fetch_assoc()) {
     $userAgent = 'System Cron Job';
     $stmt = $conn->prepare("INSERT INTO audit_logs (user_id, module_name, action_name, record_id, old_value, new_value, ip_address, browser_details) VALUES (?, 'Announcement', 'Publish Scheduled', ?, 'Scheduled', 'Published', ?, ?)");
     if ($stmt) {
-        $stmt->bind_param("iisss", $creatorId, $anncId, $ip, $userAgent);
+        $stmt->bind_param("iiss", $creatorId, $anncId, $ip, $userAgent);
         $stmt->execute();
         $stmt->close();
     }
