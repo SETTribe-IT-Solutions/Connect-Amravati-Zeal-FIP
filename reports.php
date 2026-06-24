@@ -175,8 +175,12 @@ $translations = [
 $t = $translations[$lang];
 
 // Database Connection
-require_once 'include/dbConfig.php';
-$db_connected = true;
+try {
+    require_once 'include/dbConfig.php';
+    $db_connected = isset($conn) && $conn instanceof mysqli && !$conn->connect_error;
+} catch (Throwable $e) {
+    $db_connected = false;
+}
 
 /* Session details */
 if (isset($_SESSION['role_name'])) {
@@ -764,7 +768,19 @@ function statusBadgeCss(string $s): string {
     };
 }
 
-close_db_connection();
+function priorityTextCss(string $priority): string {
+    return match(strtolower(trim($priority))) {
+        'critical', 'urgent' => 'text-purple-600 dark:text-purple-400 font-semibold',
+        'high'               => 'text-red-600 dark:text-red-400 font-semibold',
+        'medium'             => 'text-yellow-600 dark:text-yellow-400 font-semibold',
+        'low'                => 'text-green-600 dark:text-green-400 font-semibold',
+        default              => 'text-slate-600 dark:text-slate-400',
+    };
+}
+
+if (function_exists('close_db_connection')) {
+    close_db_connection();
+}
 ?>
 <!DOCTYPE html>
 <html lang="<?= $lang ?>" class="light">
