@@ -2172,13 +2172,34 @@ const btn   = document.getElementById('themeToggle');
 function applyTheme(dark) {
     dark ? html.classList.add('dark') : html.classList.remove('dark');
     localStorage.setItem('acTheme', dark ? 'dark' : 'light');
-    buildAllCharts(dark);
+    /* Only build charts if ApexCharts is already loaded */
+    if (typeof ApexCharts !== 'undefined') {
+        buildAllCharts(dark);
+    }
 }
 
 const stored = localStorage.getItem('acTheme');
 const prefersDark = stored ? stored === 'dark'
                            : window.matchMedia('(prefers-color-scheme:dark)').matches;
-applyTheme(prefersDark);
+
+/* Apply dark/light class immediately (no FOUC) */
+prefersDark ? html.classList.add('dark') : html.classList.remove('dark');
+
+/* Build charts only after ALL resources (incl. ApexCharts CDN) are loaded */
+window.addEventListener('load', function() {
+    function tryBuild(attempts) {
+        if (typeof ApexCharts !== 'undefined') {
+            buildAllCharts(prefersDark);
+        } else if (attempts > 0) {
+            setTimeout(() => tryBuild(attempts - 1), 300);
+        } else {
+            document.querySelectorAll('[id^="chart-"]').forEach(el => {
+                el.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;font-size:13px;font-family:Inter,sans-serif;padding:20px;text-align:center;">⚠ Could not load ApexCharts — check internet connection</div>';
+            });
+        }
+    }
+    tryBuild(20);
+});
 
 btn.addEventListener('click', () => applyTheme(!html.classList.contains('dark')));
 
@@ -2220,11 +2241,80 @@ function filterRows() {
 }
 
 /* ════════════════════════════════════════════════════════════
-   APEXCHARTS
+   APEXCHARTS  —  Data pre-serialized from PHP
 ════════════════════════════════════════════════════════════ */
-let charts = {};
-let chartJsInstances = {};
 
+/* ── All DB data from PHP ────────────────────────────────── */
+const CHART_DATA = {
+<?php if ($showL1): ?>
+    distTrend: {
+        cats: <?= json_encode($distTrend['categories']) ?>,
+        assigned: <?= json_encode($distTrend['assigned']) ?>,
+        completed: <?= json_encode($distTrend['completed']) ?>
+    },
+    distStatus: [<?= inProgress($distData['active'],$distData['pending']) ?>, <?= $distData['pending'] ?>, <?= $distData['completed'] ?>, <?= $distData['overdue'] ?>],
+    distTalukaNames: <?= json_encode(array_column($distData['talukas'], 'taluka')) ?>,
+    distTalukaRates: <?= json_encode(array_map('floatval', array_column($distData['talukas'], 'rate'))) ?>,
+    distPriority: [<?= (int)($distPriority['Critical']??0) ?>, <?= (int)($distPriority['High']??0) ?>, <?= (int)($distPriority['Medium']??0) ?>, <?= (int)($distPriority['Low']??0) ?>],
+    distAgeing: [<?= (int)($distAgeing['< 5 Days']??0) ?>, <?= (int)($distAgeing['5-10 Days']??0) ?>, <?= (int)($distAgeing['11-30 Days']??0) ?>, <?= (int)($distAgeing['> 30 Days']??0) ?>],
+    distRejLabels: <?= json_encode(array_sum(array_values($distRejections)) > 0 ? array_keys($distRejections) : ['No Rejections']) ?>,
+    distRejValues: <?= json_encode(array_sum(array_values($distRejections)) > 0 ? array_values($distRejections) : [0]) ?>,
+    distPerfNames: <?= json_encode(array_column($distPerform, 'name')) ?>,
+    distPerfRates: <?= json_encode(array_map('floatval', array_column($distPerform, 'rate'))) ?>,
+<?php else: ?>
+    distTrend:null, distStatus:null, distTalukaNames:[], distTalukaRates:[],
+    distPriority:[0,0,0,0], distAgeing:[0,0,0,0],
+    distRejLabels:[], distRejValues:[], distPerfNames:[], distPerfRates:[],
+<?php endif; ?>
+<?php if ($showL2): ?>
+    talTrend: {
+        cats: <?= json_encode($talTrend['categories']) ?>,
+        assigned: <?= json_encode($talTrend['assigned']) ?>,
+        completed: <?= json_encode($talTrend['completed']) ?>
+    },
+    talStatus: [<?= inProgress($talData['active'],$talData['pending']) ?>, <?= $talData['pending'] ?>, <?= $talData['completed'] ?>, <?= $talData['overdue'] ?>],
+    talVilNames: <?= json_encode(array_column($talData['villages'], 'village')) ?>,
+    talVilCompleted: <?= json_encode(array_map('intval', array_column($talData['villages'], 'completed'))) ?>,
+    talVilPending: <?= json_encode(array_map('intval', array_column($talData['villages'], 'pending'))) ?>,
+    talVilOverdue: <?= json_encode(array_map('intval', array_column($talData['villages'], 'overdue'))) ?>,
+    talPriority: [<?= (int)($talPriority['Critical']??0) ?>, <?= (int)($talPriority['High']??0) ?>, <?= (int)($talPriority['Medium']??0) ?>, <?= (int)($talPriority['Low']??0) ?>],
+    talAgeing: [<?= (int)($talAgeing['< 5 Days']??0) ?>, <?= (int)($talAgeing['5-10 Days']??0) ?>, <?= (int)($talAgeing['11-30 Days']??0) ?>, <?= (int)($talAgeing['> 30 Days']??0) ?>],
+    talRejLabels: <?= json_encode(array_sum(array_values($talRejections)) > 0 ? array_keys($talRejections) : ['No Rejections']) ?>,
+    talRejValues: <?= json_encode(array_sum(array_values($talRejections)) > 0 ? array_values($talRejections) : [0]) ?>,
+    talPerfNames: <?= json_encode(array_column($talPerform, 'name')) ?>,
+    talPerfRates: <?= json_encode(array_map('floatval', array_column($talPerform, 'rate'))) ?>,
+<?php else: ?>
+    talTrend:null, talStatus:null, talVilNames:[], talVilCompleted:[], talVilPending:[], talVilOverdue:[],
+    talPriority:[0,0,0,0], talAgeing:[0,0,0,0],
+    talRejLabels:[], talRejValues:[], talPerfNames:[], talPerfRates:[],
+<?php endif; ?>
+    vilTrend: {
+        cats: <?= json_encode($vilTrend['categories']) ?>,
+        assigned: <?= json_encode($vilTrend['assigned']) ?>,
+        completed: <?= json_encode($vilTrend['completed']) ?>
+    },
+    vilStatus: [<?= inProgress($vilData['active'],$vilData['pending']) ?>, <?= $vilData['pending'] ?>, <?= $vilData['completed'] ?>, <?= $vilData['overdue'] ?>],
+    vilPriority: [<?= (int)($vilPriority['Critical']??0) ?>, <?= (int)($vilPriority['High']??0) ?>, <?= (int)($vilPriority['Medium']??0) ?>, <?= (int)($vilPriority['Low']??0) ?>],
+    vilAgeing: [<?= (int)($vilAgeing['< 5 Days']??0) ?>, <?= (int)($vilAgeing['5-10 Days']??0) ?>, <?= (int)($vilAgeing['11-30 Days']??0) ?>, <?= (int)($vilAgeing['> 30 Days']??0) ?>],
+    showL1: <?= $showL1 ? 'true' : 'false' ?>,
+    showL2: <?= $showL2 ? 'true' : 'false' ?>
+};
+
+/* Labels */
+const LBL = {
+    assigned: <?= json_encode($t['chart_assigned_tasks']) ?>,
+    completed: <?= json_encode($t['chart_completed_tasks']) ?>,
+    inProgress: <?= json_encode($t['chart_in_progress']) ?>,
+    pending: <?= json_encode($t['chart_pending']) ?>,
+    overdue: <?= json_encode($t['chart_overdue']) ?>,
+    rate: <?= json_encode($lang==='en' ? 'Completion Rate %' : 'पूर्णता दर %') ?>,
+    vilCompleted: <?= json_encode($t['status_completed']) ?>,
+    vilPending: <?= json_encode($t['status_pending']) ?>,
+    vilOverdue: <?= json_encode($t['status_overdue']) ?>
+};
+
+/* ── Chart registry ──────────────────────────────────────── */
+let charts = {};
 function destroyAll() {
     Object.values(charts).forEach(c => { try { c.destroy(); } catch(_){} });
     charts = {};
@@ -2232,334 +2322,228 @@ function destroyAll() {
     chartJsInstances = {};
 }
 
+/* ── Chart option builders ───────────────────────────────── */
+function _ax(tc) { return { style:{ colors:tc, fontSize:'11px', fontFamily:'Inter,sans-serif' } }; }
+
+function buildArea(el, series, cats, colors, isDark) {
+    const tc = isDark ? '#94a3b8' : '#64748b';
+    const gc = isDark ? '#1e3a5f33' : '#e2e8f0';
+    return new ApexCharts(el, {
+        series, colors,
+        chart:{ height:288, type:'area', fontFamily:'Inter,sans-serif', toolbar:{show:false},
+                background: isDark ? '#1e293b' : '#ffffff',
+                animations:{enabled:true,easing:'easeinout',speed:900} },
+        dataLabels:{enabled:false},
+        stroke:{curve:'smooth',width:2.5},
+        fill:{type:'gradient',gradient:{shadeIntensity:1,opacityFrom:0.35,opacityTo:0.02,stops:[0,100]}},
+        xaxis:{categories:cats, labels:_ax(tc), axisBorder:{show:false}, axisTicks:{show:false}},
+        yaxis:{labels:_ax(tc), min:0},
+        grid:{borderColor:gc, strokeDashArray:4, padding:{left:8,right:8}},
+        legend:{position:'top',horizontalAlign:'right',fontFamily:'Inter,sans-serif',fontSize:'12px',
+                labels:{colors:tc}},
+        tooltip:{theme:isDark?'dark':'light',shared:true,intersect:false},
+        noData:{text:'No data yet',style:{color:tc,fontSize:'13px',fontFamily:'Inter,sans-serif'}},
+        theme:{mode:isDark?'dark':'light'}
+    });
+}
+
+function buildDonut(el, series, labels, colors, isDark) {
+    const tc = isDark ? '#94a3b8' : '#64748b';
+    const total = series.reduce((a,b)=>a+b,0);
+    const safeSeries = total === 0 ? [1] : series;
+    const safeLabels = total === 0 ? ['No Data'] : labels;
+    const safeColors = total === 0 ? ['#94a3b8'] : colors;
+    return new ApexCharts(el, {
+        series: safeSeries, labels: safeLabels, colors: safeColors,
+        chart:{ height:288, type:'donut', fontFamily:'Inter,sans-serif',
+                background: isDark ? '#1e293b' : '#ffffff',
+                animations:{enabled:true,easing:'easeinout',speed:900} },
+        dataLabels:{
+            enabled: total > 0,
+            formatter: val => val.toFixed(1)+'%',
+            style:{fontSize:'11px',fontFamily:'Inter,sans-serif',fontWeight:'600'},
+            dropShadow:{enabled:false}
+        },
+        plotOptions:{pie:{donut:{size:'65%',
+            labels:{show: total>0,
+                total:{show:true, label:'Total', color:tc,
+                       fontSize:'12px', fontFamily:'Inter,sans-serif',
+                       formatter:()=>total.toLocaleString()},
+                value:{fontSize:'20px',fontWeight:'700',fontFamily:'Inter,sans-serif',
+                       color:isDark?'#f1f5f9':'#0f172a'}
+            }
+        }}},
+        legend:{position:'bottom',fontFamily:'Inter,sans-serif',fontSize:'12px',
+                labels:{colors:tc}, markers:{width:8,height:8,radius:8}},
+        tooltip:{theme:isDark?'dark':'light',
+                 y:{formatter:v=>total===0?'No data':v.toLocaleString()+' tasks'}},
+        theme:{mode:isDark?'dark':'light'}
+    });
+}
+
+function buildHBar(el, data, cats, color, isDark) {
+    const tc = isDark ? '#94a3b8' : '#64748b';
+    const gc = isDark ? '#1e3a5f33' : '#e2e8f0';
+    const h  = Math.max(240, cats.length * 44 + 60);
+    return new ApexCharts(el, {
+        series:[{name:LBL.rate, data}],
+        chart:{height:h, type:'bar', fontFamily:'Inter,sans-serif', toolbar:{show:false},
+               background: isDark?'#1e293b':'#ffffff',
+               animations:{enabled:true,easing:'easeinout',speed:900}},
+        colors:[color],
+        plotOptions:{bar:{borderRadius:6,horizontal:true,barHeight:'55%',
+            dataLabels:{position:'right'}}},
+        dataLabels:{enabled:true,
+            formatter:v=>v>0?v.toFixed(1)+'%':'',
+            style:{fontSize:'11px',fontFamily:'Inter,sans-serif',colors:[isDark?'#94a3b8':'#475569']},
+            offsetX:5},
+        xaxis:{categories:cats, max:100, labels:_ax(tc)},
+        yaxis:{labels:{..._ax(tc), maxWidth:160}},
+        grid:{borderColor:gc,strokeDashArray:4,xaxis:{lines:{show:true}},yaxis:{lines:{show:false}}},
+        tooltip:{theme:isDark?'dark':'light',y:{formatter:v=>v.toFixed(1)+'%'}},
+        noData:{text:'No data yet',style:{color:tc,fontSize:'13px',fontFamily:'Inter,sans-serif'}},
+        theme:{mode:isDark?'dark':'light'}
+    });
+}
+
+function buildStackedBar(el, seriesArr, cats, colors, isDark) {
+    const tc = isDark ? '#94a3b8' : '#64748b';
+    const gc = isDark ? '#1e3a5f33' : '#e2e8f0';
+    return new ApexCharts(el, {
+        series: seriesArr, colors,
+        chart:{height:240, type:'bar', stacked:true, fontFamily:'Inter,sans-serif',
+               toolbar:{show:false}, background:isDark?'#1e293b':'#ffffff',
+               animations:{enabled:true,easing:'easeinout',speed:900}},
+        plotOptions:{bar:{borderRadius:4,columnWidth:'55%',
+            borderRadiusApplication:'end',borderRadiusWhenStacked:'last'}},
+        dataLabels:{enabled:false},
+        xaxis:{categories:cats, labels:{..._ax(tc),rotate:-35,trim:true,maxHeight:60}},
+        yaxis:{labels:_ax(tc)},
+        grid:{borderColor:gc,strokeDashArray:4},
+        legend:{position:'top',fontFamily:'Inter,sans-serif',fontSize:'12px',labels:{colors:tc},
+                markers:{width:8,height:8,radius:8}},
+        tooltip:{theme:isDark?'dark':'light',shared:true,intersect:false},
+        noData:{text:'No data yet',style:{color:tc,fontSize:'13px',fontFamily:'Inter,sans-serif'}},
+        theme:{mode:isDark?'dark':'light'}
+    });
+}
+
+/* ── Main render function ────────────────────────────────── */
 function buildAllCharts(isDark) {
     destroyAll();
     if (typeof ApexCharts === 'undefined') {
         document.querySelectorAll('[id^="chart-"]').forEach(el => {
-            el.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;font-size:13px;font-family:Inter,sans-serif;"><span>⚠ Charts unavailable — check internet connection</span></div>';
+            el.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;font-size:13px;font-family:Inter,sans-serif;padding:20px;text-align:center">⚠ Charts loading... refresh if this persists</div>';
         });
         return;
     }
     try {
-    const tc  = isDark ? '#94a3b8' : '#64748b';   // text
-    const gc  = isDark ? '#334155' : '#e2e8f0';   // grid
-    const mode= isDark ? 'dark'    : 'light';
-    const ax  = { style:{ colors:tc, fontSize:'11px', fontFamily:'Inter,sans-serif' } };
+        const d = CHART_DATA;
+        const pL = ['Critical','High','Medium','Low'];
+        const pC = ['#ef4444','#f97316','#eab308','#3b82f6'];
+        const aL = ['< 5 Days','5–10 Days','11–30 Days','> 30 Days'];
+        const aC = ['#10b981','#3b82f6','#f59e0b','#ef4444'];
+        const sL = [LBL.inProgress, LBL.pending, LBL.completed, LBL.overdue];
+        const sC = ['#3b82f6','#f59e0b','#10b981','#ef4444'];
 
-    /* ── Shared builders ─────────────────────────────────── */
-    function lineOpts(series, cats, colors) {
-        return {
-            series, colors,
-            chart:{ height:288, type:'line', fontFamily:'Inter,sans-serif',
-                    toolbar:{show:false}, background:'transparent' },
-            dataLabels:{ enabled:false },
-            stroke:{ curve:'smooth', width:2 },
-            markers:{ size: 4 },
-            tooltip:{ enabled: true, theme: mode },
-            xaxis:{ title:{ text: 'Completion Date', style: { color: tc, fontSize: '12px', fontFamily: 'Inter,sans-serif' } }, categories:cats, labels:ax, axisBorder:{show:false}, axisTicks:{show:false} },
-            yaxis:{ title:{ text: 'Completed Task Count', style: { color: tc, fontSize: '12px', fontFamily: 'Inter,sans-serif' } }, labels:ax },
-            grid:{ borderColor:gc, strokeDashArray:4 },
-            legend:{ position:'top', horizontalAlign:'right',
-                     fontFamily:'Inter,sans-serif', fontSize:'12px' },
-            theme:{ mode }
-        };
-    }
+        /* ── District ─────────────────────────────────── */
+        if (d.showL1) {
+            const el = id => document.querySelector('#chart-dist-'+id);
 
-    function pieOpts(series, labels, colors) {
-        return {
-            series, labels, colors,
-            chart:{ height:288, type:'pie', fontFamily:'Inter,sans-serif', background:'transparent' },
-            dataLabels:{ enabled:true },
-            legend:{ position:'bottom', show:true, fontFamily:'Inter,sans-serif', fontSize:'12px' },
-            theme:{ mode }
-        };
-    }
+            charts.dTrend = buildArea(el('trend'),
+                [{name:LBL.assigned, data:d.distTrend.assigned},{name:LBL.completed, data:d.distTrend.completed}],
+                d.distTrend.cats, ['#3b82f6','#10b981'], isDark);
+            charts.dTrend.render();
 
-    function hbarOpts(series, cats, color) {
-        return {
-            series,
-            chart:{ height:240, type:'bar', fontFamily:'Inter,sans-serif',
-                    toolbar:{show:false}, background:'transparent' },
-            colors:[color],
-            plotOptions:{ bar:{ borderRadius:4, horizontal:true, barHeight:'60%' } },
-            dataLabels:{ enabled:true, formatter:v=>v+'%',
-                         style:{ fontSize:'11px', fontFamily:'Inter,sans-serif' } },
-            xaxis:{ categories:cats, max:100, labels:ax },
-            yaxis:{ labels:ax },
-            grid:{ borderColor:gc, strokeDashArray:4 },
-            theme:{ mode }
-        };
-    }
+            charts.dDonut = buildDonut(el('donut'), d.distStatus, sL, sC, isDark);
+            charts.dDonut.render();
 
-    /* ── PHP data injected as JS ─────────────────────────── */
-    var completionLabels = <?php echo json_encode($completionLabels); ?>;
-    var completionCounts = <?php echo json_encode($completionCounts); ?>;
-    var statusSeries = [
-        <?php echo $totalActiveTasks; ?>,
-        <?php echo $pendingTasks; ?>,
-        <?php echo $completedTasks; ?>,
-        <?php echo $overdueTasks; ?>
-    ];
+            charts.dBar = buildHBar(el('bar'), d.distTalukaRates, d.distTalukaNames, '#1a365d', isDark);
+            charts.dBar.render();
 
-    <?php if ($showL1): ?>
-    /* District - Dynamic Chart.js Charts */
-    const dynamicCompletionLabels = <?php echo json_encode($dynamicCompletionLabels); ?>;
-    const dynamicCompletionCounts = <?php echo json_encode($dynamicCompletionCounts); ?>;
-    const dynamicPieLabels = <?php echo json_encode($dynamicPieLabels); ?>;
-    const dynamicPieCounts = <?php echo json_encode($dynamicPieCounts); ?>;
-    const dynamicPiePercentages = <?php echo json_encode($dynamicPiePercentages); ?>;
+            charts.dPriority = buildDonut(el('priority'), d.distPriority, pL, pC, isDark);
+            charts.dPriority.render();
 
-    const ctxLine = document.getElementById('chartjs-line-trend');
-    if (ctxLine) {
-        chartJsInstances.dTrend = new Chart(ctxLine, {
-            type: 'line',
-            data: {
-                labels: dynamicCompletionLabels,
-                datasets: [{
-                    label: 'Completed Tasks',
-                    data: dynamicCompletionCounts,
-                    borderColor: '#2e7d32',
-                    backgroundColor: 'rgba(46, 125, 50, 0.1)',
-                    borderWidth: 2,
-                    tension: 0.3,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: true, labels: { color: tc } }
-                },
-                scales: {
-                    x: { ticks: { color: tc }, grid: { display: false } },
-                    y: { ticks: { color: tc, stepSize: 1 }, grid: { color: gc, borderDash: [4, 4] }, beginAtZero: true }
-                }
-            }
-        });
-    }
+            charts.dAgeing = buildDonut(el('ageing'), d.distAgeing, aL, aC, isDark);
+            charts.dAgeing.render();
 
-    const ctxPie = document.getElementById('chartjs-pie-status');
-    if (ctxPie) {
-        const palette = ['#3b82f6', '#2e7d32', '#f57c00', '#ef4444', '#8b5cf6', '#06b6d4', '#eab308'];
-        const pieColors = dynamicPieLabels.map((_, i) => palette[i % palette.length]);
+            charts.dRejections = buildDonut(el('rejections'), d.distRejValues, d.distRejLabels,
+                ['#ef4444','#f97316','#3b82f6','#10b981','#a855f7'], isDark);
+            charts.dRejections.render();
 
-        chartJsInstances.dDonut = new Chart(ctxPie, {
-            type: 'pie',
-            data: {
-                labels: dynamicPieLabels,
-                datasets: [{
-                    data: dynamicPieCounts,
-                    backgroundColor: pieColors,
-                    borderWidth: 1,
-                    borderColor: isDark ? '#1e293b' : '#ffffff'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom', labels: { color: tc } },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label || '';
-                                const val = context.raw;
-                                const idx = context.dataIndex;
-                                const perc = dynamicPiePercentages[idx];
-                                return `${label}: ${val} (${perc}%)`;
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
+            charts.dPerformance = buildHBar(el('performance'), d.distPerfRates, d.distPerfNames, '#10b981', isDark);
+            charts.dPerformance.render();
+        }
 
-    charts.dBar = new ApexCharts(
-        document.querySelector('#chart-dist-bar'),
-        hbarOpts(
-            [{ name:<?= json_encode($t['chart_completion_rate']) ?>, data:[
-                <?php foreach($distData['talukas'] as $tRow) echo $tRow['rate'].','; ?>
-            ]}],
-            [<?php foreach($distData['talukas'] as $tRow) echo '"'.addslashes($tRow['taluka']).'",'; ?>],
-            '#1a365d'
-        )
-    );
-    charts.dBar.render();
+        /* ── Taluka ─────────────────────────────────── */
+        if (d.showL2) {
+            const el = id => document.querySelector('#chart-tal-'+id);
 
-    charts.dPriority = new ApexCharts(
-        document.querySelector('#chart-dist-priority'),
-        pieOpts(
-            [<?= (int)($distPriority['Critical'] ?? 0) ?>, <?= (int)($distPriority['High'] ?? 0) ?>, <?= (int)($distPriority['Medium'] ?? 0) ?>, <?= (int)($distPriority['Low'] ?? 0) ?>],
-            ['Critical', 'High', 'Medium', 'Low'],
-            ['#ef4444', '#f97316', '#eab308', '#3b82f6']
-        )
-    );
-    charts.dPriority.render();
+            charts.tTrend = buildArea(el('trend'),
+                [{name:LBL.assigned, data:d.talTrend.assigned},{name:LBL.completed, data:d.talTrend.completed}],
+                d.talTrend.cats, ['#f59e0b','#10b981'], isDark);
+            charts.tTrend.render();
 
-    charts.dAgeing = new ApexCharts(
-        document.querySelector('#chart-dist-ageing'),
-        pieOpts(
-            [<?= (int)($distAgeing['< 5 Days'] ?? 0) ?>, <?= (int)($distAgeing['5-10 Days'] ?? 0) ?>, <?= (int)($distAgeing['11-30 Days'] ?? 0) ?>, <?= (int)($distAgeing['> 30 Days'] ?? 0) ?>],
-            ['< 5 Days', '5-10 Days', '11-30 Days', '> 30 Days'],
-            ['#10b981', '#3b82f6', '#f59e0b', '#ef4444']
-        )
-    );
-    charts.dAgeing.render();
+            charts.tDonut = buildDonut(el('donut'), d.talStatus, sL, sC, isDark);
+            charts.tDonut.render();
 
-    charts.dRejections = new ApexCharts(
-        document.querySelector('#chart-dist-rejections'),
-        pieOpts(
-            <?= json_encode(array_values($distRejections)) ?>,
-            <?= json_encode(array_keys($distRejections)) ?>,
-            ['#ef4444', '#f97316', '#3b82f6', '#10b981', '#a855f7']
-        )
-    );
-    charts.dRejections.render();
+            charts.tBar = buildStackedBar(el('bar'),
+                [{name:LBL.vilCompleted,data:d.talVilCompleted},{name:LBL.vilPending,data:d.talVilPending},{name:LBL.vilOverdue,data:d.talVilOverdue}],
+                d.talVilNames, ['#10b981','#f59e0b','#ef4444'], isDark);
+            charts.tBar.render();
 
-    charts.dPerformance = new ApexCharts(
-        document.querySelector('#chart-dist-performance'),
-        hbarOpts(
-            [{ name: 'Completion Rate %', data: [<?php foreach($distPerform as $p) echo $p['rate'].','; ?>] }],
-            [<?php foreach($distPerform as $p) echo '"'.addslashes($p['name']).'",'; ?>],
-            '#10b981'
-        )
-    );
-    charts.dPerformance.render();
-    <?php endif; ?>
+            charts.tPriority = buildDonut(el('priority'), d.talPriority, pL, pC, isDark);
+            charts.tPriority.render();
 
-    <?php if ($showL2): ?>
-    /* Taluka */
-    charts.tTrend = new ApexCharts(
-        document.querySelector('#chart-tal-trend'),
-        lineOpts([
-            { name:<?= json_encode($t['chart_completed_tasks']) ?>, data: completionCounts }
-        ], completionLabels, ['#2e7d32'])
-    );
-    charts.tTrend.render();
+            charts.tAgeing = buildDonut(el('ageing'), d.talAgeing, aL, aC, isDark);
+            charts.tAgeing.render();
 
-    charts.tDonut = new ApexCharts(
-        document.querySelector('#chart-tal-donut'),
-        pieOpts(
-            statusSeries,
-            ['Active', 'Pending', 'Completed', 'Overdue'],
-            ['#3b82f6','#f57c00','#2e7d32','#ef4444']
-        )
-    );
-    charts.tDonut.render();
+            charts.tRejections = buildDonut(el('rejections'), d.talRejValues, d.talRejLabels,
+                ['#ef4444','#f97316','#3b82f6','#10b981','#a855f7'], isDark);
+            charts.tRejections.render();
 
-    charts.tBar = new ApexCharts(
-        document.querySelector('#chart-tal-bar'),
+            charts.tPerformance = buildHBar(el('performance'), d.talPerfRates, d.talPerfNames, '#10b981', isDark);
+            charts.tPerformance.render();
+        }
+
+        /* ── Village ─────────────────────────────────── */
         {
-            series:[
-                { name:<?= json_encode($t['status_completed']) ?>, data:[<?php foreach($talData['villages'] as $v) echo $v['completed'].','; ?>] },
-                { name:<?= json_encode($t['status_pending']) ?>,   data:[<?php foreach($talData['villages'] as $v) echo $v['pending'].','; ?>] },
-                { name:<?= json_encode($t['status_overdue']) ?>,   data:[<?php foreach($talData['villages'] as $v) echo $v['overdue'].','; ?>] }
-            ],
-            chart:{ height:240, type:'bar', stacked:true, fontFamily:'Inter,sans-serif',
-                    toolbar:{show:false}, background:'transparent' },
-            colors:['#2e7d32','#f57c00','#ef4444'],
-            plotOptions:{ bar:{ borderRadius:3, columnWidth:'55%' } },
-            dataLabels:{ enabled:false },
-            xaxis:{ categories:[<?php foreach($talData['villages'] as $v) echo '"'.addslashes($v['village']).'",'; ?>],
-                    labels:{...ax, rotate:-30} },
-            yaxis:{ labels:ax },
-            grid:{ borderColor:gc, strokeDashArray:4 },
-            legend:{ position:'top', fontFamily:'Inter,sans-serif', fontSize:'12px' },
-            theme:{ mode }
+            const el = id => document.querySelector('#chart-vil-'+id);
+
+            charts.vTrend = buildArea(el('trend'),
+                [{name:LBL.assigned, data:d.vilTrend.assigned},{name:LBL.completed, data:d.vilTrend.completed}],
+                d.vilTrend.cats, ['#10b981','#f59e0b'], isDark);
+            charts.vTrend.render();
+
+            charts.vDonut = buildDonut(el('donut'), d.vilStatus, sL, sC, isDark);
+            charts.vDonut.render();
+
+            charts.vPriority = buildDonut(el('priority'), d.vilPriority, pL, pC, isDark);
+            charts.vPriority.render();
+
+            charts.vAgeing = buildDonut(el('ageing'), d.vilAgeing, aL, aC, isDark);
+            charts.vAgeing.render();
         }
-    );
-    charts.tBar.render();
-
-    charts.tPriority = new ApexCharts(
-        document.querySelector('#chart-tal-priority'),
-        pieOpts(
-            [<?= (int)($talPriority['Critical'] ?? 0) ?>, <?= (int)($talPriority['High'] ?? 0) ?>, <?= (int)($talPriority['Medium'] ?? 0) ?>, <?= (int)($talPriority['Low'] ?? 0) ?>],
-            ['Critical', 'High', 'Medium', 'Low'],
-            ['#ef4444', '#f97316', '#eab308', '#3b82f6']
-        )
-    );
-    charts.tPriority.render();
-
-    charts.tAgeing = new ApexCharts(
-        document.querySelector('#chart-tal-ageing'),
-        pieOpts(
-            [<?= (int)($talAgeing['< 5 Days'] ?? 0) ?>, <?= (int)($talAgeing['5-10 Days'] ?? 0) ?>, <?= (int)($talAgeing['11-30 Days'] ?? 0) ?>, <?= (int)($talAgeing['> 30 Days'] ?? 0) ?>],
-            ['< 5 Days', '5-10 Days', '11-30 Days', '> 30 Days'],
-            ['#10b981', '#3b82f6', '#f59e0b', '#ef4444']
-        )
-    );
-    charts.tAgeing.render();
-
-    charts.tRejections = new ApexCharts(
-        document.querySelector('#chart-tal-rejections'),
-        pieOpts(
-            <?= json_encode(array_values($talRejections)) ?>,
-            <?= json_encode(array_keys($talRejections)) ?>,
-            ['#ef4444', '#f97316', '#3b82f6', '#10b981', '#a855f7']
-        )
-    );
-    charts.tRejections.render();
-
-    charts.tPerformance = new ApexCharts(
-        document.querySelector('#chart-tal-performance'),
-        hbarOpts(
-            [{ name: 'Completion Rate %', data: [<?php foreach($talPerform as $p) echo $p['rate'].','; ?>] }],
-            [<?php foreach($talPerform as $p) echo '"'.addslashes($p['name']).'",'; ?>],
-            '#10b981'
-        )
-    );
-    charts.tPerformance.render();
-    <?php endif; ?>
-
-    /* Village */
-    charts.vTrend = new ApexCharts(
-        document.querySelector('#chart-vil-trend'),
-        lineOpts([
-            { name:<?= json_encode($t['chart_completed_tasks']) ?>, data: completionCounts }
-        ], completionLabels, ['#2e7d32'])
-    );
-    charts.vTrend.render();
-
-    charts.vDonut = new ApexCharts(
-        document.querySelector('#chart-vil-donut'),
-        pieOpts(
-            statusSeries,
-            ['Active', 'Pending', 'Completed', 'Overdue'],
-            ['#3b82f6','#f57c00','#2e7d32','#ef4444']
-        )
-    );
-    charts.vDonut.render();
-
-    charts.vPriority = new ApexCharts(
-        document.querySelector('#chart-vil-priority'),
-        pieOpts(
-            [<?= (int)($vilPriority['Critical'] ?? 0) ?>, <?= (int)($vilPriority['High'] ?? 0) ?>, <?= (int)($vilPriority['Medium'] ?? 0) ?>, <?= (int)($vilPriority['Low'] ?? 0) ?>],
-            ['Critical', 'High', 'Medium', 'Low'],
-            ['#ef4444', '#f97316', '#eab308', '#3b82f6']
-        )
-    );
-    charts.vPriority.render();
-
-    charts.vAgeing = new ApexCharts(
-        document.querySelector('#chart-vil-ageing'),
-        pieOpts(
-            [<?= (int)($vilAgeing['< 5 Days'] ?? 0) ?>, <?= (int)($vilAgeing['5-10 Days'] ?? 0) ?>, <?= (int)($vilAgeing['11-30 Days'] ?? 0) ?>, <?= (int)($vilAgeing['> 30 Days'] ?? 0) ?>],
-            ['< 5 Days', '5-10 Days', '11-30 Days', '> 30 Days'],
-            ['#10b981', '#3b82f6', '#f59e0b', '#ef4444']
-        )
-    );
-    charts.vAgeing.render();
-} catch(chartErr) {
-    console.error('ApexCharts render error:', chartErr);
-    document.querySelectorAll('[id^="chart-"]').forEach(el => {
-        if (!el.querySelector('svg')) {
-            el.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;font-size:13px;"><span>⚠ Chart rendering failed</span></div>';
-        }
-    });
+    } catch(chartErr) {
+        console.error('ApexCharts render error:', chartErr);
+        document.querySelectorAll('[id^="chart-"]').forEach(el => {
+            if (!el.querySelector('svg')) {
+                el.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;font-size:13px;font-family:Inter,sans-serif;">⚠ Chart rendering failed</div>';
+            }
+        });
+    }
 }
-}
+
+
+
+
+
+
+
+
+
+
+
 
 /* ── Export Dashboard Data ─────────────────────────────── */
 function exportDashboardData() {
