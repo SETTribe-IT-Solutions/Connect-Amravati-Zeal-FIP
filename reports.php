@@ -764,14 +764,7 @@ function statusBadgeCss(string $s): string {
     };
 }
 
-function priorityTextCss(string $p): string {
-    return match($p) {
-        'Critical' => 'text-purple-600 font-bold dark:text-purple-400',
-        'High'     => 'text-red-650 font-semibold dark:text-red-400',
-        'Medium'   => 'text-orange-500 font-medium dark:text-orange-400',
-        default    => 'text-slate-500 dark:text-slate-400',
-    };
-}
+close_db_connection();
 ?>
 <!DOCTYPE html>
 <html lang="<?= $lang ?>" class="light">

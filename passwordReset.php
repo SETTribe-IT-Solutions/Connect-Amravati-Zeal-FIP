@@ -429,6 +429,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
     }
 }
+close_db_connection();
 ?>
 
 <!DOCTYPE html>
