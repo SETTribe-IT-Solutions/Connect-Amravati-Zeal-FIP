@@ -243,6 +243,12 @@ const ROLE_LEVEL_MAP = [
     'Gramsevak'            => 3,
 ];
 
+/* ─── Authentication Guard ─────────────────────────────────── */
+if (empty($_SESSION['user_id']) && !isset($_GET['role'])) {
+    header('Location: login.php');
+    exit;
+}
+
 /* ─── DEV: ?role=Collector in URL switches the demo role ───── */
 if (isset($_GET['role']) && array_key_exists($_GET['role'], ROLE_LEVEL_MAP)) {
     $_SESSION['user_role']       = $_GET['role'];
@@ -259,7 +265,7 @@ if (isset($_SESSION['role_name'])) {
     $_SESSION['user_village_id'] = $_SESSION['village_id'];
 }
 
-/* ─── Session defaults (dev preview) ───────────────────────── */
+/* ─── Session defaults (only used for ?role= dev override) ─── */
 if (empty($_SESSION['user_role'])) {
     $_SESSION['user_role']       = 'Collector';
     $_SESSION['user_name']       = 'Hon. Collector';

@@ -12,16 +12,18 @@ error_reporting(E_ALL);
 // Start standard session handling for role-based tracking
 session_start();
 
-// Database Configuration File Inclusion
-include("include\dbConfig.php");
+// Database Connection (uses remote+local fallback from dbConfig.php)
+include_once("include/dbConfig.php");
 
-// Establish the MySQLi procedural database connection
-$conn = mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_NAME);
-
-if (!$conn) {
+if (!isset($conn) || $conn->connect_error) {
     die("System Connection Failure. Please try again later.");
 }
-mysqli_set_charset($conn, "utf8mb4");
+
+// If already logged in, redirect to dashboard
+if (!empty($_SESSION['user_id'])) {
+    header('Location: dashboard.php');
+    exit;
+}
 
 // Language Toggle Setup (Support Marathi & English)
 $lang = isset($_GET['lang']) && $_GET['lang'] === 'mr' ? 'mr' : 'en';
@@ -71,16 +73,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 WHERE u.employee_code = ? OR u.email = ?
                 LIMIT 1";
                 
-        $stmt = mysqli_prepare($conn, $sql);
-        mysqli_stmt_bind_param($stmt, "ss", $username_input, $username_input);
-        mysqli_stmt_execute($stmt);
-        $result = mysqli_stmt_get_result($stmt);
-        $user = mysqli_fetch_assoc($result);
-        mysqli_stmt_close($stmt);
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("ss", $username_input, $username_input);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $user = $result->fetch_assoc();
+        $stmt->close();
         
-        // Metadata processing targets for audit tracking
+        // Metadata for audit tracking
         $user_id_for_log = $user ? $user['user_id'] : null;
-        $ip_address = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
+        $ip_address  = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
         $device_info = substr($_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN', 0, 255);
         
         if ($user) {
@@ -106,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['taluka_id'] = $user['taluka_id'];
                 $_SESSION['village_id'] = $user['village_id'];
                 
-                header("Location: dashboard.php");
+                header("Location: dashboard.php?lang=" . $lang);
                 exit;
             } else {
                 $error_message = $t['err_invalid'];
@@ -123,13 +125,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
  * Audit History writer using native mysqli tracking logic
  */
 function log_login_attempt($conn, $user_id, $ip, $device, $status) {
-    $log_sql = "INSERT INTO login_history (user_id, login_time, ip_address, device_info, status) 
-                VALUES (?, NOW(), ?, ?, ?)";
-    $log_stmt = mysqli_prepare($conn, $log_sql);
-    if ($log_stmt) {
-        mysqli_stmt_bind_param($log_stmt, "isss", $user_id, $ip, $device, $status);
-        mysqli_stmt_execute($log_stmt);
-        mysqli_stmt_close($log_stmt);
+    try {
+        $log_sql = "INSERT INTO login_history (user_id, login_time, ip_address, device_info, status) 
+                    VALUES (?, NOW(), ?, ?, ?)";
+        $log_stmt = $conn->prepare($log_sql);
+        if ($log_stmt) {
+            $log_stmt->bind_param("isss", $user_id, $ip, $device, $status);
+            $log_stmt->execute();
+            $log_stmt->close();
+        }
+    } catch (Exception $e) {
+        // Silently fail if login_history table doesn't exist yet
+        error_log('Login history error: ' . $e->getMessage());
     }
 }
 ?>
