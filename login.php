@@ -28,15 +28,7 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 // Database Configuration File Inclusion
-include("include\dbConfig.php");
-
-// Establish the MySQLi procedural database connection
-$conn = mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_NAME);
-
-if (!$conn) {
-    die("System Connection Failure. Please try again later.");
-}
-mysqli_set_charset($conn, "utf8mb4");
+require_once "include/dbConfig.php";
 
 // Language Toggle Setup (Support Marathi & English)
 $lang = isset($_GET['lang']) && $_GET['lang'] === 'mr' ? 'mr' : 'en';
@@ -146,6 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['taluka_id'] = $user['taluka_id'];
                 $_SESSION['village_id'] = $user['village_id'];
                 
+                close_db_connection();
                 header("Location: dashboard.php");
                 exit;
             } else {
@@ -173,6 +166,9 @@ function log_login_attempt($conn, $user_id, $ip, $device, $status) {
         mysqli_stmt_close($log_stmt);
     }
 }
+
+// Close the database connection explicitly at the end of PHP processing
+close_db_connection();
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo $lang; ?>">
