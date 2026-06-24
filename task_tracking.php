@@ -786,6 +786,8 @@ function masterEventBg(string $event_type, string $status): string {
     if ($st === 'rejected' || $st === 'cancelled' || $st === 'overdue' || $st === 'escalated') return 'from-red-500 to-red-600';
     return 'from-slate-400 to-slate-500';
 }
+
+close_db_connection();
 ?>
 <!DOCTYPE html>
 <html lang="en" class="light">

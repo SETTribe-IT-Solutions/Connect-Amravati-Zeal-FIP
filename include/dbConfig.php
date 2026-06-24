@@ -24,4 +24,21 @@ if ($conn->connect_error) {
 // Set character set to UTF-8
 $conn->set_charset("utf8mb4");
 
+// Register a shutdown function to automatically close the database connection at the end of script execution
+register_shutdown_function(function() {
+    close_db_connection();
+});
+
+/**
+ * Explicitly close the database connection and set it to null.
+ * Call this function at the end of database operations to release connection limits immediately.
+ */
+function close_db_connection() {
+    global $conn;
+    if (isset($conn) && $conn instanceof mysqli) {
+        @$conn->close();
+        $conn = null;
+    }
+}
+
 ?>

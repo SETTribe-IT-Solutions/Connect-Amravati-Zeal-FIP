@@ -563,6 +563,8 @@ function priorityCss(string $p): string {
         default  => 'text-slate-400  dark:text-slate-500',
     };
 }
+
+close_db_connection();
 ?>
 <!DOCTYPE html>
 <html lang="<?= $lang ?>" class="light" id="htmlRoot">
