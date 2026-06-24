@@ -7,6 +7,7 @@
  * either by name (user) or by role (all users with that role get the task).
  */
 
+session_start();
 require_once 'include/dbConfig.php';
 
 session_start();

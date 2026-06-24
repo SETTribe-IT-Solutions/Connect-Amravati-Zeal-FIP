@@ -13,22 +13,12 @@ define('DB_USER', 'u196817721_districCNTZEAL');
 define('DB_PASS', 'districtCNTDB@2026');
 define('DB_NAME', 'u196817721_districtCNTDB');
 
-// Create MySQLi connection with fallback
-try {
-    $conn = @new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
-    if ($conn->connect_error) {
-        throw new Exception($conn->connect_error);
-    }
-} catch (Exception $e) {
-    // Fallback to local database on XAMPP
-    try {
-        $conn = @new mysqli('127.0.0.1', 'root', '', 'u196817721_districtcntdb');
-        if ($conn->connect_error) {
-            throw new Exception($conn->connect_error);
-        }
-    } catch (Exception $ex) {
-        die("Connection failed. Remote error: " . $e->getMessage() . " | Local error: " . $ex->getMessage());
-    }
+// Create MySQLi connection (@ suppresses printed warning; error is handled via connect_error check below)
+$conn = @new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+
+// Check connection
+if ($conn->connect_error) {
+    throw new RuntimeException("DB Connection failed: " . $conn->connect_error);
 }
 
 // Set character set to UTF-8
@@ -36,5 +26,22 @@ if (isset($conn) && $conn instanceof mysqli) {
     $conn->set_charset("utf8mb4");
 }
 
+
+// Register a shutdown function to automatically close the database connection at the end of script execution
+register_shutdown_function(function() {
+    close_db_connection();
+});
+
+/**
+ * Explicitly close the database connection and set it to null.
+ * Call this function at the end of database operations to release connection limits immediately.
+ */
+function close_db_connection() {
+    global $conn;
+    if (isset($conn) && $conn instanceof mysqli) {
+        @$conn->close();
+        $conn = null;
+    }
+}
 
 ?>

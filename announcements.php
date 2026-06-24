@@ -288,6 +288,7 @@ if ($db_connected) {
         'meeting_password' => '123456'
     ];
 }
+close_db_connection();
 ?>
 <!DOCTYPE html>
 <html lang="<?= $lang ?>" class="light">

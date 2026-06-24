@@ -1,4 +1,7 @@
 <?php
+// Suppress error output to browser — errors go to PHP log only
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
 /**
  * =============================================================
  *  dashboard.php  |  Amravati Connect – Role-Based Dashboard
@@ -18,8 +21,126 @@
  */
 
 session_start();
-mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-require_once 'include/dbConfig.php';
+
+// Attempt DB connection – disable strict exceptions so a remote-server
+// 'max_connections_per_hour' error does NOT produce a fatal crash.
+mysqli_report(MYSQLI_REPORT_OFF);
+$conn = null;
+try {
+    require_once 'include/dbConfig.php';
+    // Re-enable strict mode only after a successful connection
+    if (isset($conn) && $conn instanceof mysqli && !$conn->connect_error) {
+        mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+    }
+} catch (Throwable $dbEx) {
+    error_log('Dashboard DB connection failed: ' . $dbEx->getMessage());
+    // $conn stays null – dashboard will render with zero/mock values
+}
+
+// Fetch real-time dashboard statistics from the database
+$totalActiveTasks = 0;
+$pendingTasks = 0;
+$completedTasks = 0;
+$overdueTasks = 0;
+$completionLabels = [];
+$completionCounts = [];
+
+// === NEW: Dynamic KPI, Line Chart & Pie Chart data ===
+$dynamicTotalTasks = 0;          // MAX(task_id)
+$dynamicStatusCounts = [];       // [{status=>'Pending', total=>N}, ...]
+$dynamicCompletionLabels = [];   // ['2026-06-18', '2026-06-19', ...]
+$dynamicCompletionCounts = [];   // [3, 5, ...]
+$dynamicPieLabels = [];          // ['Pending','Completed', ...]
+$dynamicPieCounts = [];          // [12, 8, ...]
+$dynamicPiePercentages = [];     // [45.5, 30.2, ...]
+$dynamicGrandTotal = 0;
+
+if ($conn instanceof mysqli && !$conn->connect_error) {
+    try {
+        // 1. Total Active Tasks (legacy)
+        $res = $conn->query("SELECT COUNT(*) AS total_active FROM tasks WHERE status IN ('Active','Pending','In Progress','Completed','Overdue','Escalated')");
+        if ($res && $row = $res->fetch_assoc()) {
+            $totalActiveTasks = (int)$row['total_active'];
+        }
+
+        // 2. Pending Tasks (legacy)
+        $res = $conn->query("SELECT COUNT(*) AS pending_tasks FROM tasks WHERE status='Pending'");
+        if ($res && $row = $res->fetch_assoc()) {
+            $pendingTasks = (int)$row['pending_tasks'];
+        }
+
+        // 3. Completed Tasks (legacy)
+        $res = $conn->query("SELECT COUNT(*) AS completed_tasks FROM tasks WHERE status='Completed'");
+        if ($res && $row = $res->fetch_assoc()) {
+            $completedTasks = (int)$row['completed_tasks'];
+        }
+
+        // 4. Escalated / Overdue Tasks (legacy)
+        $res = $conn->query("SELECT COUNT(*) AS overdue_tasks FROM tasks WHERE status IN ('Overdue','Escalated')");
+        if ($res && $row = $res->fetch_assoc()) {
+            $overdueTasks = (int)$row['overdue_tasks'];
+        }
+
+        // Legacy Task Completion Trend (kept for existing ApexCharts)
+        $q = "SELECT DATE(completion_date) AS completion_day, COUNT(*) AS completed_count
+              FROM tasks
+              WHERE status='Completed' AND completion_date IS NOT NULL
+              GROUP BY DATE(completion_date)
+              ORDER BY completion_day ASC";
+        $resTrend = $conn->query($q);
+        if ($resTrend) {
+            while ($row = $resTrend->fetch_assoc()) {
+                $completionLabels[] = $row['completion_day'];
+                $completionCounts[] = (int)$row['completed_count'];
+            }
+        }
+
+        // === NEW QUERY 1: Total Tasks = MAX(task_id) ===
+        $res = $conn->query("SELECT MAX(task_id) AS total_tasks FROM tasks");
+        if ($res && $row = $res->fetch_assoc()) {
+            $dynamicTotalTasks = (int)$row['total_tasks'];
+        }
+
+        // === NEW QUERY 2: Status-wise KPI cards (dynamic) ===
+        $res = $conn->query("SELECT status, COUNT(*) AS total FROM tasks GROUP BY status ORDER BY status");
+        if ($res) {
+            while ($row = $res->fetch_assoc()) {
+                $dynamicStatusCounts[] = $row;
+            }
+        }
+
+        // === NEW QUERY 3: Task Completion Trend (Date Wise) for Chart.js ===
+        $res = $conn->query("SELECT DATE(completion_date) AS completed_date, COUNT(*) AS total_completed FROM tasks WHERE completion_date IS NOT NULL GROUP BY DATE(completion_date) ORDER BY completed_date ASC");
+        if ($res) {
+            while ($row = $res->fetch_assoc()) {
+                $dynamicCompletionLabels[] = $row['completed_date'];
+                $dynamicCompletionCounts[] = (int)$row['total_completed'];
+            }
+        }
+
+        // === NEW QUERY 4: Task Status Distribution for Pie Chart ===
+        $res = $conn->query("SELECT status, COUNT(*) AS total FROM tasks GROUP BY status ORDER BY status");
+        if ($res) {
+            // First pass: collect all data and compute grand total
+            $pieData = [];
+            while ($row = $res->fetch_assoc()) {
+                $pieData[] = $row;
+                $dynamicGrandTotal += (int)$row['total'];
+            }
+            // Second pass: compute percentages
+            foreach ($pieData as $pd) {
+                $dynamicPieLabels[] = $pd['status'];
+                $dynamicPieCounts[] = (int)$pd['total'];
+                $dynamicPiePercentages[] = $dynamicGrandTotal > 0
+                    ? round(((int)$pd['total'] / $dynamicGrandTotal) * 100, 1)
+                    : 0;
+            }
+        }
+
+    } catch (Exception $e) {
+        error_log("Real-time dashboard card stats or trend query error: " . $e->getMessage());
+    }
+}
 
 // Language Toggle Setup (Support Marathi & English)
 $lang = isset($_GET['lang']) && $_GET['lang'] === 'mr' ? 'mr' : 'en';
@@ -64,7 +185,7 @@ $translations = [
         'kpi_completed' => 'Tasks Completed',
         'kpi_overdue' => 'Escalated / Overdue',
         
-        'chart_trend' => 'Task Completion Trend (District Wide)',
+        'chart_trend' => 'Task Completion Trend (Date Wise)',
         'chart_taluka' => 'Taluka Performance',
         'chart_village' => 'Village Performance',
         'chart_distribution' => 'Task Status Distribution',
@@ -165,7 +286,7 @@ $translations = [
         'kpi_completed' => 'पूर्ण झालेली कार्ये',
         'kpi_overdue' => 'गंभीर / थकीत',
         
-        'chart_trend' => 'कार्य पूर्णतेचा कल (जिल्हाव्यापी)',
+        'chart_trend' => 'कार्य पूर्णतेचा कल (दिनांकानुसार)',
         'chart_taluka' => 'तालुका कामगिरी',
         'chart_village' => 'गावाची कामगिरी',
         'chart_distribution' => 'कार्य स्थिती वितरण',
@@ -396,11 +517,10 @@ function getDistrictStats(mysqli $conn): array {
         $r = $conn->query("
             SELECT
               COUNT(*)                                                     AS total,
-              COUNT(CASE WHEN status != 'Completed' THEN 1 END)           AS active,
+              COUNT(CASE WHEN status IN ('Pending','Assigned','In Progress','Active') THEN 1 END) AS active,
               COUNT(CASE WHEN status  = 'Pending'   THEN 1 END)           AS pending,
               COUNT(CASE WHEN status  = 'Completed' THEN 1 END)           AS completed,
-              COUNT(CASE WHEN due_date < CURDATE()
-                         AND status  != 'Completed' THEN 1 END)           AS overdue
+              COUNT(CASE WHEN (status <> 'Completed' AND due_date < CURDATE()) OR status = 'Escalated' THEN 1 END) AS overdue
             FROM tasks
         ")->fetch_assoc();
         if ($r) {
@@ -430,7 +550,9 @@ function getDistrictStats(mysqli $conn): array {
             ORDER BY rate DESC
             LIMIT 10
         ");
-        while ($row = $res->fetch_assoc()) $out['talukas'][] = $row;
+        if ($res) {
+            while ($row = $res->fetch_assoc()) $out['talukas'][] = $row;
+        }
 
      } catch (mysqli_sql_exception $e) {
         error_log('getDistrictStats: ' . $e->getMessage());
@@ -780,14 +902,32 @@ function _mockVillage(): array {
    RESOLVE CURRENT USER
    ============================================================ */
 
-$level      = getDashboardLevel($sRole, $conn);
-$showL1     = ($level === 1);
-$showL2     = ($level <= 2);
-$showL3     = true;
+$dbAvailable = ($conn instanceof mysqli && !$conn->connect_error);
 
-$distData   = $showL1 ? getDistrictStats($conn)             : _mockDistrict();
-$talData    = $showL2 ? getTalukaStats($conn, $sTalukaId)   : _mockTaluka();
-$vilData    =           getVillageStats($conn, $sVillageId);
+$level   = $dbAvailable ? getDashboardLevel($sRole, $conn) : (ROLE_LEVEL_MAP[$sRole] ?? 3);
+$showL1  = ($level === 1);
+$showL2  = ($level <= 2);
+$showL3  = true;
+
+$distData = ($showL1 && $dbAvailable) ? getDistrictStats($conn)           : _mockDistrict();
+$talData  = ($showL2 && $dbAvailable) ? getTalukaStats($conn, $sTalukaId) : _mockTaluka();
+$vilData  = $dbAvailable              ? getVillageStats($conn, $sVillageId) : _mockVillage();
+
+// Replace hardcoded / mock counts with the real-time values from database
+$distData['active']    = $totalActiveTasks;
+$distData['pending']   = $pendingTasks;
+$distData['completed'] = $completedTasks;
+$distData['overdue']   = $overdueTasks;
+
+$talData['active']     = $totalActiveTasks;
+$talData['pending']    = $pendingTasks;
+$talData['completed']  = $completedTasks;
+$talData['overdue']    = $overdueTasks;
+
+$vilData['active']     = $totalActiveTasks;
+$vilData['pending']    = $pendingTasks;
+$vilData['completed']  = $completedTasks;
+$vilData['overdue']    = $overdueTasks;
 
 $distTrend  = $showL1 ? getMonthlyTrend($conn, 'district', 0, $lang) : null;
 $talTrend   = $showL2 ? getMonthlyTrend($conn, 'taluka', $sTalukaId, $lang) : null;
@@ -856,6 +996,8 @@ function priorityCss(string $p): string {
         default  => 'text-slate-400  dark:text-slate-500',
     };
 }
+
+close_db_connection();
 ?>
 <!DOCTYPE html>
 <html lang="<?= $lang ?>" class="light" id="htmlRoot">
@@ -1214,12 +1356,36 @@ function priorityCss(string $p): string {
                 <!-- KPI Cards — 4 per row matching blank_wrushabh.php -->
                 <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
                     <?php
+                    // 1. Total Tasks KPI
                     $dkpi = [
-                        [$t['kpi_active'],    $distData['active'],    'layers',       'blue',   'trending-up',   '+12%', true],
-                        [$t['kpi_pending'],   $distData['pending'],   'clock',        'orange', 'trending-down', '-4%',  false],
-                        [$t['kpi_completed'], $distData['completed'], 'check-circle', 'green',  'trending-up',   '+24%', true],
-                        [$t['kpi_overdue'],   $distData['overdue'],   'alert-octagon','red',    'alert-triangle', $lang === 'en' ? '12 Action Req' : '१२ कृती आवश्यक', false],
+                        ['Total Tasks', $dynamicTotalTasks, 'hash', 'blue', '', '', false]
                     ];
+
+                    // 2. Status-wise KPIs
+                    $statusStyles = [
+                        'Completed'   => ['icon' => 'check-circle', 'color' => 'green'],
+                        'Pending'     => ['icon' => 'clock', 'color' => 'orange'],
+                        'In Progress' => ['icon' => 'activity', 'color' => 'blue'],
+                        'Overdue'     => ['icon' => 'alert-octagon', 'color' => 'red'],
+                        'Escalated'   => ['icon' => 'alert-triangle', 'color' => 'red'],
+                        'Assigned'    => ['icon' => 'user-check', 'color' => 'indigo'],
+                        'Rejected'    => ['icon' => 'x-circle', 'color' => 'red'],
+                    ];
+
+                    foreach ($dynamicStatusCounts as $row) {
+                        $st = $row['status'];
+                        $val = (int)$row['total'];
+                        $style = $statusStyles[$st] ?? ['icon' => 'layers', 'color' => 'slate'];
+                        
+                        $dkpi[] = [
+                            'Total ' . $st . ' Tasks',
+                            $val,
+                            $style['icon'],
+                            $style['color'],
+                            '', '', false // No trend data for dynamic statuses
+                        ];
+                    }
+
                     foreach ($dkpi as [$label,$val,$icon,$clr,$trendIcon,$trendTxt,$trendUp]):
                     ?>
                     <div class="kpi-card bg-white dark:bg-slate-800 overflow-hidden shadow-sm
@@ -1228,20 +1394,22 @@ function priorityCss(string $p): string {
                             <div class="flex items-center justify-between">
                                 <div class="flex-1 min-w-0">
                                     <p class="text-sm font-medium text-slate-500 dark:text-slate-400 truncate">
-                                        <?= $label ?>
+                                        <?= htmlspecialchars($label) ?>
                                     </p>
                                     <div class="mt-1 flex items-baseline">
                                         <p class="text-3xl font-bold
                                            <?= $clr==='red' ? 'text-red-600 dark:text-red-400'
                                                            : 'text-slate-900 dark:text-white' ?>">
-                                            <?= number_format($val) ?>
+                                            <?php echo number_format($val); ?>
                                         </p>
+                                        <?php if ($trendTxt): ?>
                                         <p class="ml-2 flex items-baseline text-sm font-semibold
                                            <?= $trendUp ? 'text-govgreen-600 dark:text-green-400'
                                                         : 'text-red-600 dark:text-red-400' ?>">
                                             <i data-lucide="<?= $trendIcon ?>" class="w-3 h-3 mr-1"></i>
                                             <?= $trendTxt ?>
                                         </p>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                                 <div class="w-12 h-12 bg-<?= $clr ?>-50 dark:bg-<?= $clr ?>-900/30
@@ -1268,7 +1436,9 @@ function priorityCss(string $p): string {
                                 <i data-lucide="more-vertical" class="w-5 h-5"></i>
                             </button>
                         </div>
-                        <div id="chart-dist-trend" class="h-72 w-full"></div>
+                        <div class="h-72 w-full relative">
+                            <canvas id="chartjs-line-trend"></canvas>
+                        </div>
                     </div>
                     <!-- Donut -->
                     <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm
@@ -1281,7 +1451,9 @@ function priorityCss(string $p): string {
                                 <i data-lucide="more-vertical" class="w-5 h-5"></i>
                             </button>
                         </div>
-                        <div id="chart-dist-donut" class="h-72 w-full"></div>
+                        <div class="h-72 w-full relative">
+                            <canvas id="chartjs-pie-status"></canvas>
+                        </div>
                     </div>
                 </div>
 
@@ -1511,7 +1683,7 @@ function priorityCss(string $p): string {
                                         <p class="text-3xl font-bold
                                            <?= $clr==='red' ? 'text-red-600 dark:text-red-400'
                                                            : 'text-slate-900 dark:text-white' ?>">
-                                            <?= number_format($val) ?>
+                                            <?php echo number_format($val); ?>
                                         </p>
                                         <p class="ml-2 flex items-baseline text-sm font-semibold
                                            <?= $tUp ? 'text-govgreen-600 dark:text-green-400'
@@ -1736,7 +1908,7 @@ function priorityCss(string $p): string {
                                         <p class="text-3xl font-bold
                                            <?= $clr==='red' ? 'text-red-600 dark:text-red-400'
                                                            : 'text-slate-900 dark:text-white' ?>">
-                                            <?= number_format($val) ?>
+                                            <?php echo number_format($val); ?>
                                         </p>
                                         <p class="ml-2 flex items-baseline text-sm font-semibold
                                            <?= $tUp ? 'text-govgreen-600 dark:text-green-400'
@@ -2146,6 +2318,8 @@ let charts = {};
 function destroyAll() {
     Object.values(charts).forEach(c => { try { c.destroy(); } catch(_){} });
     charts = {};
+    Object.values(chartJsInstances).forEach(c => { try { c.destroy(); } catch(_){} });
+    chartJsInstances = {};
 }
 
 /* ── Chart option builders ───────────────────────────────── */
