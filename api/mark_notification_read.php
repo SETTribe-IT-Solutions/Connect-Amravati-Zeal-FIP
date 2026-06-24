@@ -13,11 +13,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         if ($markAll) {
-            $stmt = $conn->prepare("UPDATE notifications SET status = 'Read' WHERE status = 'Unread'");
-            $stmt->execute();
+            $stmt = $conn->prepare("UPDATE notifications SET status = 'Read' WHERE status = 'Unread' AND receiver_id = ?");
+            $stmt->bind_param("i", $userId);
         } else if ($notificationId) {
-            $stmt = $conn->prepare("UPDATE notifications SET status = 'Read' WHERE notification_id = ?");
-            $stmt->bind_param("i", $notificationId);
+            $stmt = $conn->prepare("UPDATE notifications SET status = 'Read' WHERE notification_id = ? AND receiver_id = ?");
+            $stmt->bind_param("ii", $notificationId, $userId);
         } else {
             echo json_encode(['status' => 'error', 'message' => 'Invalid parameters']);
             exit;

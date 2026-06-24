@@ -13,12 +13,12 @@ define('DB_USER', 'u196817721_districCNTZEAL');
 define('DB_PASS', 'districtCNTDB@2026');
 define('DB_NAME', 'u196817721_districtCNTDB');
 
-// Create MySQLi connection
-$conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+// Create MySQLi connection (@ suppresses printed warning; error is handled via connect_error check below)
+$conn = @new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
 
 // Check connection
 if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+    throw new RuntimeException("DB Connection failed: " . $conn->connect_error);
 }
 
 // Set character set to UTF-8
