@@ -139,6 +139,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['employee_code'] = $user['employee_code'];
                 $_SESSION['full_name'] = $user['full_name'];
                 $_SESSION['role_name'] = $user['role_name'];
+                $_SESSION['user_name'] = $user['full_name'];
+                $_SESSION['user_role'] = $user['role_name'];
                 $_SESSION['can_allocate_task'] = $user['can_allocate_task']; // Used to restrict UI buttons
                 $_SESSION['district_id'] = $user['district_id'];
                 $_SESSION['taluka_id'] = $user['taluka_id'];

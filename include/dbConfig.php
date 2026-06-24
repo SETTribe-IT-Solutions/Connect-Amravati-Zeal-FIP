@@ -22,6 +22,9 @@ if ($conn->connect_error) {
 }
 
 // Set character set to UTF-8
-$conn->set_charset("utf8mb4");
+if (isset($conn) && $conn instanceof mysqli) {
+    $conn->set_charset("utf8mb4");
+}
+
 
 ?>

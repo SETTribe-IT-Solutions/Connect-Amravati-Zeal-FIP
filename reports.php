@@ -47,6 +47,7 @@ $translations = [
         'btn_excel' => 'Export Excel',
         'tab_assigned' => 'Assigned to Me',
         'tab_allocated' => 'Allocated by Me',
+        'tab_tracking' => 'Task Tracking',
         'kpi_total' => 'Total Tasks',
         'kpi_pending' => 'Pending Acknowledge',
         'kpi_in_progress' => 'In Progress',
@@ -122,6 +123,7 @@ $translations = [
         'btn_excel' => 'एक्सेल निर्यात',
         'tab_assigned' => 'मला सोपवलेली कार्ये',
         'tab_allocated' => 'मी दिलेली कार्ये',
+        'tab_tracking' => 'कार्य मागोवा',
         'kpi_total' => 'एकूण कार्ये',
         'kpi_pending' => 'स्वीकृती प्रलंबित',
         'kpi_in_progress' => 'प्रगतीपथावर',
@@ -177,17 +179,27 @@ require_once 'include/dbConfig.php';
 $db_connected = true;
 
 /* Session details */
+if (isset($_SESSION['role_name'])) {
+    $_SESSION['user_role']       = $_SESSION['role_name'];
+    $_SESSION['user_name']       = $_SESSION['full_name'];
+    $_SESSION['user_taluka_id']  = $_SESSION['taluka_id'];
+    $_SESSION['user_village_id'] = $_SESSION['village_id'];
+}
 if (empty($_SESSION['user_id'])) {
     $_SESSION['user_id'] = 1;
 }
 if (empty($_SESSION['user_role'])) {
     $_SESSION['user_role'] = 'Collector';
     $_SESSION['user_name'] = 'Hon. Collector';
+    $_SESSION['user_taluka_id'] = 1;
+    $_SESSION['user_village_id'] = 1;
 }
 
-$userId = (int)$_SESSION['user_id'];
-$sRole  = $_SESSION['user_role'];
-$sName  = $_SESSION['user_name'];
+$userId     = (int)$_SESSION['user_id'];
+$sRole      = $_SESSION['user_role'];
+$sName      = $_SESSION['user_name'];
+$sTalukaId  = (int)($_SESSION['user_taluka_id']  ?? 1);
+$sVillageId = (int)($_SESSION['user_village_id'] ?? 1);
 
 $isCollector = ($sRole === 'Collector' || $sRole === 'Administrator' || $sRole === 'System Administrator');
 $isL1 = ($isCollector || $sRole === 'Additional Collector' || $sRole === 'Deputy Collector');
@@ -444,30 +456,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 $search = $_GET['search'] ?? '';
 $filterStatus = $_GET['status'] ?? 'All';
 $filterPriority = $_GET['priority'] ?? 'All';
-$activeTab = $_GET['tab'] ?? 'assigned'; // 'assigned' or 'allocated'
+$filterUser = $_GET['filter_user'] ?? 'All';
+$dateStart = $_GET['date_start'] ?? '';
+$dateEnd = $_GET['date_end'] ?? '';
+$activeTab = $_GET['tab'] ?? 'assigned'; // 'assigned' or 'allocated' or 'tracking'
 
 $assignedTasks = [];
 $allocatedTasks = [];
+$trackingTasks = [];
+$usersList = [];
+
+// Determine level
+$level = match($sRole) {
+    'Administrator', 'System Administrator', 'Collector', 'Additional Collector', 'Deputy Collector' => 1,
+    'SDO', 'Tehsildar', 'BDO' => 2,
+    'Talathi', 'Gramsevak' => 3,
+    default => 3
+};
 
 if ($db_connected) {
+    // Fetch users for filter dropdown
+    $userRes = $conn->query("SELECT user_id, full_name, employee_code FROM users ORDER BY full_name ASC");
+    if ($userRes) {
+        while ($uRow = $userRes->fetch_assoc()) {
+            $usersList[] = $uRow;
+        }
+    }
+
     $whereAssigned = "WHERE (t.assigned_user_id = $userId OR t.task_id IN (SELECT ta.task_id FROM task_assignments ta WHERE ta.assigned_to_user = $userId))";
     $whereAllocated = "WHERE (t.created_by = $userId OR t.task_id IN (SELECT ta.task_id FROM task_assignments ta WHERE ta.assigned_from_user = $userId))";
+    
+    // Tracking scope where clause
+    if ($level === 2) {
+        $whereTracking = "WHERE (t.taluka_id = $sTalukaId OR creator.taluka_id = $sTalukaId)";
+    } elseif ($level === 3) {
+        $whereTracking = "WHERE (t.village_id = $sVillageId OR creator.village_id = $sVillageId)";
+    } else {
+        $whereTracking = "WHERE 1=1";
+    }
 
     if (!empty($search)) {
         $searchEsc = $conn->real_escape_string($search);
         $searchCond = " AND (t.task_title LIKE '%$searchEsc%' OR t.task_no LIKE '%$searchEsc%' OR t.task_description LIKE '%$searchEsc%')";
         $whereAssigned .= $searchCond;
         $whereAllocated .= $searchCond;
+        $whereTracking .= $searchCond;
     }
 
     if ($filterStatus !== 'All') {
         $statusEsc = $conn->real_escape_string($filterStatus);
         if ($statusEsc === 'Overdue') {
-            $whereAssigned .= " AND t.due_date < CURDATE() AND t.status != 'Completed'";
-            $whereAllocated .= " AND t.due_date < CURDATE() AND t.status != 'Completed'";
+            $overdueCond = " AND t.due_date < CURDATE() AND t.status != 'Completed'";
+            $whereAssigned .= $overdueCond;
+            $whereAllocated .= $overdueCond;
+            $whereTracking .= $overdueCond;
         } else {
             $whereAssigned .= " AND t.status = '$statusEsc'";
             $whereAllocated .= " AND t.status = '$statusEsc'";
+            $whereTracking .= " AND t.status = '$statusEsc'";
         }
     }
 
@@ -475,6 +521,28 @@ if ($db_connected) {
         $priorityEsc = $conn->real_escape_string($filterPriority);
         $whereAssigned .= " AND t.priority = '$priorityEsc'";
         $whereAllocated .= " AND t.priority = '$priorityEsc'";
+        $whereTracking .= " AND t.priority = '$priorityEsc'";
+    }
+
+    if ($filterUser !== 'All') {
+        $userFilterId = (int)$filterUser;
+        $whereAssigned .= " AND (t.created_by = $userFilterId)";
+        $whereAllocated .= " AND (t.assigned_user_id = $userFilterId OR t.task_id IN (SELECT ta3.task_id FROM task_assignments ta3 WHERE ta3.assigned_to_user = $userFilterId))";
+        $whereTracking .= " AND (t.created_by = $userFilterId OR t.assigned_user_id = $userFilterId OR t.task_id IN (SELECT ta3.task_id FROM task_assignments ta3 WHERE ta3.assigned_to_user = $userFilterId))";
+    }
+
+    if (!empty($dateStart)) {
+        $dateStartEsc = $conn->real_escape_string($dateStart);
+        $whereAssigned .= " AND t.created_at >= '$dateStartEsc 00:00:00'";
+        $whereAllocated .= " AND t.created_at >= '$dateStartEsc 00:00:00'";
+        $whereTracking .= " AND t.created_at >= '$dateStartEsc 00:00:00'";
+    }
+
+    if (!empty($dateEnd)) {
+        $dateEndEsc = $conn->real_escape_string($dateEnd);
+        $whereAssigned .= " AND t.created_at <= '$dateEndEsc 23:59:59'";
+        $whereAllocated .= " AND t.created_at <= '$dateEndEsc 23:59:59'";
+        $whereTracking .= " AND t.created_at <= '$dateEndEsc 23:59:59'";
     }
 
     $assignedRes = $conn->query("SELECT t.*, u.full_name AS creator_name FROM tasks t LEFT JOIN users u ON t.created_by = u.user_id $whereAssigned ORDER BY t.created_at DESC");
@@ -485,6 +553,23 @@ if ($db_connected) {
     $allocatedRes = $conn->query("SELECT t.*, u.full_name AS assignee_name, r.role_name AS assigned_role_name FROM tasks t LEFT JOIN users u ON t.assigned_user_id = u.user_id LEFT JOIN roles r ON t.assigned_role_id = r.role_id $whereAllocated ORDER BY t.created_at DESC");
     if ($allocatedRes) {
         while ($row = $allocatedRes->fetch_assoc()) $allocatedTasks[] = $row;
+    }
+
+    $trackingRes = $conn->query("
+        SELECT 
+            t.*, 
+            creator.full_name AS creator_name,
+            GROUP_CONCAT(DISTINCT COALESCE(assignee.full_name, assignee.employee_code, 'Unassigned') SEPARATOR ', ') AS assigned_to_name
+        FROM tasks t
+        LEFT JOIN users creator ON t.created_by = creator.user_id
+        LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
+        LEFT JOIN users assignee ON ta.assigned_to_user = assignee.user_id
+        $whereTracking
+        GROUP BY t.task_id
+        ORDER BY t.created_at DESC
+    ");
+    if ($trackingRes) {
+        while ($row = $trackingRes->fetch_assoc()) $trackingTasks[] = $row;
     }
 } else {
     // Generate Mock Tasks if Database is offline
@@ -527,6 +612,21 @@ if ($db_connected) {
         ]
     ];
 
+    $mockListTracking = [
+        [
+            'task_id' => 301, 'task_no' => 'TSK_301', 'task_title' => 'Emergency Disaster Drill Plan',
+            'task_description' => 'Coordinate block emergency teams mockup drills.', 'creator_name' => 'Hon. Collector',
+            'assigned_to_name' => 'Sanjay Deshmukh', 'priority' => 'High', 'status' => 'Pending', 'due_date' => '2026-06-28',
+            'task_category' => 'Disaster Management', 'created_at' => '2026-06-20'
+        ],
+        [
+            'task_id' => 302, 'task_no' => 'TSK_302', 'task_title' => 'Land Record Digitization Audit',
+            'task_description' => 'Audit computerized 7/12 record accuracy.', 'creator_name' => 'SDO',
+            'assigned_to_name' => 'Rajesh Kolhe', 'priority' => 'Critical', 'status' => 'In Progress', 'due_date' => '2026-06-30',
+            'task_category' => 'Revenue', 'created_at' => '2026-06-22'
+        ]
+    ];
+
     // Filter Mock List in PHP
     foreach ($mockListAssigned as $t_item) {
         $match = true;
@@ -551,6 +651,18 @@ if ($db_connected) {
         if ($filterPriority !== 'All' && $t_item['priority'] !== $filterPriority) $match = false;
         if ($match) $allocatedTasks[] = $t_item;
     }
+
+    foreach ($mockListTracking as $t_item) {
+        $match = true;
+        if (!empty($search) && stripos($t_item['task_title'], $search) === false && stripos($t_item['task_no'], $search) === false) $match = false;
+        if ($filterStatus !== 'All') {
+            if ($filterStatus === 'Overdue') {
+                if ($t_item['status'] === 'Completed' || strtotime($t_item['due_date']) >= time()) $match = false;
+            } elseif ($t_item['status'] !== $filterStatus) $match = false;
+        }
+        if ($filterPriority !== 'All' && $t_item['priority'] !== $filterPriority) $match = false;
+        if ($match) $trackingTasks[] = $t_item;
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -558,6 +670,7 @@ if ($db_connected) {
 // ═══════════════════════════════════════════════════════════════════
 $kpiAssigned = ['total' => 0, 'pending' => 0, 'in_progress' => 0, 'completed' => 0, 'rejected' => 0, 'overdue' => 0];
 $kpiAllocated = ['total' => 0, 'pending' => 0, 'in_progress' => 0, 'completed' => 0, 'rejected' => 0, 'overdue' => 0];
+$kpiTracking = ['total' => 0, 'pending' => 0, 'in_progress' => 0, 'completed' => 0, 'rejected' => 0, 'overdue' => 0];
 
 if ($db_connected) {
     $assignedKpiRes = $conn->query("SELECT t.status, t.due_date FROM tasks t WHERE t.assigned_user_id = $userId OR t.task_id IN (SELECT ta.task_id FROM task_assignments ta WHERE ta.assigned_to_user = $userId)");
@@ -591,13 +704,42 @@ if ($db_connected) {
             }
         }
     }
+
+    $whereTrackingKpi = "";
+    if ($level === 2) {
+        $whereTrackingKpi = "WHERE (t.taluka_id = $sTalukaId OR creator.taluka_id = $sTalukaId)";
+    } elseif ($level === 3) {
+        $whereTrackingKpi = "WHERE (t.village_id = $sVillageId OR creator.village_id = $sVillageId)";
+    } else {
+        $whereTrackingKpi = "WHERE 1=1";
+    }
+    $trackingKpiRes = $conn->query("SELECT t.status, t.due_date FROM tasks t LEFT JOIN users creator ON t.created_by = creator.user_id $whereTrackingKpi");
+    if ($trackingKpiRes) {
+        while ($row = $trackingKpiRes->fetch_assoc()) {
+            $kpiTracking['total']++;
+            $status = $row['status'];
+            if ($status === 'Pending') $kpiTracking['pending']++;
+            elseif ($status === 'In Progress') $kpiTracking['in_progress']++;
+            elseif ($status === 'Completed') $kpiTracking['completed']++;
+            elseif ($status === 'Rejected') $kpiTracking['rejected']++;
+            
+            if ($status !== 'Completed' && !empty($row['due_date']) && strtotime($row['due_date']) < time()) {
+                $kpiTracking['overdue']++;
+            }
+        }
+    }
 } else {
     // Hardcoded stats based on Mock database lists
     $kpiAssigned = ['total' => 3, 'pending' => 1, 'in_progress' => 1, 'completed' => 1, 'rejected' => 0, 'overdue' => 1];
     $kpiAllocated = ['total' => 3, 'pending' => 1, 'in_progress' => 0, 'completed' => 1, 'rejected' => 1, 'overdue' => 1];
+    $kpiTracking = ['total' => 2, 'pending' => 1, 'in_progress' => 1, 'completed' => 0, 'rejected' => 0, 'overdue' => 0];
 }
 
-$currentKpis = ($activeTab === 'allocated') ? $kpiAllocated : $kpiAssigned;
+$currentKpis = match($activeTab) {
+    'allocated' => $kpiAllocated,
+    'tracking' => $kpiTracking,
+    default => $kpiAssigned,
+};
 
 /* User Badge configurations */
 $parts    = array_filter(explode(' ', trim($sName)));
@@ -961,7 +1103,8 @@ function priorityTextCss(string $p): string {
                 <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
             </button>
 
-            <!-- Profile Info -->
+            <!-- Notifications -->
+            <?php include 'include/notification_widget.php'; ?>
             <div class="flex items-center space-x-3 border-l border-slate-200 dark:border-slate-700 pl-4 ml-2 cursor-pointer">
                 <div class="flex flex-col text-right hidden sm:block">
                     <span class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($sName) ?></span>
@@ -988,7 +1131,7 @@ function priorityTextCss(string $p): string {
         <!-- Printable Header (Only displayed during Print) -->
         <div class="hidden print-header mb-6">
             <h1 class="text-2xl font-bold text-center text-black">Amravati Connect - Task Allocation Report</h1>
-            <p class="text-center text-sm text-slate-600">Report Type: <?= $activeTab === 'allocated' ? 'Allocated by Me' : 'Assigned to Me' ?> | Date: <?= date('Y-m-d H:i') ?></p>
+            <p class="text-center text-sm text-slate-600">Report Type: <?= $activeTab === 'allocated' ? 'Allocated by Me' : ($activeTab === 'tracking' ? 'Task Tracking' : 'Assigned to Me') ?> | Date: <?= date('Y-m-d H:i') ?></p>
             <p class="text-center text-sm text-slate-600">User: <?= htmlspecialchars($sName) ?> (<?= htmlspecialchars($sRole) ?>)</p>
             <hr class="my-4 border-slate-300">
         </div>
@@ -1011,15 +1154,15 @@ function priorityTextCss(string $p): string {
                     <i data-lucide="shield" class="w-3.5 h-3.5"></i>
                     <?= htmlspecialchars($sRole) ?> (L<?= $level ?>)
                 </span>
-                <button onclick="window.print()" class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-600 shadow-sm text-sm font-medium rounded-lg text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors">
+                <button onclick="window.print()" class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-600 shadow-sm text-sm font-medium rounded-lg text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-755 transition-colors">
                     <i data-lucide="printer" class="w-4 h-4 mr-2"></i>
                     <?= htmlspecialchars($t['btn_print']) ?>
                 </button>
-                <button onclick="triggerPDFExport()" class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-600 shadow-sm text-sm font-medium rounded-lg text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors">
+                <button onclick="triggerPDFExport()" class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-600 shadow-sm text-sm font-medium rounded-lg text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-755 transition-colors">
                     <i data-lucide="file-down" class="w-4 h-4 mr-2 text-red-500"></i>
                     <?= htmlspecialchars($t['btn_pdf']) ?>
                 </button>
-                <button onclick="triggerExcelExport()" class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-600 shadow-sm text-sm font-medium rounded-lg text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors">
+                <button onclick="triggerExcelExport()" class="inline-flex items-center px-3.5 py-2 border border-slate-300 dark:border-slate-600 shadow-sm text-sm font-medium rounded-lg text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-755 transition-colors">
                     <i data-lucide="file-spreadsheet" class="w-4 h-4 mr-2 text-govgreen-500"></i>
                     <?= htmlspecialchars($t['btn_excel']) ?>
                 </button>
@@ -1035,6 +1178,10 @@ function priorityTextCss(string $p): string {
             <a href="reports.php?lang=<?= $lang ?>&tab=allocated" class="px-6 py-3 text-sm font-medium border-b-2 transition-all duration-150 <?= $activeTab === 'allocated' ? 'border-navy-600 text-navy-600 dark:border-blue-400 dark:text-blue-400 font-bold' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-200' ?>">
                 <i data-lucide="network" class="inline-block w-4 h-4 mr-2 -mt-0.5"></i>
                 <?= htmlspecialchars($t['tab_allocated']) ?> (<?= $kpiAllocated['total'] ?>)
+            </a>
+            <a href="reports.php?lang=<?= $lang ?>&tab=tracking" class="px-6 py-3 text-sm font-medium border-b-2 transition-all duration-150 <?= $activeTab === 'tracking' ? 'border-navy-600 text-navy-600 dark:border-blue-400 dark:text-blue-400 font-bold' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-200' ?>">
+                <i data-lucide="line-chart" class="inline-block w-4 h-4 mr-2 -mt-0.5"></i>
+                <?= htmlspecialchars($t['tab_tracking']) ?> (<?= $kpiTracking['total'] ?>)
             </a>
         </div>
 
@@ -1054,28 +1201,24 @@ function priorityTextCss(string $p): string {
             </div>
             <div class="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 kpi-card">
                 <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_completed']) ?></p>
-                <p id="kpi-completed" class="text-2xl font-bold mt-2 text-govgreen-600 dark:text-green-450"><?= $currentKpis['completed'] ?></p>
+                <p id="kpi-completed" class="text-2xl font-bold mt-2 text-govgreen-600 dark:text-govgreen-450"><?= $currentKpis['completed'] ?></p>
             </div>
             <div class="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 kpi-card col-span-2 lg:col-span-1">
-                <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_rejected']) ?> / <?= htmlspecialchars($t['status_overdue']) ?></p>
-                <div class="flex items-baseline gap-2">
-                    <p id="kpi-rejected" class="text-2xl font-bold mt-2 text-red-600 dark:text-red-400"><?= $currentKpis['rejected'] ?></p>
-                    <span class="text-xs text-slate-400 dark:text-slate-500">/</span>
-                    <p id="kpi-overdue" class="text-sm font-semibold text-red-500 dark:text-red-400"><?= $currentKpis['overdue'] ?> overdue</p>
-                </div>
+                <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_overdue']) ?></p>
+                <p id="kpi-overdue" class="text-2xl font-bold mt-2 text-red-600 dark:text-red-400"><?= $currentKpis['overdue'] ?></p>
             </div>
         </div>
 
         <!-- Filter Panel -->
         <div class="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 mb-6 no-print">
-            <form method="GET" action="reports.php" class="flex flex-wrap gap-4 items-end">
-                <input type="hidden" name="lang" value="<?= $lang ?>">
-                <input type="hidden" name="tab" value="<?= $activeTab ?>">
+            <form method="GET" action="reports.php" class="flex flex-wrap items-end gap-4">
+                <input type="hidden" name="lang" value="<?= htmlspecialchars($lang) ?>">
+                <input type="hidden" name="tab" value="<?= htmlspecialchars($activeTab) ?>">
 
                 <div class="flex-1 min-w-[240px]">
-                    <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Text Search</label>
+                    <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Search</label>
                     <div class="relative">
-                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                             <i data-lucide="search" class="w-4 h-4 text-slate-400"></i>
                         </span>
                         <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="<?= htmlspecialchars($t['search_placeholder']) ?>" class="block w-full pl-10 pr-3 py-2 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-950 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-navy-500">
@@ -1096,13 +1239,35 @@ function priorityTextCss(string $p): string {
 
                 <div>
                     <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Filter Priority</label>
-                    <select name="priority" class="block w-44 px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-950 dark:text-white focus:outline-none">
+                    <select name="priority" class="block w-44 px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-955 dark:text-white focus:outline-none">
                         <option value="All" <?= $filterPriority === 'All' ? 'selected' : '' ?>><?= htmlspecialchars($t['filter_all_priority']) ?></option>
                         <option value="Critical" <?= $filterPriority === 'Critical' ? 'selected' : '' ?>><?= htmlspecialchars($t['priority_critical']) ?></option>
                         <option value="High" <?= $filterPriority === 'High' ? 'selected' : '' ?>><?= htmlspecialchars($t['priority_high']) ?></option>
                         <option value="Medium" <?= $filterPriority === 'Medium' ? 'selected' : '' ?>><?= htmlspecialchars($t['priority_medium']) ?></option>
                         <option value="Low" <?= $filterPriority === 'Low' ? 'selected' : '' ?>><?= htmlspecialchars($t['priority_low']) ?></option>
                     </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">User/Officer</label>
+                    <select name="filter_user" class="block w-44 px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-955 dark:text-white focus:outline-none">
+                        <option value="All" <?= $filterUser === 'All' ? 'selected' : '' ?>>All Officers</option>
+                        <?php foreach ($usersList as $uRow): ?>
+                            <option value="<?= $uRow['user_id'] ?>" <?= (string)$filterUser === (string)$uRow['user_id'] ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($uRow['full_name'] ?: $uRow['employee_code']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Start Date</label>
+                    <input type="date" name="date_start" value="<?= htmlspecialchars($dateStart) ?>" class="block w-40 px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-955 dark:text-white focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">End Date</label>
+                    <input type="date" name="date_end" value="<?= htmlspecialchars($dateEnd) ?>" class="block w-40 px-3 py-2 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-955 dark:text-white focus:outline-none">
                 </div>
 
                 <div class="flex gap-2">
@@ -1138,7 +1303,13 @@ function priorityTextCss(string $p): string {
                     </thead>
                     <tbody class="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-800">
                         <?php 
-                        $tasksToDisplay = ($activeTab === 'allocated') ? $allocatedTasks : $assignedTasks;
+                        if ($activeTab === 'allocated') {
+                            $tasksToDisplay = $allocatedTasks;
+                        } elseif ($activeTab === 'tracking') {
+                            $tasksToDisplay = $trackingTasks;
+                        } else {
+                            $tasksToDisplay = $assignedTasks;
+                        }
                         if (empty($tasksToDisplay)): 
                         ?>
                         <tr>
@@ -1178,6 +1349,9 @@ function priorityTextCss(string $p): string {
                                 <?php if ($activeTab === 'allocated'): ?>
                                     <div class="text-slate-900 dark:text-white font-medium"><?= htmlspecialchars($row['assignee_name'] ?: 'N/A') ?></div>
                                     <div class="text-xs text-slate-400 dark:text-slate-500"><?= htmlspecialchars($row['assigned_role_name'] ?: 'Role Assigned') ?></div>
+                                <?php elseif ($activeTab === 'tracking'): ?>
+                                    <div class="text-slate-900 dark:text-white font-medium">To: <?= htmlspecialchars($row['assigned_to_name'] ?: 'Unassigned') ?></div>
+                                    <div class="text-xs text-slate-400 dark:text-slate-500">By: <?= htmlspecialchars($row['creator_name'] ?: 'N/A') ?></div>
                                 <?php else: ?>
                                     <div class="text-slate-900 dark:text-white font-medium"><?= htmlspecialchars($row['creator_name'] ?: 'N/A') ?></div>
                                 <?php endif; ?>
@@ -1210,6 +1384,10 @@ function priorityTextCss(string $p): string {
                             <!-- Actions (no-print) -->
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium no-print">
                                 <div class="flex flex-wrap justify-end gap-1.5">
+                                    <button onclick="openDetails(<?= $taskId ?>)" class="px-2.5 py-1 bg-slate-105 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-750 dark:text-slate-250 rounded-md transition-colors inline-flex items-center gap-1 shadow-sm font-semibold text-xs" title="View Details">
+                                        <i data-lucide="eye" class="w-3.5 h-3.5"></i> <?= htmlspecialchars($t['btn_view']) ?>
+                                    </button>
+
                                     <?php if ($activeTab === 'assigned'): ?>
                                         <?php if ($row['status'] === 'Pending' || $row['status'] === 'Reassigned'): ?>
                                         <button onclick="acknowledgeTask(<?= $taskId ?>, this)" class="px-2.5 py-1 bg-govgreen-500 hover:bg-govgreen-600 text-white rounded-md transition-colors inline-flex items-center gap-1 shadow-sm font-semibold text-xs">
@@ -2044,50 +2222,74 @@ function priorityTextCss(string $p): string {
         document.getElementById('detailsModal').classList.add('hidden');
     }
 
-    // Excel Export function (using SheetJS)
+    // Excel Export function (using SheetJS with server-side fallback)
     function triggerExcelExport() {
-        const table = document.getElementById('tasks-table');
-        const filename = 'Amravati_Connect_Tasks_<?= $activeTab ?>.xlsx';
-        
-        const cloneTable = table.cloneNode(true);
-        const rows = cloneTable.querySelectorAll('tr');
-        rows.forEach(row => {
-            const cells = row.querySelectorAll('th, td');
-            if(cells.length > 0) {
-                cells[cells.length - 1].remove();
-            }
-        });
+        if (typeof XLSX !== 'undefined') {
+            try {
+                const table = document.getElementById('tasks-table');
+                const filename = 'Amravati_Connect_Tasks_<?= $activeTab ?>.xlsx';
+                
+                const cloneTable = table.cloneNode(true);
+                const rows = cloneTable.querySelectorAll('tr');
+                rows.forEach(row => {
+                    const cells = row.querySelectorAll('th, td');
+                    if(cells.length > 0) {
+                        cells[cells.length - 1].remove();
+                    }
+                });
 
-        const wb = XLSX.utils.table_to_book(cloneTable, { sheet: "Tasks Report" });
-        XLSX.writeFile(wb, filename);
+                const wb = XLSX.utils.table_to_book(cloneTable, { sheet: "Tasks Report" });
+                XLSX.writeFile(wb, filename);
+                return;
+            } catch (err) {
+                console.error('Client-side Excel export failed, falling back to server-side', err);
+            }
+        }
+        // Server-side fallback / network-blocked workaround
+        const url = `api/export_data.php?type=excel&scope=reports&tab=<?= $activeTab ?>&search=<?= urlencode($search) ?>&status=<?= urlencode($filterStatus) ?>&priority=<?= urlencode($filterPriority) ?>&lang=<?= $lang ?>`;
+        window.location.href = url;
     }
 
-    // PDF Export function (using html2pdf)
+    // PDF Export function (using html2pdf with print-dialog fallback)
     function triggerPDFExport() {
-        const element = document.getElementById('report-container');
-        const filename = 'Amravati_Connect_Tasks_<?= $activeTab ?>.pdf';
-        
-        const style = document.createElement('style');
-        style.innerHTML = `
-            #report-container .no-print, 
-            #report-container th:last-child, 
-            #report-container td:last-child {
-                display: none !important;
-            }
-        `;
-        document.head.appendChild(style);
+        if (typeof html2pdf === 'undefined') {
+            alert('PDF generation library is offline. Opening print dialog as fallback. Please choose "Save as PDF" in your print options.');
+            window.print();
+            return;
+        }
+        try {
+            const element = document.getElementById('report-container');
+            const filename = 'Amravati_Connect_Tasks_<?= $activeTab ?>.pdf';
+            
+            const style = document.createElement('style');
+            style.innerHTML = `
+                #report-container .no-print, 
+                #report-container th:last-child, 
+                #report-container td:last-child {
+                    display: none !important;
+                }
+            `;
+            document.head.appendChild(style);
 
-        const opt = {
-            margin:       0.3,
-            filename:     filename,
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2, useCORS: true },
-            jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
-        };
+            const opt = {
+                margin:       0.3,
+                filename:     filename,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
+            };
 
-        html2pdf().set(opt).from(element).save().then(() => {
-            style.remove();
-        });
+            html2pdf().set(opt).from(element).save().then(() => {
+                style.remove();
+            }).catch(err => {
+                console.error(err);
+                style.remove();
+                window.print();
+            });
+        } catch (e) {
+            console.error(e);
+            window.print();
+        }
     }
 </script>
 </body>

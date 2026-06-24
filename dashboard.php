@@ -420,6 +420,94 @@ function getDashboardLevel(string $role, mysqli $conn): int {
 }
 
 /**
+ * getMonthlyTrend()  –  Fetches dynamic 6-month assigned vs completed counts.
+ */
+function getMonthlyTrend(mysqli $conn, string $scopeType, int $scopeId, string $lang = 'en'): array {
+    $categories = [];
+    $assigned = [];
+    $completed = [];
+    
+    $monthsMap = [
+        'en' => [1=>'Jan', 2=>'Feb', 3=>'Mar', 4=>'Apr', 5=>'May', 6=>'Jun', 7=>'Jul', 8=>'Aug', 9=>'Sep', 10=>'Oct', 11=>'Nov', 12=>'Dec'],
+        'mr' => [1=>'जाने', 2=>'फेब्रु', 3=>'मार्च', 4=>'एप्रिल', 5=>'मे', 6=>'जून', 7=>'जुलै', 8=>'ऑगस्ट', 9=>'सप्टें', 10=>'ऑक्टो', 11=>'नोव्हें', 12=>'डिसें']
+    ];
+    
+    $data = [];
+    $start = new DateTime();
+    $start->modify('-5 months');
+    
+    $sinceDate = $start->format('Y-m-01 00:00:00');
+    
+    for ($i = 0; $i < 6; $i++) {
+        $key = $start->format('Y-n');
+        $mNum = (int)$start->format('n');
+        $label = ($monthsMap[$lang][$mNum] ?? $start->format('M')) . ' ' . $start->format('y');
+        $data[$key] = [
+            'label' => $label,
+            'assigned' => 0,
+            'completed' => 0
+        ];
+        $start->modify('+1 month');
+    }
+    
+    $query = "SELECT YEAR(t.created_at) as y, MONTH(t.created_at) as m, 
+                     COUNT(DISTINCT t.task_id) as assigned_count,
+                     COUNT(DISTINCT CASE WHEN t.status = 'Completed' THEN t.task_id END) as completed_count
+              FROM tasks t
+              LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
+              LEFT JOIN users u ON ta.assigned_to_user = u.user_id
+              WHERE t.created_at >= ?";
+              
+    $params = [$sinceDate];
+    $types = "s";
+    
+    if ($scopeType === 'taluka') {
+        $query .= " AND (t.taluka_id = ? OR u.taluka_id = ?)";
+        $params[] = $scopeId;
+        $params[] = $scopeId;
+        $types .= "ii";
+    } elseif ($scopeType === 'village') {
+        $query .= " AND (t.village_id = ? OR u.village_id = ?)";
+        $params[] = $scopeId;
+        $params[] = $scopeId;
+        $types .= "ii";
+    }
+    
+    $query .= " GROUP BY YEAR(t.created_at), MONTH(t.created_at)";
+    
+    try {
+        $stmt = $conn->prepare($query);
+        if ($stmt) {
+            $stmt->bind_param($types, ...$params);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            while ($row = $res->fetch_assoc()) {
+                $key = $row['y'] . '-' . $row['m'];
+                if (isset($data[$key])) {
+                    $data[$key]['assigned'] = (int)$row['assigned_count'];
+                    $data[$key]['completed'] = (int)$row['completed_count'];
+                }
+            }
+            $stmt->close();
+        }
+    } catch (Exception $e) {
+        error_log("getMonthlyTrend error: " . $e->getMessage());
+    }
+    
+    foreach ($data as $d) {
+        $categories[] = $d['label'];
+        $assigned[] = $d['assigned'];
+        $completed[] = $d['completed'];
+    }
+    
+    return [
+        'categories' => $categories,
+        'assigned' => $assigned,
+        'completed' => $completed
+    ];
+}
+
+/**
  * getDistrictStats()  –  District-wide KPIs + taluka breakdown.
  */
 function getDistrictStats(mysqli $conn): array {
@@ -446,16 +534,19 @@ function getDistrictStats(mysqli $conn): array {
         /* ── Taluka-wise breakdown ─────────────────────────────── */
         $res = $conn->query("
             SELECT
-              COALESCE(t.taluka_name, 'Unknown')                           AS taluka,
-              COUNT(*)                                                     AS total,
-              COUNT(CASE WHEN status = 'Completed' THEN 1 END)            AS completed,
-              COUNT(CASE WHEN status = 'Pending'   THEN 1 END)            AS pending,
-              COUNT(CASE WHEN (status <> 'Completed' AND due_date < CURDATE()) OR status = 'Escalated' THEN 1 END) AS overdue,
-              ROUND(COUNT(CASE WHEN status='Completed' THEN 1 END)
-                    / NULLIF(COUNT(*),0)*100, 1)                           AS rate
-            FROM tasks tk
-            LEFT JOIN talukas t ON tk.taluka_id = t.taluka_id
-            GROUP BY tk.taluka_id
+              COALESCE(tk.taluka_name, 'Unknown')                          AS taluka,
+              COUNT(DISTINCT t.task_id)                                    AS total,
+              COUNT(DISTINCT CASE WHEN t.status = 'Completed' THEN t.task_id END) AS completed,
+              COUNT(DISTINCT CASE WHEN t.status = 'Pending'   THEN t.task_id END) AS pending,
+              COUNT(DISTINCT CASE WHEN t.due_date < CURDATE()
+                         AND t.status != 'Completed' THEN t.task_id END)   AS overdue,
+              ROUND(COUNT(DISTINCT CASE WHEN t.status='Completed' THEN t.task_id END)
+                    / NULLIF(COUNT(DISTINCT t.task_id),0)*100, 1)          AS rate
+            FROM tasks t
+            LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
+            LEFT JOIN users u ON ta.assigned_to_user = u.user_id
+            LEFT JOIN talukas tk ON COALESCE(t.taluka_id, u.taluka_id) = tk.taluka_id
+            GROUP BY tk.taluka_name, COALESCE(t.taluka_id, u.taluka_id)
             ORDER BY rate DESC
             LIMIT 10
         ");
@@ -463,7 +554,7 @@ function getDistrictStats(mysqli $conn): array {
             while ($row = $res->fetch_assoc()) $out['talukas'][] = $row;
         }
 
-    } catch (mysqli_sql_exception $e) {
+     } catch (mysqli_sql_exception $e) {
         error_log('getDistrictStats: ' . $e->getMessage());
         $out = _mockDistrict();
     }
@@ -479,14 +570,18 @@ function getTalukaStats(mysqli $conn, int $talukaId): array {
         /* ── Taluka KPIs ──────────────────────────────────────── */
         $st = $conn->prepare("
             SELECT
-              COUNT(*)                                                     AS total,
-              COUNT(CASE WHEN status IN ('Pending','Assigned','In Progress','Active') THEN 1 END) AS active,
-              COUNT(CASE WHEN status  = 'Pending'   THEN 1 END)           AS pending,
-              COUNT(CASE WHEN status  = 'Completed' THEN 1 END)           AS completed,
-              COUNT(CASE WHEN (status <> 'Completed' AND due_date < CURDATE()) OR status = 'Escalated' THEN 1 END) AS overdue
-            FROM tasks WHERE taluka_id = ?
+              COUNT(DISTINCT t.task_id)                                    AS total,
+              COUNT(DISTINCT CASE WHEN t.status != 'Completed' THEN t.task_id END) AS active,
+              COUNT(DISTINCT CASE WHEN t.status  = 'Pending'   THEN t.task_id END) AS pending,
+              COUNT(DISTINCT CASE WHEN t.status  = 'Completed' THEN t.task_id END) AS completed,
+              COUNT(DISTINCT CASE WHEN t.due_date < CURDATE()
+                         AND t.status  != 'Completed' THEN t.task_id END)  AS overdue
+            FROM tasks t
+            LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
+            LEFT JOIN users u ON ta.assigned_to_user = u.user_id
+            WHERE (t.taluka_id = ? OR u.taluka_id = ?)
         ");
-        $st->bind_param('i', $talukaId);
+        $st->bind_param('ii', $talukaId, $talukaId);
         $st->execute();
         if ($r = $st->get_result()->fetch_assoc()) {
             foreach (['total','active','pending','completed','overdue'] as $k)
@@ -498,17 +593,20 @@ function getTalukaStats(mysqli $conn, int $talukaId): array {
         $st = $conn->prepare("
             SELECT
               COALESCE(v.village_name, 'Unknown')                          AS village,
-              COUNT(*)                                                     AS total,
-              COUNT(CASE WHEN status='Completed' THEN 1 END)              AS completed,
-              COUNT(CASE WHEN status='Pending'   THEN 1 END)              AS pending,
-              COUNT(CASE WHEN (status <> 'Completed' AND due_date < CURDATE()) OR status = 'Escalated' THEN 1 END) AS overdue
-            FROM tasks tk
-            LEFT JOIN villages v ON tk.village_id = v.village_id
-            WHERE tk.taluka_id = ?
-            GROUP BY tk.village_id
+              COUNT(DISTINCT t.task_id)                                    AS total,
+              COUNT(DISTINCT CASE WHEN t.status='Completed' THEN t.task_id END) AS completed,
+              COUNT(DISTINCT CASE WHEN t.status='Pending'   THEN t.task_id END) AS pending,
+              COUNT(DISTINCT CASE WHEN t.due_date<CURDATE()
+                         AND t.status!='Completed' THEN t.task_id END)     AS overdue
+            FROM tasks t
+            LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
+            LEFT JOIN users u ON ta.assigned_to_user = u.user_id
+            LEFT JOIN villages v ON COALESCE(t.village_id, u.village_id) = v.village_id
+            WHERE (t.taluka_id = ? OR u.taluka_id = ?)
+            GROUP BY v.village_name, COALESCE(t.village_id, u.village_id)
             ORDER BY total DESC LIMIT 10
         ");
-        $st->bind_param('i', $talukaId);
+        $st->bind_param('ii', $talukaId, $talukaId);
         $st->execute();
         $res = $st->get_result();
         while ($row = $res->fetch_assoc()) $out['villages'][] = $row;
@@ -530,14 +628,18 @@ function getVillageStats(mysqli $conn, int $villageId): array {
         /* ── Village KPIs ─────────────────────────────────────── */
         $st = $conn->prepare("
             SELECT
-              COUNT(*)                                                     AS total,
-              COUNT(CASE WHEN status IN ('Pending','Assigned','In Progress','Active') THEN 1 END) AS active,
-              COUNT(CASE WHEN status  = 'Pending'   THEN 1 END)           AS pending,
-              COUNT(CASE WHEN status  = 'Completed' THEN 1 END)           AS completed,
-              COUNT(CASE WHEN (status <> 'Completed' AND due_date < CURDATE()) OR status = 'Escalated' THEN 1 END) AS overdue
-            FROM tasks WHERE village_id = ?
+              COUNT(DISTINCT t.task_id)                                    AS total,
+              COUNT(DISTINCT CASE WHEN t.status != 'Completed' THEN t.task_id END) AS active,
+              COUNT(DISTINCT CASE WHEN t.status  = 'Pending'   THEN t.task_id END) AS pending,
+              COUNT(DISTINCT CASE WHEN t.status  = 'Completed' THEN t.task_id END) AS completed,
+              COUNT(DISTINCT CASE WHEN t.due_date < CURDATE()
+                         AND t.status  != 'Completed' THEN t.task_id END)  AS overdue
+            FROM tasks t
+            LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
+            LEFT JOIN users u ON ta.assigned_to_user = u.user_id
+            WHERE (t.village_id = ? OR u.village_id = ?)
         ");
-        $st->bind_param('i', $villageId);
+        $st->bind_param('ii', $villageId, $villageId);
         $st->execute();
         if ($r = $st->get_result()->fetch_assoc()) {
             foreach (['total','active','pending','completed','overdue'] as $k)
@@ -547,14 +649,15 @@ function getVillageStats(mysqli $conn, int $villageId): array {
 
         /* ── Task list ──────────────────────────────────────────── */
         $st = $conn->prepare("
-            SELECT tk.task_id, tk.task_title AS title, tk.status, tk.due_date, tk.priority, COALESCE(u.full_name, 'Unassigned') AS assigned_to_name
-            FROM tasks tk
-            LEFT JOIN users u ON tk.assigned_user_id = u.user_id
-            WHERE tk.village_id = ?
-            ORDER BY FIELD(tk.status,'Overdue','Pending','In Progress','Completed'),
-                     tk.due_date ASC LIMIT 20
+            SELECT DISTINCT t.task_id, t.task_title AS title, t.status, t.due_date, t.priority, u.full_name AS assigned_to_name
+            FROM tasks t
+            LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
+            LEFT JOIN users u ON ta.assigned_to_user = u.user_id
+            WHERE (t.village_id = ? OR u.village_id = ?)
+            ORDER BY FIELD(t.status,'Overdue','Pending','In Progress','Completed'),
+                     t.due_date ASC LIMIT 20
         ");
-        $st->bind_param('i', $villageId);
+        $st->bind_param('ii', $villageId, $villageId);
         $st->execute();
         $res = $st->get_result();
         while ($row = $res->fetch_assoc()) $out['tasks'][] = $row;
@@ -563,6 +666,188 @@ function getVillageStats(mysqli $conn, int $villageId): array {
     } catch (mysqli_sql_exception $e) {
         error_log('getVillageStats: ' . $e->getMessage());
         $out = _mockVillage();
+    }
+    return $out;
+}
+
+function getPriorityDistribution(mysqli $conn, string $scopeType, int $scopeId): array {
+    $out = ['Critical' => 0, 'High' => 0, 'Medium' => 0, 'Low' => 0];
+    $query = "SELECT t.priority, COUNT(DISTINCT t.task_id) as count 
+              FROM tasks t
+              LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
+              LEFT JOIN users u ON ta.assigned_to_user = u.user_id";
+    $params = [];
+    $types = "";
+    if ($scopeType === 'taluka') {
+        $query .= " WHERE (t.taluka_id = ? OR u.taluka_id = ?)";
+        $params = [$scopeId, $scopeId];
+        $types = "ii";
+    } elseif ($scopeType === 'village') {
+        $query .= " WHERE (t.village_id = ? OR u.village_id = ?)";
+        $params = [$scopeId, $scopeId];
+        $types = "ii";
+    }
+    $query .= " GROUP BY t.priority";
+    try {
+        if ($types) {
+            $stmt = $conn->prepare($query);
+            $stmt->bind_param($types, ...$params);
+            $stmt->execute();
+            $res = $stmt->get_result();
+        } else {
+            $res = $conn->query($query);
+        }
+        if ($res) {
+            while ($row = $res->fetch_assoc()) {
+                $p = $row['priority'];
+                if (isset($out[$p])) {
+                    $out[$p] = (int)$row['count'];
+                }
+            }
+        }
+        if (isset($stmt)) $stmt->close();
+    } catch (Exception $e) {
+        error_log('getPriorityDistribution error: ' . $e->getMessage());
+    }
+    return $out;
+}
+
+function getTaskAgeing(mysqli $conn, string $scopeType, int $scopeId): array {
+    $out = ['< 5 Days' => 0, '5-10 Days' => 0, '11-30 Days' => 0, '> 30 Days' => 0];
+    $query = "SELECT DATEDIFF(CURDATE(), t.created_at) as age_days
+              FROM tasks t
+              LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
+              LEFT JOIN users u ON ta.assigned_to_user = u.user_id
+              WHERE t.status != 'Completed'";
+    $params = [];
+    $types = "";
+    if ($scopeType === 'taluka') {
+        $query .= " AND (t.taluka_id = ? OR u.taluka_id = ?)";
+        $params = [$scopeId, $scopeId];
+        $types = "ii";
+    } elseif ($scopeType === 'village') {
+        $query .= " AND (t.village_id = ? OR u.village_id = ?)";
+        $params = [$scopeId, $scopeId];
+        $types = "ii";
+    }
+    try {
+        if ($types) {
+            $stmt = $conn->prepare($query);
+            $stmt->bind_param($types, ...$params);
+            $stmt->execute();
+            $res = $stmt->get_result();
+        } else {
+            $res = $conn->query($query);
+        }
+        if ($res) {
+            while ($row = $res->fetch_assoc()) {
+                $days = (int)$row['age_days'];
+                if ($days < 5) $out['< 5 Days']++;
+                elseif ($days <= 10) $out['5-10 Days']++;
+                elseif ($days <= 30) $out['11-30 Days']++;
+                else $out['> 30 Days']++;
+            }
+        }
+        if (isset($stmt)) $stmt->close();
+    } catch (Exception $e) {
+        error_log('getTaskAgeing error: ' . $e->getMessage());
+    }
+    return $out;
+}
+
+function getRejectionAnalysis(mysqli $conn, string $scopeType, int $scopeId): array {
+    $out = [];
+    $query = "SELECT rp.rejection_reason, COUNT(*) as count 
+              FROM task_rejection_proofs rp
+              JOIN tasks t ON rp.task_id = t.task_id
+              LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
+              LEFT JOIN users u ON ta.assigned_to_user = u.user_id";
+    $params = [];
+    $types = "";
+    if ($scopeType === 'taluka') {
+        $query .= " WHERE (t.taluka_id = ? OR u.taluka_id = ?)";
+        $params = [$scopeId, $scopeId];
+        $types = "ii";
+    } elseif ($scopeType === 'village') {
+        $query .= " WHERE (t.village_id = ? OR u.village_id = ?)";
+        $params = [$scopeId, $scopeId];
+        $types = "ii";
+    }
+    $query .= " GROUP BY rp.rejection_reason ORDER BY count DESC LIMIT 5";
+    try {
+        if ($types) {
+            $stmt = $conn->prepare($query);
+            $stmt->bind_param($types, ...$params);
+            $stmt->execute();
+            $res = $stmt->get_result();
+        } else {
+            $res = $conn->query($query);
+        }
+        if ($res) {
+            while ($row = $res->fetch_assoc()) {
+                $out[$row['rejection_reason']] = (int)$row['count'];
+            }
+        }
+        if (isset($stmt)) $stmt->close();
+    } catch (Exception $e) {
+        error_log('getRejectionAnalysis error: ' . $e->getMessage());
+    }
+    if (empty($out)) {
+        $out = [
+            'Overlapping Priorities' => 0,
+            'Resource Unavailability' => 0,
+            'Outside Area of Responsibility' => 0,
+            'Technical Insufficiency' => 0
+        ];
+    }
+    return $out;
+}
+
+function getUserPerformance(mysqli $conn, string $scopeType, int $scopeId): array {
+    $out = [];
+    $query = "SELECT u.full_name, u.employee_code,
+                     COUNT(DISTINCT t.task_id) as total_tasks,
+                     COUNT(DISTINCT CASE WHEN t.status = 'Completed' THEN t.task_id END) as completed_tasks
+              FROM users u
+              JOIN task_assignments ta ON u.user_id = ta.assigned_to_user
+              JOIN tasks t ON ta.task_id = t.task_id";
+    $params = [];
+    $types = "";
+    if ($scopeType === 'taluka') {
+        $query .= " WHERE (t.taluka_id = ? OR u.taluka_id = ?)";
+        $params = [$scopeId, $scopeId];
+        $types = "ii";
+    } elseif ($scopeType === 'village') {
+        $query .= " WHERE (t.village_id = ? OR u.village_id = ?)";
+        $params = [$scopeId, $scopeId];
+        $types = "ii";
+    }
+    $query .= " GROUP BY u.user_id ORDER BY total_tasks DESC LIMIT 5";
+    try {
+        if ($types) {
+            $stmt = $conn->prepare($query);
+            $stmt->bind_param($types, ...$params);
+            $stmt->execute();
+            $res = $stmt->get_result();
+        } else {
+            $res = $conn->query($query);
+        }
+        if ($res) {
+            while ($row = $res->fetch_assoc()) {
+                $total = (int)$row['total_tasks'];
+                $completed = (int)$row['completed_tasks'];
+                $rate = $total > 0 ? round(($completed / $total) * 100, 1) : 0;
+                $out[] = [
+                    'name' => $row['full_name'] ?: $row['employee_code'],
+                    'total' => $total,
+                    'completed' => $completed,
+                    'rate' => $rate
+                ];
+            }
+        }
+        if (isset($stmt)) $stmt->close();
+    } catch (Exception $e) {
+        error_log('getUserPerformance error: ' . $e->getMessage());
     }
     return $out;
 }
@@ -644,6 +929,23 @@ $vilData['pending']    = $pendingTasks;
 $vilData['completed']  = $completedTasks;
 $vilData['overdue']    = $overdueTasks;
 
+$distTrend  = $showL1 ? getMonthlyTrend($conn, 'district', 0, $lang) : null;
+$talTrend   = $showL2 ? getMonthlyTrend($conn, 'taluka', $sTalukaId, $lang) : null;
+$vilTrend   = getMonthlyTrend($conn, 'village', $sVillageId, $lang);
+
+$distPriority   = $showL1 ? getPriorityDistribution($conn, 'district', 0) : ['Critical'=>1, 'High'=>3, 'Medium'=>5, 'Low'=>4];
+$distAgeing     = $showL1 ? getTaskAgeing($conn, 'district', 0) : ['< 5 Days'=>2, '5-10 Days'=>4, '11-30 Days'=>3, '> 30 Days'=>1];
+$distRejections = $showL1 ? getRejectionAnalysis($conn, 'district', 0) : ['Overlapping Priorities'=>2, 'Resource Unavailability'=>1];
+$distPerform    = $showL1 ? getUserPerformance($conn, 'district', 0) : [];
+
+$talPriority   = $showL2 ? getPriorityDistribution($conn, 'taluka', $sTalukaId) : ['Critical'=>1, 'High'=>2, 'Medium'=>3, 'Low'=>2];
+$talAgeing     = $showL2 ? getTaskAgeing($conn, 'taluka', $sTalukaId) : ['< 5 Days'=>1, '5-10 Days'=>2, '11-30 Days'=>1, '> 30 Days'=>0];
+$talRejections = $showL2 ? getRejectionAnalysis($conn, 'taluka', $sTalukaId) : ['Overlapping Priorities'=>1];
+$talPerform    = $showL2 ? getUserPerformance($conn, 'taluka', $sTalukaId) : [];
+
+$vilPriority   = getPriorityDistribution($conn, 'village', $sVillageId);
+$vilAgeing     = getTaskAgeing($conn, 'village', $sVillageId);
+
 /* Friendly role label */
 $roleKey = match($sRole) {
     'Administrator', 'System Administrator' => 'role_administrator',
@@ -710,10 +1012,13 @@ function priorityCss(string $p): string {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- ApexCharts -->
+    <!-- ApexCharts with CDN fallback -->
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-    <!-- Chart.js for dynamic KPI charts -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        if (typeof ApexCharts === 'undefined') {
+            document.write('<scr' + 'ipt src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.49.0/apexcharts.min.js"><\/scr' + 'ipt>');
+        }
+    </script>
 
     <!-- Tailwind config — identical to blank_wrushabh.php ─── -->
     <script>
@@ -1001,7 +1306,7 @@ function priorityCss(string $p): string {
                     <i data-lucide="shield" class="w-3.5 h-3.5"></i>
                     <?= htmlspecialchars($t['badge_level']) ?> <?= $level ?> &middot; <?= htmlspecialchars($roleLabel) ?>
                 </span>
-                <button class="inline-flex items-center px-4 py-2 border border-slate-300
+                <button onclick="exportDashboardData()" class="inline-flex items-center px-4 py-2 border border-slate-300
                                dark:border-slate-600 shadow-sm text-sm font-medium rounded-md
                                text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800
                                hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none transition-colors">
@@ -1162,6 +1467,48 @@ function priorityCss(string $p): string {
                         </button>
                     </div>
                     <div id="chart-dist-bar" class="h-60 w-full"></div>
+                </div>
+
+                <!-- New District Graphs -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                    <!-- Priority Distribution -->
+                    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
+                                <?= $lang === 'en' ? 'Task Priority-wise Analysis' : 'प्राधान्यक्रमानुसार कार्य विश्लेषण' ?>
+                            </h2>
+                        </div>
+                        <div id="chart-dist-priority" class="h-72 w-full"></div>
+                    </div>
+                    <!-- Task Ageing -->
+                    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
+                                <?= $lang === 'en' ? 'Task Ageing Analysis (Open Tasks)' : 'कार्य प्रलंबित कालावधी विश्लेषण (सक्रिय कार्ये)' ?>
+                            </h2>
+                        </div>
+                        <div id="chart-dist-ageing" class="h-72 w-full"></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                    <!-- Rejection Analysis -->
+                    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
+                                <?= $lang === 'en' ? 'Task Rejection Reasons Analysis' : 'कार्य नाकारण्याच्या कारणांचे विश्लेषण' ?>
+                            </h2>
+                        </div>
+                        <div id="chart-dist-rejections" class="h-72 w-full"></div>
+                    </div>
+                    <!-- User Performance -->
+                    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
+                                <?= $lang === 'en' ? 'Top Officer Performance (Task Completion)' : 'वरिष्ठ अधिकारी कामगिरी (कार्य पूर्णता)' ?>
+                            </h2>
+                        </div>
+                        <div id="chart-dist-performance" class="h-72 w-full"></div>
+                    </div>
                 </div>
 
                 <!-- Taluka-wise performance table (matches blank_wrushabh.php table) -->
@@ -1397,6 +1744,48 @@ function priorityCss(string $p): string {
                     <div id="chart-tal-bar" class="h-60 w-full"></div>
                 </div>
 
+                <!-- New Taluka Graphs -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                    <!-- Priority Distribution -->
+                    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
+                                <?= $lang === 'en' ? 'Taluka Priority-wise Analysis' : 'तालुका प्राधान्यक्रमानुसार कार्य विश्लेषण' ?>
+                            </h2>
+                        </div>
+                        <div id="chart-tal-priority" class="h-72 w-full"></div>
+                    </div>
+                    <!-- Task Ageing -->
+                    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
+                                <?= $lang === 'en' ? 'Taluka Task Ageing Analysis' : 'तालुका कार्य प्रलंबित कालावधी विश्लेषण' ?>
+                            </h2>
+                        </div>
+                        <div id="chart-tal-ageing" class="h-72 w-full"></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                    <!-- Rejection Analysis -->
+                    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
+                                <?= $lang === 'en' ? 'Taluka Task Rejection reasons' : 'तालुका कार्य नाकारण्याची कारणे' ?>
+                            </h2>
+                        </div>
+                        <div id="chart-tal-rejections" class="h-72 w-full"></div>
+                    </div>
+                    <!-- User Performance -->
+                    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
+                                <?= $lang === 'en' ? 'Taluka Officer Performance' : 'तालुका अधिकारी कामगिरी' ?>
+                            </h2>
+                        </div>
+                        <div id="chart-tal-performance" class="h-72 w-full"></div>
+                    </div>
+                </div>
+
                 <!-- Village Summary Table -->
                 <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm
                             border border-slate-200 dark:border-slate-700 overflow-hidden mb-8">
@@ -1563,6 +1952,28 @@ function priorityCss(string $p): string {
                             </button>
                         </div>
                         <div id="chart-vil-donut" class="h-72 w-full"></div>
+                    </div>
+                </div>
+
+                <!-- New Village Graphs -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                    <!-- Priority Distribution -->
+                    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
+                                <?= $lang === 'en' ? 'Village Priority-wise Analysis' : 'ग्राम प्राधान्यक्रमानुसार कार्य विश्लेषण' ?>
+                            </h2>
+                        </div>
+                        <div id="chart-vil-priority" class="h-72 w-full"></div>
+                    </div>
+                    <!-- Task Ageing -->
+                    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
+                                <?= $lang === 'en' ? 'Village Task Ageing Analysis' : 'ग्राम कार्य प्रलंबित कालावधी विश्लेषण' ?>
+                            </h2>
+                        </div>
+                        <div id="chart-vil-ageing" class="h-72 w-full"></div>
                     </div>
                 </div>
 
@@ -1821,6 +2232,13 @@ function destroyAll() {
 
 function buildAllCharts(isDark) {
     destroyAll();
+    if (typeof ApexCharts === 'undefined') {
+        document.querySelectorAll('[id^="chart-"]').forEach(el => {
+            el.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;font-size:13px;font-family:Inter,sans-serif;"><span>⚠ Charts unavailable — check internet connection</span></div>';
+        });
+        return;
+    }
+    try {
     const tc  = isDark ? '#94a3b8' : '#64748b';   // text
     const gc  = isDark ? '#334155' : '#e2e8f0';   // grid
     const mode= isDark ? 'dark'    : 'light';
@@ -1967,6 +2385,46 @@ function buildAllCharts(isDark) {
         )
     );
     charts.dBar.render();
+
+    charts.dPriority = new ApexCharts(
+        document.querySelector('#chart-dist-priority'),
+        pieOpts(
+            [<?= (int)($distPriority['Critical'] ?? 0) ?>, <?= (int)($distPriority['High'] ?? 0) ?>, <?= (int)($distPriority['Medium'] ?? 0) ?>, <?= (int)($distPriority['Low'] ?? 0) ?>],
+            ['Critical', 'High', 'Medium', 'Low'],
+            ['#ef4444', '#f97316', '#eab308', '#3b82f6']
+        )
+    );
+    charts.dPriority.render();
+
+    charts.dAgeing = new ApexCharts(
+        document.querySelector('#chart-dist-ageing'),
+        pieOpts(
+            [<?= (int)($distAgeing['< 5 Days'] ?? 0) ?>, <?= (int)($distAgeing['5-10 Days'] ?? 0) ?>, <?= (int)($distAgeing['11-30 Days'] ?? 0) ?>, <?= (int)($distAgeing['> 30 Days'] ?? 0) ?>],
+            ['< 5 Days', '5-10 Days', '11-30 Days', '> 30 Days'],
+            ['#10b981', '#3b82f6', '#f59e0b', '#ef4444']
+        )
+    );
+    charts.dAgeing.render();
+
+    charts.dRejections = new ApexCharts(
+        document.querySelector('#chart-dist-rejections'),
+        pieOpts(
+            <?= json_encode(array_values($distRejections)) ?>,
+            <?= json_encode(array_keys($distRejections)) ?>,
+            ['#ef4444', '#f97316', '#3b82f6', '#10b981', '#a855f7']
+        )
+    );
+    charts.dRejections.render();
+
+    charts.dPerformance = new ApexCharts(
+        document.querySelector('#chart-dist-performance'),
+        hbarOpts(
+            [{ name: 'Completion Rate %', data: [<?php foreach($distPerform as $p) echo $p['rate'].','; ?>] }],
+            [<?php foreach($distPerform as $p) echo '"'.addslashes($p['name']).'",'; ?>],
+            '#10b981'
+        )
+    );
+    charts.dPerformance.render();
     <?php endif; ?>
 
     <?php if ($showL2): ?>
@@ -2011,6 +2469,46 @@ function buildAllCharts(isDark) {
         }
     );
     charts.tBar.render();
+
+    charts.tPriority = new ApexCharts(
+        document.querySelector('#chart-tal-priority'),
+        pieOpts(
+            [<?= (int)($talPriority['Critical'] ?? 0) ?>, <?= (int)($talPriority['High'] ?? 0) ?>, <?= (int)($talPriority['Medium'] ?? 0) ?>, <?= (int)($talPriority['Low'] ?? 0) ?>],
+            ['Critical', 'High', 'Medium', 'Low'],
+            ['#ef4444', '#f97316', '#eab308', '#3b82f6']
+        )
+    );
+    charts.tPriority.render();
+
+    charts.tAgeing = new ApexCharts(
+        document.querySelector('#chart-tal-ageing'),
+        pieOpts(
+            [<?= (int)($talAgeing['< 5 Days'] ?? 0) ?>, <?= (int)($talAgeing['5-10 Days'] ?? 0) ?>, <?= (int)($talAgeing['11-30 Days'] ?? 0) ?>, <?= (int)($talAgeing['> 30 Days'] ?? 0) ?>],
+            ['< 5 Days', '5-10 Days', '11-30 Days', '> 30 Days'],
+            ['#10b981', '#3b82f6', '#f59e0b', '#ef4444']
+        )
+    );
+    charts.tAgeing.render();
+
+    charts.tRejections = new ApexCharts(
+        document.querySelector('#chart-tal-rejections'),
+        pieOpts(
+            <?= json_encode(array_values($talRejections)) ?>,
+            <?= json_encode(array_keys($talRejections)) ?>,
+            ['#ef4444', '#f97316', '#3b82f6', '#10b981', '#a855f7']
+        )
+    );
+    charts.tRejections.render();
+
+    charts.tPerformance = new ApexCharts(
+        document.querySelector('#chart-tal-performance'),
+        hbarOpts(
+            [{ name: 'Completion Rate %', data: [<?php foreach($talPerform as $p) echo $p['rate'].','; ?>] }],
+            [<?php foreach($talPerform as $p) echo '"'.addslashes($p['name']).'",'; ?>],
+            '#10b981'
+        )
+    );
+    charts.tPerformance.render();
     <?php endif; ?>
 
     /* Village */
@@ -2031,8 +2529,44 @@ function buildAllCharts(isDark) {
         )
     );
     charts.vDonut.render();
+
+    charts.vPriority = new ApexCharts(
+        document.querySelector('#chart-vil-priority'),
+        pieOpts(
+            [<?= (int)($vilPriority['Critical'] ?? 0) ?>, <?= (int)($vilPriority['High'] ?? 0) ?>, <?= (int)($vilPriority['Medium'] ?? 0) ?>, <?= (int)($vilPriority['Low'] ?? 0) ?>],
+            ['Critical', 'High', 'Medium', 'Low'],
+            ['#ef4444', '#f97316', '#eab308', '#3b82f6']
+        )
+    );
+    charts.vPriority.render();
+
+    charts.vAgeing = new ApexCharts(
+        document.querySelector('#chart-vil-ageing'),
+        pieOpts(
+            [<?= (int)($vilAgeing['< 5 Days'] ?? 0) ?>, <?= (int)($vilAgeing['5-10 Days'] ?? 0) ?>, <?= (int)($vilAgeing['11-30 Days'] ?? 0) ?>, <?= (int)($vilAgeing['> 30 Days'] ?? 0) ?>],
+            ['< 5 Days', '5-10 Days', '11-30 Days', '> 30 Days'],
+            ['#10b981', '#3b82f6', '#f59e0b', '#ef4444']
+        )
+    );
+    charts.vAgeing.render();
+} catch(chartErr) {
+    console.error('ApexCharts render error:', chartErr);
+    document.querySelectorAll('[id^="chart-"]').forEach(el => {
+        if (!el.querySelector('svg')) {
+            el.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;font-size:13px;"><span>⚠ Chart rendering failed</span></div>';
+        }
+    });
+}
 }
 
+/* ── Export Dashboard Data ─────────────────────────────── */
+function exportDashboardData() {
+    window.location.href = 'api/export_data.php?type=csv&scope=<?= $showL1 ? "district" : ($showL2 ? "taluka" : "village") ?>&lang=<?= $lang ?>';
+}
+</script>
+
+<!-- Notification System (isolated script block) -->
+<script>
 // Notification Bell Logic
 const notificationBtn = document.getElementById('notificationBtn');
 const notificationDropdown = document.getElementById('notificationDropdown');
