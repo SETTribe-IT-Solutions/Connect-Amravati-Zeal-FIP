@@ -172,7 +172,7 @@ $roles_result = $conn ? $conn->query(
 ) : false;
 // departments table
 $departments_result = $conn ? $conn->query(
-    "SELECT id, department_name FROM departments ORDER BY department_name"
+    "SELECT department_id, department_name FROM departments ORDER BY department_name"
 ) : false;
 
 // ─── Handle Form Submission ───────────────────────────────────────────
@@ -372,7 +372,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $success_msg = "Task <strong>$task_id_str</strong> created successfully!$count_label";
         } else {
             $error_msg = 'Database error: ' . $conn->error;
-        // (End of task creation logic)
+        }
+    }
     } // End of if(!$conn) check
 }
 
@@ -979,9 +980,9 @@ $task_id_preview = 'TASK_' . str_pad($next_id, 3, '0', STR_PAD_LEFT);
                                             if ($departments_result && $departments_result->num_rows > 0) {
                                                 $departments_result->data_seek(0);
                                                 while ($d = $departments_result->fetch_assoc()):
-                                                    $sel = (isset($_POST['department_id']) && $_POST['department_id'] == $d['id']) ? 'selected' : '';
+                                                    $sel = (isset($_POST['department_id']) && $_POST['department_id'] == $d['department_id']) ? 'selected' : '';
                                             ?>
-                                            <option value="<?= (int)$d['id'] ?>" <?= $sel ?>>
+                                            <option value="<?= (int)$d['department_id'] ?>" <?= $sel ?>>
                                                 <?= htmlspecialchars($d['department_name']) ?>
                                             </option>
                                             <?php endwhile; } ?>

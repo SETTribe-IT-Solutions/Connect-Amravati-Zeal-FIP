@@ -751,6 +751,16 @@ $level    = match($sRole) {
     default => 3
 };
 
+function priorityTextCss(string $priority): string {
+    return match(strtolower(trim($priority))) {
+        'critical' => 'text-red-650 font-bold dark:text-red-400',
+        'high' => 'text-orange-600 font-semibold dark:text-orange-400',
+        'medium' => 'text-blue-600 font-medium dark:text-blue-400',
+        'low' => 'text-green-600 dark:text-green-400',
+        default => 'text-slate-600 dark:text-slate-400',
+    };
+}
+
 function statusBadgeCss(string $s): string {
     return match($s) {
         'Completed', 'Verified' => 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800',
