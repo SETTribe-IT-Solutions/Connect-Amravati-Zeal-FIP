@@ -914,29 +914,6 @@ $level   = $dbAvailable ? getDashboardLevel($sRole, $conn) : (ROLE_LEVEL_MAP[$sR
 $showL1  = ($level === 1);
 $showL2  = ($level <= 2);
 $showL3  = true;
-<<<<<<< HEAD
-=======
-
-$distData = ($showL1 && $dbAvailable) ? getDistrictStats($conn)           : _mockDistrict();
-$talData  = ($showL2 && $dbAvailable) ? getTalukaStats($conn, $sTalukaId) : _mockTaluka();
-$vilData  = $dbAvailable              ? getVillageStats($conn, $sVillageId) : _mockVillage();
-
-// Replace hardcoded / mock counts with the real-time values from database
-$distData['active']    = $totalActiveTasks;
-$distData['pending']   = $pendingTasks;
-$distData['completed'] = $completedTasks;
-$distData['overdue']   = $overdueTasks;
-
-$talData['active']     = $totalActiveTasks;
-$talData['pending']    = $pendingTasks;
-$talData['completed']  = $completedTasks;
-$talData['overdue']    = $overdueTasks;
-
-$vilData['active']     = $totalActiveTasks;
-$vilData['pending']    = $pendingTasks;
-$vilData['completed']  = $completedTasks;
-$vilData['overdue']    = $overdueTasks;
->>>>>>> origin/dev
 
 $distData = ($showL1 && $dbAvailable) ? getDistrictStats($conn)           : _mockDistrict();
 $talData  = ($showL2 && $dbAvailable) ? getTalukaStats($conn, $sTalukaId) : _mockTaluka();
@@ -1026,10 +1003,7 @@ function priorityCss(string $p): string {
     };
 }
 
-<<<<<<< HEAD
-=======
 close_db_connection();
->>>>>>> origin/dev
 ?>
 <?php
 $pageTitle = $t['title'] ?? 'Amravati Connect Dashboard';

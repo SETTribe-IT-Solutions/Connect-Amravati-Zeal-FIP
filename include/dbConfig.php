@@ -12,12 +12,11 @@ define('DB_USER',      'nmrmlatur_districCNTZEAL');
 define('DB_PASS',      'districtCNTDB@2026');
 define('DB_NAME',      'nmrmlatur_districtCNTDB');
 
-<<<<<<< HEAD
 // ── Local XAMPP credentials (fallback) ────────────────────────
-define('DB_HOST_LOCAL', '127.0.0.1');
-define('DB_USER_LOCAL', 'root');
-define('DB_PASS_LOCAL', '');
-define('DB_NAME_LOCAL', 'nmrmlatur_districtCNTDB');
+// define('DB_HOST_LOCAL', '127.0.0.1');
+// define('DB_USER_LOCAL', 'root');
+// define('DB_PASS_LOCAL', '');
+// define('DB_NAME_LOCAL', 'nmrmlatur_districtCNTDB');
 
 $conn = null;
 
@@ -62,37 +61,4 @@ function close_db_connection() {
 }
 
 register_shutdown_function('close_db_connection');
-=======
-// Create MySQLi connection (@ suppresses printed warning; error is handled via connect_error check below)
-$conn = @new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
-
-// Check connection
-if ($conn->connect_error) {
-    throw new RuntimeException("DB Connection failed: " . $conn->connect_error);
-}
-
-// Set character set to UTF-8
-if (isset($conn) && $conn instanceof mysqli) {
-    $conn->set_charset("utf8mb4");
-}
-
-
-// Register a shutdown function to automatically close the database connection at the end of script execution
-register_shutdown_function(function() {
-    close_db_connection();
-});
-
-/**
- * Explicitly close the database connection and set it to null.
- * Call this function at the end of database operations to release connection limits immediately.
- */
-function close_db_connection() {
-    global $conn;
-    if (isset($conn) && $conn instanceof mysqli) {
-        @$conn->close();
-        $conn = null;
-    }
-}
-
->>>>>>> origin/dev
 ?>

@@ -195,15 +195,9 @@ $sName      = $_SESSION['user_name'];
 $sTalukaId  = (int) ($_SESSION['user_taluka_id']  ?? 1);
 $sVillageId = (int) ($_SESSION['user_village_id'] ?? 1);
 
-<<<<<<< HEAD
 function getDashboardLevel(string $role, ?mysqli $conn): int {
     try {
         $stmt = $conn ? $conn->prepare("SELECT role_level FROM roles WHERE role_name = ? AND status = 'Active' LIMIT 1") : false;
-=======
-function getDashboardLevel(string $role, mysqli $conn): int {
-    try {
-        $stmt = $conn->prepare("SELECT role_level FROM roles WHERE role_name = ? AND status = 'Active' LIMIT 1");
->>>>>>> origin/dev
         if ($stmt) {
             $stmt->bind_param('s', $role);
             $stmt->execute();
@@ -264,11 +258,7 @@ try {
         ORDER BY days_overdue DESC, t.due_date ASC
     ";
     
-<<<<<<< HEAD
     $stmt = $conn ? $conn->prepare($query) : false;
-=======
-    $stmt = $conn->prepare($query);
->>>>>>> origin/dev
     if ($stmt) {
         if (!empty($scope_types)) {
             $stmt->bind_param($scope_types, ...$scope_params);
