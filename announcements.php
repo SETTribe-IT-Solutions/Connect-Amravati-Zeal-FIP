@@ -289,94 +289,23 @@ if ($db_connected) {
     ];
 }
 close_db_connection();
-?>
-<!DOCTYPE html>
-<html lang="<?= $lang ?>" class="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($t['title']) ?></title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <!-- Excel & PDF CDN Exports -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: {
-                        navy: {
-                            50: '#eef2f6',
-                            100: '#d9e2ec',
-                            500: '#1E3A8A',
-                            600: '#2563EB',
-                            700: '#1d4ed8',
-                            900: '#1e3a8a'
-                        },
-                        govgreen: {
-                            50: '#edf7ed',
-                            100: '#cce8cc',
-                            500: '#10B981',
-                            600: '#059669'
-                        },
-                        saffron: {
-                            50: '#fff3e0',
-                            100: '#ffe0b2',
-                            500: '#F59E0B',
-                            600: '#d97706'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+
+$pageTitle = $t['title'];
+$pageDesc = $t['page_subtitle'] ?? 'View latest official announcements.';
+$extraHead = <<<'EOT'
     <style>
-        :root {
-            --background: 0 0% 100%;
-            --foreground: 222.2 84% 4.9%;
-            --border: 214.3 31.8% 91.4%;
-        }
-        .dark {
-            --background: 222.2 84% 4.9%;
-            --foreground: 210 40% 98%;
-            --border: 217.2 32.6% 17.5%;
-        }
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: hsl(var(--background));
-            color: hsl(var(--foreground));
-        }
         .glass-panel {
-            background: rgba(255,255,255,0.7);
+            background: rgba(255, 255, 255, 0.7);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
         .dark .glass-panel {
-            background: rgba(15,23,42,0.7);
-            border: 1px solid rgba(255,255,255,0.05);
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
-        .badge-l1 { background: #dbeafe; color: #1e3a8a; border: 1px solid #bfdbfe; }
-        .badge-l2 { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
-        .badge-l3 { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
-        .dark .badge-l1 { background: #1e3a8a33; color: #93c5fd; border-color: #1e40af; }
-        .dark .badge-l2 { background: #92400e33; color: #fcd34d; border-color: #b45309; }
-        .dark .badge-l3 { background: #065f4633; color: #6ee7b7; border-color: #047857; }
-        .nav-active { background: #eef2f6; color: #1e3a8a; font-weight: 600; }
-        .dark .nav-active { background: #1e293b; color: #fff; }
-        
+
         .watermark-container {
-            position: relative;
-            user-select: none;
-        }
-        .watermark-overlay {
-            position: absolute;
+            position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none;
             z-index: 10;
@@ -396,42 +325,12 @@ close_db_connection();
             margin: 20px;
         }
     </style>
-</head>
-<body class="h-screen flex overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
+EOT;
 
-    <!-- SIDEBAR -->
-    <aside class="w-64 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-all duration-300 z-20" id="sidebar">
-        <div class="h-16 flex items-center px-6 border-b border-slate-200 dark:border-slate-800">
-            <div class="w-8 h-8 rounded bg-navy-500 flex items-center justify-center mr-3">
-                <i data-lucide="landmark" class="text-white w-5 h-5"></i>
-            </div>
-            <span class="font-bold text-lg text-navy-900 dark:text-white tracking-tight"><?= htmlspecialchars($t['brand_name']) ?></span>
-        </div>
-
-        <div class="flex-1 overflow-y-auto py-4">
-            <nav class="space-y-1 px-3">
-                <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-4"><?= htmlspecialchars($t['menu_main_modules']) ?></p>
-                <a href="dashboard.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3 text-slate-400"></i>
-                    <?= htmlspecialchars($t['menu_dashboard']) ?>
-                </a>
-                <a href="announcements.php?lang=<?= $lang ?>" class="nav-active flex items-center px-3 py-2.5 text-sm font-medium rounded-md">
-                    <i data-lucide="megaphone" class="w-5 h-5 mr-3 text-navy-500 dark:text-blue-400"></i>
-                    <?= htmlspecialchars($t['menu_announcement_center']) ?>
-                </a>
-                <a href="create_task.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="network" class="w-5 h-5 mr-3 text-slate-400"></i>
-                    <?= htmlspecialchars($t['menu_task_alloc']) ?>
-                </a>
-                <a href="notifications.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="bell-ring" class="w-5 h-5 mr-3 text-slate-400"></i>
-                    <?= htmlspecialchars($t['menu_notifications']) ?>
-                </a>
-                
-                <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6"><?= htmlspecialchars($t['menu_analytics']) ?></p>
-                <a href="reports.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="pie-chart" class="w-5 h-5 mr-3 text-slate-400"></i>
-                    <?= htmlspecialchars($t['menu_reports']) ?>
+include 'include/header.php';
+$activePage = 'announcements';
+include 'include/sidebar.php';
+?>
                 </a>
             </nav>
         </div>
@@ -787,7 +686,7 @@ close_db_connection();
                 </div>
 
                 <!-- Meeting Calendar Pane -->
-                <div id="meeting-view-calendar" class="mview-pane block bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                <div id="meeting-view-calendar" class="mview-pane block glass-panel rounded-xl border border-slate-200/50 dark:border-slate-700/50 p-6 shadow-official">
                     <!-- Standard CSS Grid Calendar -->
                     <div class="flex items-center justify-between mb-4">
                         <h2 class="text-lg font-bold" id="calendarMonthTitle">June 2026</h2>
@@ -806,7 +705,7 @@ close_db_connection();
                 </div>
 
                 <!-- Upcoming list Pane -->
-                <div id="meeting-view-upcoming" class="mview-pane hidden bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                <div id="meeting-view-upcoming" class="mview-pane hidden glass-panel rounded-xl border border-slate-200/50 dark:border-slate-700/50 p-6 shadow-official">
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
                             <thead class="bg-slate-50 dark:bg-slate-900/50">
@@ -826,7 +725,7 @@ close_db_connection();
                 </div>
 
                 <!-- Completed list Pane -->
-                <div id="meeting-view-completed" class="mview-pane hidden bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                <div id="meeting-view-completed" class="mview-pane hidden glass-panel rounded-xl border border-slate-200/50 dark:border-slate-700/50 p-6 shadow-official">
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
                             <thead class="bg-slate-50 dark:bg-slate-900/50">
@@ -846,7 +745,7 @@ close_db_connection();
 
                 <!-- Attendance tracking Pane (L1/Collector) -->
                 <?php if ($isL1): ?>
-                <div id="meeting-view-attendance" class="mview-pane hidden bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                <div id="meeting-view-attendance" class="mview-pane hidden glass-panel rounded-xl border border-slate-200/50 dark:border-slate-700/50 p-6 shadow-official">
                     <div class="flex justify-between items-center gap-4 mb-4">
                         <select id="attendanceMeetingSelect" onchange="loadAttendanceReport()" class="px-3 py-2 border rounded-lg text-sm bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white">
                             <option value="">-- Select Meeting --</option>
@@ -2567,5 +2466,4 @@ close_db_connection();
             </form>
         </div>
     </div>
-</body>
-</html>
+<?php include 'include/footer.php'; ?>

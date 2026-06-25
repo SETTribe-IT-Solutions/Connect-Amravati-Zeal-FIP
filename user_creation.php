@@ -357,96 +357,11 @@ $usersResult = $conn->query($usersQuery);
 
 close_db_connection();
 ?>
-<!DOCTYPE html>
-<html lang="<?= $lang ?>" class="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($t['title']) ?></title>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts: Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <!-- Tailwind Config for Design System -->
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                    colors: {
-                        border: "hsl(var(--border))",
-                        background: "hsl(var(--background))",
-                        foreground: "hsl(var(--foreground))",
-                        navy: {
-                            50: '#eef2f6',
-                            100: '#d9e2ec',
-                            500: '#1a365d',
-                            600: '#152b4a',
-                            700: '#0f1f38',
-                            900: '#0a1424'
-                        },
-                        govgreen: {
-                            50: '#edf7ed',
-                            100: '#cce8cc',
-                            500: '#2e7d32',
-                            600: '#256428'
-                        },
-                        saffron: {
-                            50: '#fff3e0',
-                            100: '#ffe0b2',
-                            500: '#f57c00',
-                            600: '#e65100'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-
+<?php
+$pageTitle = $t['title'];
+$pageDesc = $t['page_subtitle'] ?? 'Manage system users, roles, and permissions.';
+$extraHead = <<<'EOT'
     <style>
-        /* Base styles and ShadCN-like variables */
-        :root {
-            --background: 0 0% 100%;
-            --foreground: 222.2 84% 4.9%;
-            --border: 214.3 31.8% 91.4%;
-        }
-        .dark {
-            --background: 222.2 84% 4.9%;
-            --foreground: 210 40% 98%;
-            --border: 217.2 32.6% 17.5%;
-        }
-        
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: hsl(var(--background));
-            color: hsl(var(--foreground));
-        }
-
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 3px;
-        }
-        .dark ::-webkit-scrollbar-thumb {
-            background: #475569;
-        }
-
         .glass-panel {
             background: rgba(255, 255, 255, 0.7);
             backdrop-filter: blur(10px);
@@ -464,94 +379,12 @@ close_db_connection();
         .dark .badge-l1 { background:#1e3a8a33; color:#93c5fd; border-color:#1e40af; }
         .dark .badge-l2 { background:#92400e33; color:#fcd34d; border-color:#b45309; }
         .dark .badge-l3 { background:#065f4633; color:#6ee7b7; border-color:#047857; }
-
-        /* Active nav */
-        .nav-active { background:#eef2f6; color:#152b4a; }
-        .dark .nav-active { background:#1e293b; color:#fff; }
     </style>
-</head>
-<body class="h-screen flex overflow-hidden bg-navy-50 dark:bg-slate-900 transition-colors duration-200">
-
-    <!-- SIDEBAR -->
-    <aside id="sidebar"
-           class="w-64 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800
-                  flex flex-col transition-all duration-300 z-20">
-
-        <!-- Logo / Brand -->
-        <div class="h-16 flex items-center px-6 border-b border-slate-200 dark:border-slate-800">
-            <div class="w-8 h-8 rounded bg-navy-600 flex items-center justify-center mr-3">
-                <i data-lucide="landmark" class="text-white w-5 h-5"></i>
-            </div>
-            <span class="font-bold text-lg text-navy-700 dark:text-white tracking-tight"><?= htmlspecialchars($t['brand_name']) ?></span>
-        </div>
-
-        <!-- Navigation -->
-        <div class="flex-1 overflow-y-auto py-4">
-            <nav class="space-y-1 px-3">
-                <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-4"><?= htmlspecialchars($t['menu_main_modules']) ?></p>
-                <a href="dashboard.php?lang=<?= $lang ?>"
-                   class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3 text-slate-400"></i>
-                    <?= htmlspecialchars($t['menu_dashboard']) ?>
-                </a>
-                <a href="announcements.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="megaphone" class="w-5 h-5 mr-3 text-slate-400"></i>
-                    <?= htmlspecialchars($t['menu_announcement_center'] ?? 'Announcement Center') ?>
-                </a>
-                <a href="create_task.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
-                    text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="network"   class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($translations[$lang]['menu_task_alloc'] ?? 'Task Allocation') ?>
-                </a>
-                <a href="notifications.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
-                    text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="bell-ring" class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($t['menu_notifications']) ?>
-                </a>
-                <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
-                    text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="award"     class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($translations[$lang]['menu_appreciation'] ?? 'Appreciation') ?>
-                </a>
-
-                <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6"><?= htmlspecialchars($translations[$lang]['menu_analytics'] ?? 'Analytics & Data') ?></p>
-                <a href="reports.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
-                    text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="pie-chart"   class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($translations[$lang]['menu_reports'] ?? 'Reports & Analytics') ?>
-                </a>
-                <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
-                    text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="map"         class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($translations[$lang]['menu_gis'] ?? 'GIS Map View') ?>
-                </a>
-                <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
-                    text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="folder-open" class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($translations[$lang]['menu_docs'] ?? 'Document Management') ?>
-                </a>
-
-                <?php if ($level === 1): ?>
-                <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6"><?= htmlspecialchars($t['menu_admin']) ?></p>
-                <a href="user_creation.php?lang=<?= $lang ?>"
-                   class="nav-active flex items-center px-3 py-2.5 text-sm font-medium rounded-md">
-                    <i data-lucide="users" class="w-5 h-5 mr-3 text-navy-600 dark:text-blue-400"></i>
-                    <?= htmlspecialchars($t['menu_users']) ?>
-                </a>
-                <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
-                    text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="map-pin"      class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($translations[$lang]['menu_hierarchy'] ?? 'Location Hierarchy') ?>
-                </a>
-                <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
-                    text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="shield-check" class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($translations[$lang]['menu_audit'] ?? 'Audit Logs') ?>
-                </a>
-                <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
-                    text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="settings"     class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($translations[$lang]['menu_settings'] ?? 'Settings') ?>
-                </a>
-                <?php endif; ?>
-                <a href="logout.php" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
-                    text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors">
-                    <i data-lucide="log-out" class="w-5 h-5 mr-3 text-red-500"></i><?= htmlspecialchars($translations[$lang]['menu_logout'] ?? 'Logout') ?>
-                </a>
-            </nav>
-        </div>
-    </aside>
+EOT;
+include 'include/header.php';
+$activePage = 'user_creation';
+include 'include/sidebar.php';
+?>
 
     <!-- MAIN WRAPPER -->
     <div class="flex-1 flex flex-col overflow-hidden">
@@ -637,7 +470,7 @@ close_db_connection();
             <?php endif; ?>
 
             <!-- Form Section -->
-            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 mb-8 overflow-hidden">
+            <div class="glass-panel rounded-xl shadow-official border border-slate-200/50 dark:border-slate-700/50 mb-8 overflow-hidden">
                 <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
                     <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
                         <?= $editData ? htmlspecialchars($t['form_update_title']) : htmlspecialchars($t['form_create_title']) ?>
@@ -756,7 +589,7 @@ close_db_connection();
             </div>
 
             <!-- Data Table Section -->
-            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden mb-12">
+            <div class="glass-panel rounded-xl shadow-official border border-slate-200/50 dark:border-slate-700/50 overflow-hidden mb-12">
                 <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-center gap-4">
                     <h2 class="text-lg font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($t['table_title']) ?></h2>
                     
@@ -1027,5 +860,4 @@ close_db_connection();
         setInterval(fetchNotifications, 30000);
         fetchNotifications();
     </script>
-</body>
-</html>
+<?php include 'include/footer.php'; ?>

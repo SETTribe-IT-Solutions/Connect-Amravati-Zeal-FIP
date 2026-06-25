@@ -102,84 +102,19 @@ $sRole = $_SESSION['role_name'] ?? 'Officer';
 $parts = array_filter(explode(' ', trim($sName)));
 $initials = strtoupper(substr($parts[0] ?? 'O', 0, 1) . substr($parts[1] ?? '', 0, 1));
 ?>
-<!DOCTYPE html>
-<html lang="<?= $lang ?>">
-<head>
-    <script>
-        (function() {
-            const stored = localStorage.getItem('acTheme') || localStorage.getItem('theme');
-            const sessionTheme = '<?= $_SESSION['pref_theme'] ?? '' ?>';
-            const isDark = stored === 'dark' || (sessionTheme === 'dark') || (!stored && !sessionTheme && window.matchMedia('(prefers-color-scheme: dark)').matches);
-            if (isDark) {
-                document.documentElement.classList.add('dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-            }
-        })();
-    </script>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($t['title']) ?></title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: {
-                        navy: { 600: '#152b4a', 700: '#0f1f38', 900: '#0a1424' }
-                    }
-                }
-            }
-        }
-    </script>
+<?php
+$pageTitle = $t['title'];
+$pageDesc = $t['page_subtitle'] ?? 'Platform configuration and preferences.';
+$extraHead = <<<'EOT'
     <style>
-        body { font-family: 'Inter', sans-serif; }
         .glass-panel { background: rgba(255,255,255,0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); }
         .dark .glass-panel { background: rgba(15,23,42,0.7); border: 1px solid rgba(255,255,255,0.05); }
     </style>
-</head>
-<body class="h-screen flex overflow-hidden bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200">
-
-<!-- SIDEBAR -->
-<aside class="w-64 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col z-20">
-    <div class="h-16 flex items-center px-6 border-b border-slate-200 dark:border-slate-800">
-        <div class="w-8 h-8 rounded bg-navy-600 flex items-center justify-center mr-3">
-            <i data-lucide="landmark" class="text-white w-5 h-5"></i>
-        </div>
-        <span class="font-bold text-lg text-navy-700 dark:text-white tracking-tight">Amravati Connect</span>
-    </div>
-    <div class="flex-1 overflow-y-auto py-4">
-        <nav class="space-y-1 px-3">
-            <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-4"><?= htmlspecialchars($t['menu_main_modules']) ?></p>
-            <a href="dashboard.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3 text-slate-400"></i>
-                <?= htmlspecialchars($t['menu_dashboard']) ?>
-            </a>
-            <a href="create_task.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="network" class="w-5 h-5 mr-3 text-slate-400"></i>
-                <?= htmlspecialchars($t['menu_task_alloc']) ?>
-            </a>
-            <a href="notifications.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="bell-ring" class="w-5 h-5 mr-3 text-slate-400"></i>
-                <?= htmlspecialchars($t['menu_notifications']) ?>
-            </a>
-            <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6"><?= htmlspecialchars($t['menu_analytics']) ?></p>
-            <a href="overdue_report.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="pie-chart" class="w-5 h-5 mr-3 text-slate-400"></i>
-                <?= htmlspecialchars($t['menu_reports']) ?>
-            </a>
-            <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6">Administration</p>
-            <a href="user_creation.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="users" class="w-5 h-5 mr-3 text-slate-400"></i>
-                <?= htmlspecialchars($t['menu_users']) ?>
-            </a>
-        </nav>
-    </div>
-</aside>
+EOT;
+include 'include/header.php';
+$activePage = 'settings';
+include 'include/sidebar.php';
+?>
 
 <!-- MAIN WRAPPER -->
 <div class="flex-1 flex flex-col overflow-hidden">
@@ -235,7 +170,7 @@ $initials = strtoupper(substr($parts[0] ?? 'O', 0, 1) . substr($parts[1] ?? '', 
 
     <!-- CONTENT -->
     <main class="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900 p-6 sm:p-8">
-        <div class="max-w-2xl mx-auto bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div class="max-w-2xl mx-auto glass-panel rounded-2xl shadow-official border border-slate-200/50 dark:border-slate-700/50 overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
                 <h1 class="text-xl font-bold"><?= htmlspecialchars($t['heading']) ?></h1>
                 <p class="text-xs text-slate-500"><?= htmlspecialchars($t['subheading']) ?></p>
@@ -336,5 +271,4 @@ $initials = strtoupper(substr($parts[0] ?? 'O', 0, 1) . substr($parts[1] ?? '', 
         document.addEventListener('click', () => dropdownMenu.classList.add('hidden'));
     }
 </script>
-</body>
-</html>
+<?php include 'include/footer.php'; ?>

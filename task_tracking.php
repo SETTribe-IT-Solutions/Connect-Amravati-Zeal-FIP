@@ -816,49 +816,11 @@ function masterEventBg(string $event_type, string $status): string {
 
 close_db_connection();
 ?>
-<!DOCTYPE html>
-<html lang="en" class="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Task Tracking — Amravati Connect</title>
-    <meta name="description" content="Admin: Track the complete journey and all activity changes of any task on the Amravati Connect platform.">
-
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Google Fonts: Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-
-    <!-- Tailwind Config -->
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: {
-                        navy:    { 50:'#eef2f6', 100:'#d9e2ec', 500:'#1a365d', 600:'#152b4a', 700:'#0f1f38', 900:'#0a1424' },
-                        govgreen:{ 50:'#edf7ed', 500:'#2e7d32', 600:'#256428' },
-                        saffron: { 50:'#fff3e0', 500:'#f57c00' },
-                    }
-                }
-            }
-        }
-    </script>
-
+<?php
+$pageTitle = 'Task Tracking — Amravati Connect';
+$pageDesc = 'Admin: Track the complete journey and all activity changes of any task on the Amravati Connect platform.';
+$extraHead = <<<'EOT'
     <style>
-        :root { --background:0 0% 100%; --foreground:222.2 84% 4.9%; --border:214.3 31.8% 91.4%; }
-        .dark  { --background:222.2 84% 4.9%; --foreground:210 40% 98%; --border:217.2 32.6% 17.5%; }
-        body   { font-family:'Inter',sans-serif; }
-        ::-webkit-scrollbar { width:6px; height:6px; }
-        ::-webkit-scrollbar-track { background:transparent; }
-        ::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
-        .dark ::-webkit-scrollbar-thumb { background:#475569; }
-
         .glass-panel {
             background: rgba(255,255,255,.8);
             backdrop-filter: blur(12px);
@@ -943,66 +905,11 @@ close_db_connection();
         .result-row:hover { background:#f8fafc; }
         .dark .result-row:hover { background:#1e293b; }
     </style>
-</head>
-<body class="h-screen flex overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
-
-<!-- ═══════════════════════════════════════════════════════════════
-     SIDEBAR
-════════════════════════════════════════════════════════════════ -->
-<aside class="w-64 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-all duration-300 z-20" id="sidebar">
-    <div class="h-16 flex items-center px-6 border-b border-slate-200 dark:border-slate-800 gap-3">
-        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-navy-600 to-navy-500 flex items-center justify-center">
-            <i data-lucide="landmark" class="text-white w-5 h-5"></i>
-        </div>
-        <span class="font-bold text-lg text-navy-700 dark:text-white tracking-tight">Amravati Connect</span>
-    </div>
-
-    <div class="flex-1 overflow-y-auto py-3">
-        <nav class="space-y-0.5 px-3">
-            <p class="px-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2 mt-3">Main Modules</p>
-            <a href="dashboard.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors gap-3">
-                <i data-lucide="layout-dashboard" class="w-4 h-4 text-slate-400 flex-shrink-0"></i> Executive Dashboard
-            </a>
-            <a href="create_task.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors gap-3">
-                <i data-lucide="network" class="w-4 h-4 text-slate-400 flex-shrink-0"></i> Task Allocation
-            </a>
-            <a href="task_tracking.php" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg bg-navy-50 dark:bg-navy-900/40 text-navy-700 dark:text-blue-400 gap-3">
-                <i data-lucide="route" class="w-4 h-4 text-navy-600 dark:text-blue-400 flex-shrink-0"></i> Task Tracking
-            </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors gap-3">
-                <i data-lucide="bell-ring" class="w-4 h-4 text-slate-400 flex-shrink-0"></i> Announcements
-            </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors gap-3">
-                <i data-lucide="award" class="w-4 h-4 text-slate-400 flex-shrink-0"></i> Appreciation
-            </a>
-
-            <p class="px-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2 mt-4">Analytics &amp; Data</p>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors gap-3">
-                <i data-lucide="pie-chart" class="w-4 h-4 text-slate-400 flex-shrink-0"></i> Reports &amp; Analytics
-            </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors gap-3">
-                <i data-lucide="folder-open" class="w-4 h-4 text-slate-400 flex-shrink-0"></i> Document Management
-            </a>
-
-            <p class="px-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2 mt-4">Administration</p>
-            <a href="user_creation.php" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors gap-3">
-                <i data-lucide="users" class="w-4 h-4 text-slate-400 flex-shrink-0"></i> User Management
-            </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors gap-3">
-                <i data-lucide="shield-check" class="w-4 h-4 text-slate-400 flex-shrink-0"></i> Audit Logs
-            </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors gap-3">
-                <i data-lucide="settings" class="w-4 h-4 text-slate-400 flex-shrink-0"></i> Settings
-            </a>
-        </nav>
-    </div>
-
-    <div class="p-4 border-t border-slate-200 dark:border-slate-800">
-        <button class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-navy-600 to-navy-500 hover:opacity-90 rounded-xl transition-opacity">
-            <i data-lucide="bot" class="w-4 h-4"></i> Ask Amravati AI
-        </button>
-    </div>
-</aside>
+EOT;
+include 'include/header.php';
+$activePage = 'task_tracking';
+include 'include/sidebar.php';
+?>
 
 <!-- ═══════════════════════════════════════════════════════════════
      MAIN CONTENT
@@ -1087,7 +994,7 @@ close_db_connection();
              SEARCH CARD
         ══════════════════════════════════════════════════════════ -->
         <?php if (!$selected_task_id): ?>
-        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden mb-6 animate-in">
+        <div class="glass-panel rounded-2xl shadow-official border border-slate-200/50 dark:border-slate-700/50 overflow-hidden mb-6 animate-in">
             <div class="flex items-center gap-3 px-6 py-4 border-b border-slate-100 dark:border-slate-700">
                 <div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
                     <i data-lucide="search" class="w-4 h-4 text-navy-600 dark:text-blue-400"></i>
@@ -1152,7 +1059,7 @@ close_db_connection();
 
         <!-- No Results -->
         <?php if (!empty($search_error) && !$task): ?>
-        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-12 text-center animate-in mb-6">
+        <div class="glass-panel rounded-2xl shadow-official border border-slate-200/50 dark:border-slate-700/50 p-12 text-center animate-in mb-6">
             <div class="w-14 h-14 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
                 <i data-lucide="search-x" class="w-7 h-7 text-slate-400"></i>
             </div>
@@ -1165,7 +1072,7 @@ close_db_connection();
              SEARCH RESULTS TABLE
         ══════════════════════════════════════════════════════════ -->
         <?php if (!empty($search_results) && !$selected_task_id): ?>
-        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden mb-6 animate-in">
+        <div class="glass-panel rounded-2xl shadow-official border border-slate-200/50 dark:border-slate-700/50 overflow-hidden mb-6 animate-in">
             <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
                 <div>
                     <h2 class="text-sm font-semibold text-slate-800 dark:text-white">Search Results</h2>
@@ -1253,7 +1160,7 @@ close_db_connection();
         $current_idx = array_search($current_status, $statuses);
         if ($current_idx === false) $current_idx = -1;
         ?>
-        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden mb-6 animate-in">
+        <div class="glass-panel rounded-2xl shadow-official border border-slate-200/50 dark:border-slate-700/50 overflow-hidden mb-6 animate-in">
             <div class="px-6 py-5">
                 <div class="flex items-center justify-between mb-5">
                     <h2 class="text-sm font-semibold text-slate-800 dark:text-white flex items-center gap-2">
@@ -1313,7 +1220,7 @@ close_db_connection();
             <div class="xl:col-span-2 space-y-6">
 
                 <!-- Task Info -->
-                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden animate-in">
+                <div class="glass-panel rounded-2xl shadow-official border border-slate-200/50 dark:border-slate-700/50 overflow-hidden animate-in">
                     <div class="flex items-center gap-3 px-6 py-4 border-b border-slate-100 dark:border-slate-700 bg-gradient-to-r from-slate-50 to-white dark:from-slate-800/60 dark:to-slate-800">
                         <div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
                             <i data-lucide="file-text" class="w-4 h-4 text-navy-600 dark:text-blue-400"></i>
@@ -1402,7 +1309,7 @@ close_db_connection();
 
                 <!-- ── Remarks History ─────────────────────────────── -->
                 <?php if (!empty($task_remarks_arr)): ?>
-                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden animate-in">
+                <div class="glass-panel rounded-2xl shadow-official border border-slate-200/50 dark:border-slate-700/50 overflow-hidden animate-in">
                     <div class="flex items-center gap-3 px-6 py-4 border-b border-slate-100 dark:border-slate-700">
                         <div class="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center">
                             <i data-lucide="message-square" class="w-4 h-4 text-amber-600 dark:text-amber-400"></i>
@@ -1442,7 +1349,7 @@ close_db_connection();
                 <?php endif; ?>
 
                 <!-- ── Add Tracking Entry (Admin) ──────────────────── -->
-                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden animate-in">
+                <div class="glass-panel rounded-2xl shadow-official border border-slate-200/50 dark:border-slate-700/50 overflow-hidden animate-in">
                     <div class="flex items-center gap-3 px-6 py-4 border-b border-slate-100 dark:border-slate-700">
                         <div class="w-8 h-8 rounded-lg bg-navy-50 dark:bg-navy-900/30 flex items-center justify-center">
                             <i data-lucide="plus-circle" class="w-4 h-4 text-navy-600 dark:text-blue-400"></i>
@@ -1541,7 +1448,7 @@ close_db_connection();
 
                 <!-- Assigned Person -->
                 <?php if ($task['assigned_employee'] || $task['role_name']): ?>
-                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-5">
+                <div class="glass-panel rounded-2xl shadow-official border border-slate-200/50 dark:border-slate-700/50 p-5">
                     <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">Assigned To</p>
                     <div class="flex items-center gap-4">
                         <div class="h-12 w-12 rounded-full bg-gradient-to-br from-navy-600 to-navy-500 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
@@ -1564,7 +1471,7 @@ close_db_connection();
                 <?php endif; ?>
 
                 <!-- Event Legend -->
-                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-5">
+                <div class="glass-panel rounded-2xl shadow-official border border-slate-200/50 dark:border-slate-700/50 p-5">
                     <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">Event Legend</p>
                     <div class="grid grid-cols-2 gap-2.5">
                         <?php foreach ([
@@ -1587,7 +1494,7 @@ close_db_connection();
         <!-- ══════════════════════════════════════════════════════════
              TASK JOURNEY TIMELINE
         ══════════════════════════════════════════════════════════ -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden animate-in">
+        <div class="glass-panel rounded-2xl shadow-official border border-slate-200/50 dark:border-slate-700/50 overflow-hidden animate-in">
             <!-- Header -->
             <div class="flex items-center gap-4 px-6 py-5 border-b border-slate-100 dark:border-slate-700 bg-gradient-to-r from-navy-50/60 via-white to-white dark:from-slate-900/60 dark:via-slate-800 dark:to-slate-800">
                 <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-navy-600 to-navy-500 flex items-center justify-center shadow-md shadow-navy-500/25 flex-shrink-0">
@@ -1727,7 +1634,7 @@ close_db_connection();
              LANDING / EMPTY STATE
         ─────────────────────────────────────────────────────────── -->
         <?php if (!$search_query && !$task): ?>
-        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-16 text-center animate-in">
+        <div class="glass-panel rounded-2xl shadow-official border border-slate-200/50 dark:border-slate-700/50 p-16 text-center animate-in">
             <div class="w-20 h-20 bg-gradient-to-br from-navy-600 to-navy-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-navy-500/30">
                 <i data-lucide="route" class="w-10 h-10 text-white"></i>
             </div>
@@ -1963,7 +1870,7 @@ close_db_connection();
         <div class="max-w-5xl mx-auto px-4 sm:px-8 py-8 space-y-6">
 
             <!-- Task Meta Strip -->
-            <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+            <div class="glass-panel rounded-2xl shadow-official border border-slate-200/50 dark:border-slate-700/50 p-6">
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-5 mb-4">
                     <div>
                         <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Task ID</p>
@@ -1989,7 +1896,7 @@ close_db_connection();
             </div>
 
             <!-- Status Progress Bar -->
-            <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+            <div class="glass-panel rounded-2xl shadow-official border border-slate-200/50 dark:border-slate-700/50 p-6">
                 <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-5 flex items-center gap-2">
                     <i data-lucide="activity" class="w-3.5 h-3.5"></i> Status Progress
                 </h3>
@@ -1997,7 +1904,7 @@ close_db_connection();
             </div>
 
             <!-- Full Timeline -->
-            <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div class="glass-panel rounded-2xl shadow-official border border-slate-200/50 dark:border-slate-700/50 overflow-hidden">
                 <div class="flex items-center gap-4 px-6 py-5 border-b border-slate-100 dark:border-slate-700 bg-gradient-to-r from-navy-50/60 via-white to-white dark:from-slate-900/60 dark:via-slate-800 dark:to-slate-800">
                     <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-navy-600 to-navy-500 flex items-center justify-center shadow-md flex-shrink-0">
                         <i data-lucide="git-branch" class="w-5 h-5 text-white"></i>
@@ -2630,5 +2537,4 @@ function escHtml(str) {
         .replace(/'/g, '&#039;');
 }
 </script>
-</body>
-</html>
+<?php include 'include/footer.php'; ?>

@@ -7,16 +7,16 @@
  */
 
 // ── Remote credentials ────────────────────────────────────────
-define('DB_HOST',      '82.25.121.144');
-define('DB_USER',      'u196817721_districCNTZEAL');
+define('DB_HOST',      '103.160.107.18');
+define('DB_USER',      'nmrmlatur_districCNTZEAL');
 define('DB_PASS',      'districtCNTDB@2026');
-define('DB_NAME',      'u196817721_districtCNTDB');
+define('DB_NAME',      'nmrmlatur_districtCNTDB');
 
 // ── Local XAMPP credentials (fallback) ────────────────────────
 define('DB_HOST_LOCAL', '127.0.0.1');
 define('DB_USER_LOCAL', 'root');
 define('DB_PASS_LOCAL', '');
-define('DB_NAME_LOCAL', 'u196817721_districtcntdb');
+define('DB_NAME_LOCAL', 'nmrmlatur_districtCNTDB');
 
 $conn = null;
 

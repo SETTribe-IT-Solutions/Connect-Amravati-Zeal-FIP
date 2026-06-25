@@ -378,77 +378,18 @@ function getMockOverdueTasks(int $level, int $taluka_id, int $village_id): array
     return $filtered;
 }
 ?>
-<!DOCTYPE html>
-<html lang="<?= $lang ?>" id="htmlRoot">
-<head>
-    <script>
-        (function() {
-            const stored = localStorage.getItem('acTheme') || localStorage.getItem('theme');
-            const sessionTheme = '<?= $_SESSION['pref_theme'] ?? '' ?>';
-            const isDark = stored === 'dark' || (sessionTheme === 'dark') || (!stored && !sessionTheme && window.matchMedia('(prefers-color-scheme: dark)').matches);
-            if (isDark) {
-                document.documentElement.classList.add('dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-            }
-        })();
-    </script>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($t['title']) ?></title>
-    <meta name="description" content="<?= htmlspecialchars($t['desc']) ?>">
-
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+<?php
+$pageTitle = $t['title'];
+$pageDesc = $t['desc'];
+$extraHead = <<<'EOT'
     <!-- ApexCharts -->
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: {
-                        border: "hsl(var(--border))",
-                        background: "hsl(var(--background))",
-                        foreground: "hsl(var(--foreground))",
-                        navy: {
-                            50:'#eef2f6', 100:'#d9e2ec',
-                            500:'#1a365d', 600:'#152b4a',
-                            700:'#0f1f38', 900:'#0a1424'
-                        },
-                        govgreen: { 50:'#edf7ed', 100:'#cce8cc', 500:'#2e7d32', 600:'#256428' },
-                        saffron:  { 50:'#fff3e0', 100:'#ffe0b2', 500:'#f57c00', 600:'#e65100' }
-                    }
-                }
-            }
-        }
-    </script>
-
     <style>
-        :root { --background:0 0% 100%; --foreground:222.2 84% 4.9%; --border:214.3 31.8% 91.4%; }
-        .dark { --background:222.2 84% 4.9%; --foreground:210 40% 98%; --border:217.2 32.6% 17.5%; }
-
-        body { font-family:'Inter',sans-serif; background-color:hsl(var(--background)); color:hsl(var(--foreground)); }
-        
-        ::-webkit-scrollbar { width:6px; height:6px; }
-        ::-webkit-scrollbar-track { background:transparent; }
-        ::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
-        .dark ::-webkit-scrollbar-thumb { background:#475569; }
-
         .glass-panel { background:rgba(255,255,255,0.7); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.2); }
         .dark .glass-panel { background:rgba(15,23,42,0.7); border:1px solid rgba(255,255,255,0.05); }
 
         .kpi-card { transition:transform .2s ease, box-shadow .2s ease; }
         .kpi-card:hover { transform:translateY(-3px); box-shadow:0 12px 28px -6px rgba(0,0,0,.12); }
-
-        .nav-active { background:#eef2f6; color:#152b4a; }
-        .dark .nav-active { background:#1e293b; color:#fff; }
 
         @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:.35;} }
         .pulse { animation:pulse-dot 1.5s ease-in-out infinite; }
@@ -466,66 +407,11 @@ function getMockOverdueTasks(int $level, int $taluka_id, int $village_id): array
             .no-print { display: none !important; }
         }
     </style>
-</head>
-<body class="h-screen flex overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
-
-<!-- SIDEBAR -->
-<aside id="sidebar" class="w-64 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-all duration-300 z-20">
-    <div class="h-16 flex items-center px-6 border-b border-slate-200 dark:border-slate-800">
-        <div class="w-8 h-8 rounded bg-navy-600 flex items-center justify-center mr-3">
-            <i data-lucide="landmark" class="text-white w-5 h-5"></i>
-        </div>
-        <span class="font-bold text-lg text-navy-700 dark:text-white tracking-tight"><?= htmlspecialchars($t['brand_name']) ?></span>
-    </div>
-
-    <div class="flex-1 overflow-y-auto py-4">
-        <nav class="space-y-1 px-3">
-            <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-4"><?= htmlspecialchars($t['menu_main_modules']) ?></p>
-            <a href="dashboard.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3 text-slate-400"></i>
-                <?= htmlspecialchars($t['menu_dashboard']) ?>
-            </a>
-            <a href="create_task.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="network" class="w-5 h-5 mr-3 text-slate-400"></i>
-                <?= htmlspecialchars($t['menu_task_alloc']) ?>
-            </a>
-            <a href="notifications.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="bell-ring" class="w-5 h-5 mr-3 text-slate-400"></i>
-                <?= htmlspecialchars($t['menu_notifications']) ?>
-            </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="award" class="w-5 h-5 mr-3 text-slate-400"></i>
-                <?= htmlspecialchars($t['menu_appreciation']) ?>
-            </a>
-
-            <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6"><?= htmlspecialchars($t['menu_analytics']) ?></p>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="pie-chart" class="w-5 h-5 mr-3 text-slate-400"></i>
-                <?= htmlspecialchars($t['menu_reports']) ?>
-            </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="map" class="w-5 h-5 mr-3 text-slate-400"></i>
-                <?= htmlspecialchars($t['menu_gis']) ?>
-            </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="folder-open" class="w-5 h-5 mr-3 text-slate-400"></i>
-                <?= htmlspecialchars($t['menu_docs']) ?>
-            </a>
-
-            <?php if ($level === 1): ?>
-            <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6"><?= htmlspecialchars($t['menu_admin']) ?></p>
-            <a href="user_creation.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="users" class="w-5 h-5 mr-3 text-slate-400"></i>
-                <?= htmlspecialchars($t['menu_users']) ?>
-            </a>
-            <?php endif; ?>
-            <a href="logout.php" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors">
-                <i data-lucide="log-out" class="w-5 h-5 mr-3 text-red-500"></i>
-                <?= htmlspecialchars($t['menu_logout']) ?>
-            </a>
-        </nav>
-    </div>
-</aside>
+EOT;
+include 'include/header.php';
+$activePage = 'overdue_report';
+include 'include/sidebar.php';
+?>
 
 <!-- MAIN CONTENT WRAPPER -->
 <div class="flex-1 flex flex-col overflow-hidden">
@@ -1399,5 +1285,4 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 </script>
-</body>
-</html>
+<?php include 'include/footer.php'; ?>

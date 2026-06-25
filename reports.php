@@ -571,98 +571,6 @@ if ($db_connected) {
     if ($trackingRes) {
         while ($row = $trackingRes->fetch_assoc()) $trackingTasks[] = $row;
     }
-} else {
-    // Generate Mock Tasks if Database is offline
-    $mockListAssigned = [
-        [
-            'task_id' => 101, 'task_no' => 'TSK_001', 'task_title' => 'Crop Damage Assessment Chandur',
-            'task_description' => 'Review crop destruction fields due to hailstorm.', 'creator_name' => 'Sanjay Deshmukh',
-            'priority' => 'High', 'status' => 'Pending', 'due_date' => '2026-06-25', 'task_category' => 'Revenue', 'created_at' => '2026-06-20'
-        ],
-        [
-            'task_id' => 102, 'task_no' => 'TSK_002', 'task_title' => 'Health Center Facility Verification',
-            'task_description' => 'Inspect blocks primary health units availability.', 'creator_name' => 'Priya Rathod',
-            'priority' => 'Critical', 'status' => 'In Progress', 'due_date' => '2026-06-21', 'task_category' => 'Health', 'created_at' => '2026-06-18'
-        ],
-        [
-            'task_id' => 103, 'task_no' => 'TSK_003', 'task_title' => 'Primary School Midday Meal Review',
-            'task_description' => 'Audit meal checks in rural institutions.', 'creator_name' => 'Hon. Collector',
-            'priority' => 'Low', 'status' => 'Completed', 'due_date' => '2026-06-15', 'task_category' => 'Education', 'created_at' => '2026-06-10'
-        ]
-    ];
-
-    $mockListAllocated = [
-        [
-            'task_id' => 201, 'task_no' => 'TSK_101', 'task_title' => 'Infrastructure Fund Utilization Survey',
-            'task_description' => 'Analyze rural development expenditure files.', 'assignee_name' => 'Anil Patil',
-            'assigned_role_name' => 'Gramsevak', 'priority' => 'High', 'status' => 'Pending', 'due_date' => '2026-06-29',
-            'task_category' => 'Audit', 'created_at' => '2026-06-20'
-        ],
-        [
-            'task_id' => 202, 'task_no' => 'TSK_102', 'task_title' => 'E-KYC Camp Reports Verification',
-            'task_description' => 'Process voter list linking analytics.', 'assignee_name' => 'Rajesh Kolhe',
-            'assigned_role_name' => 'Talathi', 'priority' => 'Medium', 'status' => 'Completed', 'due_date' => '2026-06-12',
-            'task_category' => 'Survey', 'created_at' => '2026-06-05'
-        ],
-        [
-            'task_id' => 203, 'task_no' => 'TSK_103', 'task_title' => 'Water Canal Desilting Inspection',
-            'task_description' => 'Check blocks desilting status before monsoon.', 'assignee_name' => 'Sunita More',
-            'assigned_role_name' => 'BDO', 'priority' => 'Critical', 'status' => 'Rejected', 'due_date' => '2026-06-10',
-            'task_category' => 'Infrastructure', 'created_at' => '2026-06-01'
-        ]
-    ];
-
-    $mockListTracking = [
-        [
-            'task_id' => 301, 'task_no' => 'TSK_301', 'task_title' => 'Emergency Disaster Drill Plan',
-            'task_description' => 'Coordinate block emergency teams mockup drills.', 'creator_name' => 'Hon. Collector',
-            'assigned_to_name' => 'Sanjay Deshmukh', 'priority' => 'High', 'status' => 'Pending', 'due_date' => '2026-06-28',
-            'task_category' => 'Disaster Management', 'created_at' => '2026-06-20'
-        ],
-        [
-            'task_id' => 302, 'task_no' => 'TSK_302', 'task_title' => 'Land Record Digitization Audit',
-            'task_description' => 'Audit computerized 7/12 record accuracy.', 'creator_name' => 'SDO',
-            'assigned_to_name' => 'Rajesh Kolhe', 'priority' => 'Critical', 'status' => 'In Progress', 'due_date' => '2026-06-30',
-            'task_category' => 'Revenue', 'created_at' => '2026-06-22'
-        ]
-    ];
-
-    // Filter Mock List in PHP
-    foreach ($mockListAssigned as $t_item) {
-        $match = true;
-        if (!empty($search) && stripos($t_item['task_title'], $search) === false && stripos($t_item['task_no'], $search) === false) $match = false;
-        if ($filterStatus !== 'All') {
-            if ($filterStatus === 'Overdue') {
-                if ($t_item['status'] === 'Completed' || strtotime($t_item['due_date']) >= time()) $match = false;
-            } elseif ($t_item['status'] !== $filterStatus) $match = false;
-        }
-        if ($filterPriority !== 'All' && $t_item['priority'] !== $filterPriority) $match = false;
-        if ($match) $assignedTasks[] = $t_item;
-    }
-
-    foreach ($mockListAllocated as $t_item) {
-        $match = true;
-        if (!empty($search) && stripos($t_item['task_title'], $search) === false && stripos($t_item['task_no'], $search) === false) $match = false;
-        if ($filterStatus !== 'All') {
-            if ($filterStatus === 'Overdue') {
-                if ($t_item['status'] === 'Completed' || strtotime($t_item['due_date']) >= time()) $match = false;
-            } elseif ($t_item['status'] !== $filterStatus) $match = false;
-        }
-        if ($filterPriority !== 'All' && $t_item['priority'] !== $filterPriority) $match = false;
-        if ($match) $allocatedTasks[] = $t_item;
-    }
-
-    foreach ($mockListTracking as $t_item) {
-        $match = true;
-        if (!empty($search) && stripos($t_item['task_title'], $search) === false && stripos($t_item['task_no'], $search) === false) $match = false;
-        if ($filterStatus !== 'All') {
-            if ($filterStatus === 'Overdue') {
-                if ($t_item['status'] === 'Completed' || strtotime($t_item['due_date']) >= time()) $match = false;
-            } elseif ($t_item['status'] !== $filterStatus) $match = false;
-        }
-        if ($filterPriority !== 'All' && $t_item['priority'] !== $filterPriority) $match = false;
-        if ($match) $trackingTasks[] = $t_item;
-    }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -751,8 +659,9 @@ $level    = match($sRole) {
     default => 3
 };
 
-function priorityTextCss(string $priority): string {
-    return match(strtolower(trim($priority))) {
+function priorityTextCss(?string $priority): string {
+    $p = $priority ? strtolower(trim($priority)) : '';
+    return match($p) {
         'critical' => 'text-red-650 font-bold dark:text-red-400',
         'high' => 'text-orange-600 font-semibold dark:text-orange-400',
         'medium' => 'text-blue-600 font-medium dark:text-blue-400',
@@ -761,7 +670,7 @@ function priorityTextCss(string $priority): string {
     };
 }
 
-function statusBadgeCss(string $s): string {
+function statusBadgeCss(?string $s): string {
     return match($s) {
         'Completed', 'Verified' => 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800',
         'Pending', 'Assigned', 'Reassigned' => 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800',
@@ -776,107 +685,16 @@ function statusBadgeCss(string $s): string {
 
 close_db_connection();
 ?>
-<!DOCTYPE html>
-<html lang="<?= $lang ?>" class="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($t['title']) ?></title>
-
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Google Fonts: Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-
+<?php
+$pageTitle = $t['title'] ?? 'Reports & Analytics';
+$pageDesc = $t['page_subtitle'] ?? 'Monitor task assignments';
+$extraHead = <<<'EOT'
     <!-- SheetJS for Excel Exports -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
     <!-- html2pdf for PDF Exports -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-    <!-- Theme Persist Script -->
-    <script>
-        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-            document.documentElement.classList.remove('light');
-        } else {
-            document.documentElement.classList.add('light');
-            document.documentElement.classList.remove('dark');
-        }
-    </script>
-
-    <!-- Tailwind Configuration -->
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: {
-                        border:      "hsl(var(--border))",
-                        background:  "hsl(var(--background))",
-                        foreground:  "hsl(var(--foreground))",
-                        navy: {
-                            50:  '#eef2f6',
-                            100: '#d9e2ec',
-                            500: '#1a365d',
-                            600: '#152b4a',
-                            700: '#0f1f38',
-                            900: '#0a1424'
-                        },
-                        govgreen: {
-                            50:  '#edf7ed',
-                            100: '#cce8cc',
-                            500: '#2e7d32',
-                            600: '#256428'
-                        },
-                        saffron: {
-                            50:  '#fff3e0',
-                            100: '#ffe0b2',
-                            500: '#f57c00',
-                            600: '#e65100'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-
     <style>
-        :root {
-            --background: 0 0% 100%;
-            --foreground: 222.2 84% 4.9%;
-            --border: 214.3 31.8% 91.4%;
-        }
-        .dark {
-            --background: 222.2 84% 4.9%;
-            --foreground: 210 40% 98%;
-            --border: 217.2 32.6% 17.5%;
-        }
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: hsl(var(--background));
-            color: hsl(var(--foreground));
-        }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        .dark ::-webkit-scrollbar-thumb { background: #475569; }
-
-        .glass-panel {
-            background: rgba(255,255,255,0.7);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-        .dark .glass-panel {
-            background: rgba(15,23,42,0.7);
-            border: 1px solid rgba(255,255,255,0.05);
-        }
-
         .kpi-card { transition: transform 0.2s, box-shadow 0.2s; }
         .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px -4px rgba(0,0,0,0.1); }
 
@@ -885,8 +703,6 @@ close_db_connection();
         .badge-l3 { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
         .dark .badge-l1 { background: #1e3a8a33; color: #93c5fd; border-color: #1e40af; }
         .dark .badge-l2 { background: #92400e33; color: #fcd34d; border-color: #b45309; }
-        .dark .badge-l3 { background: #065f4633; color: #6ee7b7; border-color: #047857; }
-
         .dark .badge-l3 { background: #065f4633; color: #6ee7b7; border-color: #047857; }
 
         /* ── Status Progress Bar ──────────────────────────── */
@@ -976,94 +792,11 @@ close_db_connection();
             }
         }
     </style>
-</head>
-<body class="h-screen flex overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
-
-<!-- ═══════════════════════════════════════════════════════════════════
-     SIDEBAR
-════════════════════════════════════════════════════════════════════ -->
-<aside class="w-64 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-all duration-300 z-20 no-print" id="sidebar">
-    <!-- Sidebar Header -->
-    <div class="h-16 flex items-center px-6 border-b border-slate-200 dark:border-slate-800">
-        <div class="w-8 h-8 rounded bg-navy-600 flex items-center justify-center mr-3">
-            <i data-lucide="landmark" class="text-white w-5 h-5"></i>
-        </div>
-        <span class="font-bold text-lg text-navy-700 dark:text-white tracking-tight"><?= htmlspecialchars($t['brand_name']) ?></span>
-    </div>
-
-    <!-- Sidebar Navigation -->
-    <div class="flex-1 overflow-y-auto py-4">
-        <nav class="space-y-1 px-3">
-            <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-4"><?= htmlspecialchars($t['menu_main_modules']) ?></p>
-            <a href="dashboard.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3 text-slate-400"></i>
-                <?= htmlspecialchars($t['menu_dashboard']) ?>
-            </a>
-            <a href="announcements.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="megaphone" class="w-5 h-5 mr-3 text-slate-400"></i>
-                <?= htmlspecialchars($t['menu_announcement_center'] ?? 'Announcement Center') ?>
-            </a>
-            <a href="create_task.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="network" class="w-5 h-5 mr-3 text-slate-400"></i>
-                <?= htmlspecialchars($t['menu_task_alloc']) ?>
-            </a>
-            <a href="notifications.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="bell-ring" class="w-5 h-5 mr-3 text-slate-400"></i>
-                <?= htmlspecialchars($t['menu_notifications']) ?>
-            </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="award" class="w-5 h-5 mr-3 text-slate-400"></i>
-                <?= htmlspecialchars($t['menu_appreciation']) ?>
-            </a>
-
-            <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6"><?= htmlspecialchars($t['menu_analytics']) ?></p>
-            <a href="reports.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md bg-navy-50 text-navy-700 dark:bg-slate-800 dark:text-white">
-                <i data-lucide="pie-chart" class="w-5 h-5 mr-3 text-navy-600 dark:text-blue-400"></i>
-                <?= htmlspecialchars($t['menu_reports']) ?>
-            </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="map" class="w-5 h-5 mr-3 text-slate-400"></i>
-                <?= htmlspecialchars($t['menu_gis']) ?>
-            </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="folder-open" class="w-5 h-5 mr-3 text-slate-400"></i>
-                <?= htmlspecialchars($t['menu_docs']) ?>
-            </a>
-
-            <?php if ($level === 1): ?>
-            <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6"><?= htmlspecialchars($t['menu_admin']) ?></p>
-            <a href="user_creation.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="users" class="w-5 h-5 mr-3 text-slate-400"></i>
-                <?= htmlspecialchars($t['menu_users']) ?>
-            </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="map-pin" class="w-5 h-5 mr-3 text-slate-400"></i>
-                <?= htmlspecialchars($t['menu_hierarchy']) ?>
-            </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="shield-check" class="w-5 h-5 mr-3 text-slate-400"></i>
-                <?= htmlspecialchars($t['menu_audit']) ?>
-            </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="settings" class="w-5 h-5 mr-3 text-slate-400"></i>
-                <?= htmlspecialchars($t['menu_settings']) ?>
-            </a>
-            <?php endif; ?>
-            <a href="logout.php" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors">
-                <i data-lucide="log-out" class="w-5 h-5 mr-3 text-red-500"></i>
-                <?= htmlspecialchars($t['menu_logout']) ?>
-            </a>
-        </nav>
-    </div>
-
-    <!-- Sidebar Footer -->
-    <div class="p-4 border-t border-slate-200 dark:border-slate-800">
-        <button class="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-navy-600 to-navy-500 hover:from-navy-700 hover:to-navy-600 focus:outline-none">
-            <i data-lucide="bot" class="w-4 h-4 mr-2"></i>
-            <?= htmlspecialchars($t['btn_ask_ai']) ?>
-        </button>
-    </div>
-</aside>
+EOT;
+include 'include/header.php';
+$activePage = 'reports';
+include 'include/sidebar.php';
+?>
 
 <!-- ═══════════════════════════════════════════════════════════════════
      MAIN WRAPPER
@@ -1190,30 +923,30 @@ close_db_connection();
 
         <!-- KPI Cards -->
         <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6 no-print">
-            <div class="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 kpi-card">
+            <div class="kpi-card bg-gradient-to-br from-blue-50 to-white dark:from-slate-800 dark:to-slate-900 p-5 rounded-xl border-l-4 border-blue-500 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200">
                 <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_total']) ?></p>
                 <p id="kpi-total" class="text-2xl font-bold mt-2 text-slate-800 dark:text-white"><?= $currentKpis['total'] ?></p>
             </div>
-            <div class="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 kpi-card">
+            <div class="kpi-card bg-gradient-to-br from-yellow-50 to-white dark:from-slate-800 dark:to-slate-900 p-5 rounded-xl border-l-4 border-yellow-500 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200">
                 <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_pending']) ?></p>
                 <p id="kpi-pending" class="text-2xl font-bold mt-2 text-yellow-600 dark:text-yellow-400"><?= $currentKpis['pending'] ?></p>
             </div>
-            <div class="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 kpi-card">
+            <div class="kpi-card bg-gradient-to-br from-indigo-50 to-white dark:from-slate-800 dark:to-slate-900 p-5 rounded-xl border-l-4 border-indigo-500 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200">
                 <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_in_progress']) ?></p>
                 <p id="kpi-in-progress" class="text-2xl font-bold mt-2 text-blue-600 dark:text-blue-400"><?= $currentKpis['in_progress'] ?></p>
             </div>
-            <div class="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 kpi-card">
+            <div class="kpi-card bg-gradient-to-br from-green-50 to-white dark:from-slate-800 dark:to-slate-900 p-5 rounded-xl border-l-4 border-govgreen-500 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200">
                 <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_completed']) ?></p>
                 <p id="kpi-completed" class="text-2xl font-bold mt-2 text-govgreen-600 dark:text-govgreen-450"><?= $currentKpis['completed'] ?></p>
             </div>
-            <div class="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 kpi-card col-span-2 lg:col-span-1">
+            <div class="kpi-card bg-gradient-to-br from-red-50 to-white dark:from-slate-800 dark:to-slate-900 p-5 rounded-xl border-l-4 border-red-500 shadow-sm col-span-2 lg:col-span-1 hover:shadow-md hover:scale-[1.02] transition-all duration-200">
                 <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_overdue']) ?></p>
                 <p id="kpi-overdue" class="text-2xl font-bold mt-2 text-red-600 dark:text-red-400"><?= $currentKpis['overdue'] ?></p>
             </div>
         </div>
 
         <!-- Filter Panel -->
-        <div class="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 mb-6 no-print">
+        <div class="glass-panel p-5 rounded-xl shadow-official border border-slate-200/50 dark:border-slate-700/50 mb-6 no-print">
             <form method="GET" action="reports.php" class="flex flex-wrap items-end gap-4">
                 <input type="hidden" name="lang" value="<?= htmlspecialchars($lang) ?>">
                 <input type="hidden" name="tab" value="<?= htmlspecialchars($activeTab) ?>">
@@ -1285,7 +1018,7 @@ close_db_connection();
         </div>
 
         <!-- Task Report Content Container (Captured by PDF exporter) -->
-        <div id="report-container" class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden mb-12">
+        <div id="report-container" class="glass-panel rounded-xl shadow-official border border-slate-200/50 dark:border-slate-700/50 overflow-hidden mb-12">
             <div class="overflow-x-auto">
                 <table id="tasks-table" class="w-full min-w-[1000px] divide-y divide-slate-200 dark:divide-slate-700 table-fixed">
                     <thead class="bg-slate-50 dark:bg-slate-900/50">
@@ -2295,5 +2028,4 @@ close_db_connection();
         }
     }
 </script>
-</body>
-</html>
+<?php include 'include/footer.php'; ?>

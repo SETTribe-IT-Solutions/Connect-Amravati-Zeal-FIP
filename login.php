@@ -184,75 +184,12 @@ function log_login_attempt($conn, $user_id, $ip, $device, $status) {
         error_log('Login history error: ' . $e->getMessage());
     }
 }
-
 ?>
-<!DOCTYPE html>
-<html lang="<?php echo $lang; ?>">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars($t['title']); ?></title>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts: Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <!-- Tailwind Config for Design System -->
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                    colors: {
-                        navy: {
-                            50: '#eef2f6',
-                            100: '#d9e2ec',
-                            500: '#1a365d',
-                            600: '#152b4a',
-                            700: '#0f1f38',
-                            900: '#0a1424'
-                        },
-                        govgreen: {
-                            50: '#edf7ed',
-                            100: '#cce8cc',
-                            500: '#2e7d32',
-                            600: '#256428'
-                        },
-                        saffron: {
-                            50: '#fff3e0',
-                            100: '#ffe0b2',
-                            500: '#f57c00',
-                            600: '#e65100'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        /* Optional Animations */
-        @keyframes blob {
-            0% { transform: translate(0px, 0px) scale(1); }
-            33% { transform: translate(30px, -50px) scale(1.1); }
-            66% { transform: translate(-20px, 20px) scale(0.9); }
-            100% { transform: translate(0px, 0px) scale(1); }
-        }
-        .animate-blob {
-            animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-            animation-delay: 2s;
-        }
-    </style>
-</head>
-<body class="min-h-screen flex flex-col md:flex-row bg-white font-sans overflow-hidden">
+<?php
+$pageTitle = htmlspecialchars($t['title']);
+$bodyClass = "min-h-screen flex flex-col md:flex-row bg-white font-sans overflow-hidden";
+include 'include/header.php';
+?>
     <!-- National Tricolor Bar at the absolute top -->
     <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#FF9933] via-white to-[#138808] z-50"></div>
 
@@ -266,7 +203,7 @@ function log_login_attempt($conn, $user_id, $ip, $device, $status) {
             <div class="mx-auto w-20 h-20 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full flex items-center justify-center mb-6 shadow-xl">
                 <i data-lucide="landmark" class="w-10 h-10 text-saffron-400"></i>
             </div>
-            <h1 class="text-4xl lg:text-5xl font-extrabold mb-4 tracking-tight text-white drop-shadow-md">Welcome to <br>AMRAVATI CONNECT</h1>
+            <h1 class="text-4xl lg:text-5xl font-extrabold mb-4 tracking-tight text-white drop-shadow-md font-formal uppercase">Welcome to <br>AMRAVATI CONNECT</h1>
             <p class="text-lg text-slate-200 font-medium leading-relaxed max-w-lg mx-auto">Official Online Communication & Task Allocation Portal for District Administration, Amravati.</p>
         </div>
     </div>
@@ -277,17 +214,17 @@ function log_login_attempt($conn, $user_id, $ip, $device, $status) {
         <!-- Header -->
         <header class="flex justify-between items-center mb-8 mt-4">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-gradient-to-br from-govgreen-500 to-govgreen-700 rounded-xl flex items-center justify-center shadow-md">
+                <div class="w-10 h-10 bg-gradient-to-br from-govgreen-500 to-govgreen-600 rounded-xl flex items-center justify-center shadow-official">
                     <i data-lucide="landmark" class="w-5 h-5 text-white"></i>
                 </div>
-                <span class="font-bold text-xl text-slate-800 tracking-tight">Collector Office</span>
+                <span class="font-bold text-xl text-slate-800 tracking-tight font-formal uppercase">Collector Office</span>
             </div>
         </header>
 
         <main class="flex-1 flex flex-col justify-center">
             <div class="mb-8">
-                <span class="inline-block py-1 px-3 rounded-full bg-navy-50 text-navy-700 text-xs font-bold uppercase tracking-wider mb-3">Welcome</span>
-                <h2 class="text-3xl font-bold text-slate-900 tracking-tight mb-2"><?php echo htmlspecialchars($t['heading']); ?></h2>
+                <span class="inline-block py-1 px-3 rounded-full bg-navy-50 text-navy-700 text-xs font-bold uppercase tracking-wider mb-3 border border-navy-100">Welcome</span>
+                <h2 class="text-3xl font-bold text-slate-900 tracking-tight mb-2 font-formal uppercase"><?php echo htmlspecialchars($t['heading']); ?></h2>
                 <p class="text-sm text-slate-500 font-medium"><?php echo htmlspecialchars($t['subheading']); ?></p>
             </div>
 
@@ -321,7 +258,7 @@ function log_login_attempt($conn, $user_id, $ip, $device, $status) {
                             <i data-lucide="user" class="w-5 h-5 text-slate-400"></i>
                         </div>
                         <input type="text" id="username" name="username" required autofocus placeholder="e.g. EMP12345 or user@domain.gov.in"
-                            class="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-500 focus:border-transparent transition-all text-slate-900 placeholder-slate-400 shadow-sm hover:border-slate-300">
+                            class="input-modern w-full pl-11 pr-4">
                     </div>
                 </div>
 
@@ -337,14 +274,14 @@ function log_login_attempt($conn, $user_id, $ip, $device, $status) {
                         <input type="password" id="password" name="password" required placeholder="••••••••"
                             pattern="(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&#^()_+=\-]{6,}" minlength="6"
                             title="Password must be at least 6 characters, contain 1 uppercase letter, 1 number, and 1 special character."
-                            class="w-full pl-11 pr-12 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-500 focus:border-transparent transition-all text-slate-900 placeholder-slate-400 shadow-sm hover:border-slate-300">
+                            class="input-modern w-full pl-11 pr-12">
                         <div class="absolute inset-y-0 right-0 pr-3.5 flex items-center cursor-pointer" onclick="togglePassword()">
                             <i data-lucide="eye" id="eyeIcon" class="w-5 h-5 text-slate-400 hover:text-navy-600 transition-colors"></i>
                         </div>
                     </div>
                 </div>
 
-                <button type="submit" class="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-gradient-to-r from-navy-600 to-navy-500 hover:from-navy-700 hover:to-navy-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-navy-500 transition-all duration-200 transform hover:-translate-y-0.5 mt-4">
+                <button type="submit" class="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-xl shadow-official text-sm font-bold text-white bg-gradient-to-r from-navy-600 to-navy-500 hover:from-navy-700 hover:to-navy-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-navy-500 transition-all duration-200 transform hover:-translate-y-0.5 mt-4 uppercase tracking-wider">
                     <i data-lucide="log-in" class="w-4 h-4 mr-2"></i>
                     <?php echo htmlspecialchars($t['btn_login']); ?>
                 </button>
@@ -373,7 +310,5 @@ function log_login_attempt($conn, $user_id, $ip, $device, $status) {
             }
             lucide.createIcons();
         }
-        lucide.createIcons();
     </script>
-</body>
-</html>
+<?php include 'include/footer.php'; ?>
