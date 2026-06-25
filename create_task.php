@@ -172,7 +172,7 @@ $roles_result = $conn ? $conn->query(
 ) : false;
 // departments table
 $departments_result = $conn ? $conn->query(
-    "SELECT id, department_name FROM departments ORDER BY department_name"
+    "SELECT department_id, department_name FROM departments ORDER BY department_name"
 ) : false;
 
 // ─── Handle Form Submission ───────────────────────────────────────────
@@ -372,7 +372,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $success_msg = "Task <strong>$task_id_str</strong> created successfully!$count_label";
         } else {
             $error_msg = 'Database error: ' . $conn->error;
-        // (End of task creation logic)
+        }
+    }
     } // End of if(!$conn) check
 }
 
@@ -382,91 +383,11 @@ $row     = $result ? $result->fetch_assoc() : null;
 $next_id = (int)($row['next_id'] ?? 1);
 $task_id_preview = 'TASK_' . str_pad($next_id, 3, '0', STR_PAD_LEFT);
 ?>
-<!DOCTYPE html>
-<html lang="en" class="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Task - Amravati Connect</title>
-    <meta name="description" content="Create and allocate tasks to employees by name or role on the Amravati Connect Government Workflow Platform.">
-
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Google Fonts: Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-
-    <!-- Tailwind Config (matches design system) -->
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: {
-                        border:      "hsl(var(--border))",
-                        background:  "hsl(var(--background))",
-                        foreground:  "hsl(var(--foreground))",
-                        navy: {
-                            50:  '#eef2f6',
-                            100: '#d9e2ec',
-                            500: '#1a365d',
-                            600: '#152b4a',
-                            700: '#0f1f38',
-                            900: '#0a1424'
-                        },
-                        govgreen: {
-                            50:  '#edf7ed',
-                            100: '#cce8cc',
-                            500: '#2e7d32',
-                            600: '#256428'
-                        },
-                        saffron: {
-                            50:  '#fff3e0',
-                            100: '#ffe0b2',
-                            500: '#f57c00',
-                            600: '#e65100'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-
+<?php
+$pageTitle = 'Create Task - Amravati Connect';
+$pageDesc = 'Create and allocate tasks to employees by name or role on the Amravati Connect Government Workflow Platform.';
+$extraHead = <<<'EOT'
     <style>
-        :root {
-            --background: 0 0% 100%;
-            --foreground: 222.2 84% 4.9%;
-            --border: 214.3 31.8% 91.4%;
-        }
-        .dark {
-            --background: 222.2 84% 4.9%;
-            --foreground: 210 40% 98%;
-            --border: 217.2 32.6% 17.5%;
-        }
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: hsl(var(--background));
-            color: hsl(var(--foreground));
-        }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        .dark ::-webkit-scrollbar-thumb { background: #475569; }
-
-        .glass-panel {
-            background: rgba(255,255,255,0.7);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-        .dark .glass-panel {
-            background: rgba(15,23,42,0.7);
-            border: 1px solid rgba(255,255,255,0.05);
-        }
-
         /* Form inputs */
         .form-input {
             @apply w-full px-3 py-2.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg
@@ -523,84 +444,11 @@ $task_id_preview = 'TASK_' . str_pad($next_id, 3, '0', STR_PAD_LEFT);
         }
         #toast.hidden { opacity: 0; pointer-events: none; transform: translateY(20px); }
     </style>
-</head>
-<body class="h-screen flex overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
-
-<!-- ═══════════════════════════════════════════════════════════════════
-     SIDEBAR (same as blank template)
-════════════════════════════════════════════════════════════════════ -->
-<aside class="w-64 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-all duration-300 z-20" id="sidebar">
-    <!-- Sidebar Header -->
-    <div class="h-16 flex items-center px-6 border-b border-slate-200 dark:border-slate-800">
-        <div class="w-8 h-8 rounded bg-navy-600 flex items-center justify-center mr-3">
-            <i data-lucide="landmark" class="text-white w-5 h-5"></i>
-        </div>
-        <span class="font-bold text-lg text-navy-700 dark:text-white tracking-tight">Amravati Connect</span>
-    </div>
-
-    <!-- Sidebar Navigation -->
-    <div class="flex-1 overflow-y-auto py-4">
-        <nav class="space-y-1 px-3">
-            <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-4">Main Modules</p>
-            <a href="dashboard.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3 text-slate-400"></i>
-                Executive Dashboard
-            </a>
-            <a href="create_task.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md bg-navy-50 text-navy-700 dark:bg-slate-800 dark:text-white">
-                <i data-lucide="network" class="w-5 h-5 mr-3 text-navy-600 dark:text-blue-400"></i>
-                Task Allocation
-            </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="bell-ring" class="w-5 h-5 mr-3 text-slate-400"></i>
-                Announcements
-            </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="award" class="w-5 h-5 mr-3 text-slate-400"></i>
-                Appreciation
-            </a>
-
-            <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6">Analytics &amp; Data</p>
-            <a href="reports.php" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="pie-chart" class="w-5 h-5 mr-3 text-slate-400"></i>
-                Reports &amp; Analytics
-            </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="map" class="w-5 h-5 mr-3 text-slate-400"></i>
-                GIS Map View
-            </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="folder-open" class="w-5 h-5 mr-3 text-slate-400"></i>
-                Document Management
-            </a>
-
-            <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6">Administration</p>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="users" class="w-5 h-5 mr-3 text-slate-400"></i>
-                User Management
-            </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="map-pin" class="w-5 h-5 mr-3 text-slate-400"></i>
-                Location Hierarchy
-            </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="shield-check" class="w-5 h-5 mr-3 text-slate-400"></i>
-                Audit Logs
-            </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="settings" class="w-5 h-5 mr-3 text-slate-400"></i>
-                Settings
-            </a>
-        </nav>
-    </div>
-
-    <!-- Sidebar Footer -->
-    <div class="p-4 border-t border-slate-200 dark:border-slate-800">
-        <button class="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-navy-600 to-navy-500 hover:from-navy-700 hover:to-navy-600 focus:outline-none">
-            <i data-lucide="bot" class="w-4 h-4 mr-2"></i>
-            Ask Amravati AI
-        </button>
-    </div>
-</aside>
+EOT;
+include 'include/header.php';
+$activePage = 'create_task';
+include 'include/sidebar.php';
+?>
 
 <!-- ═══════════════════════════════════════════════════════════════════
      MAIN WRAPPER
@@ -979,9 +827,9 @@ $task_id_preview = 'TASK_' . str_pad($next_id, 3, '0', STR_PAD_LEFT);
                                             if ($departments_result && $departments_result->num_rows > 0) {
                                                 $departments_result->data_seek(0);
                                                 while ($d = $departments_result->fetch_assoc()):
-                                                    $sel = (isset($_POST['department_id']) && $_POST['department_id'] == $d['id']) ? 'selected' : '';
+                                                    $sel = (isset($_POST['department_id']) && $_POST['department_id'] == $d['department_id']) ? 'selected' : '';
                                             ?>
-                                            <option value="<?= (int)$d['id'] ?>" <?= $sel ?>>
+                                            <option value="<?= (int)$d['department_id'] ?>" <?= $sel ?>>
                                                 <?= htmlspecialchars($d['department_name']) ?>
                                             </option>
                                             <?php endwhile; } ?>
@@ -1547,5 +1395,4 @@ $task_id_preview = 'TASK_' . str_pad($next_id, 3, '0', STR_PAD_LEFT);
     <?php endif; ?>
 </script>
 
-</body>
-</html>
+<?php include 'include/footer.php'; ?>

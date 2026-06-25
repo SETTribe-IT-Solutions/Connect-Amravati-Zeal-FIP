@@ -5,99 +5,13 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 ?>
-<!DOCTYPE html>
-<html lang="en" class="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Amravati Connect - Government Workflow Platform</title>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Google Fonts: Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    
+<?php
+$pageTitle = 'GIS Map View — Amravati Connect';
+$pageDesc = 'Visual representation of tasks and reports across Amravati district.';
+$extraHead = <<<'EOT'
     <!-- ApexCharts -->
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-
-    <!-- Tailwind Config for Design System -->
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                    colors: {
-                        border: "hsl(var(--border))",
-                        background: "hsl(var(--background))",
-                        foreground: "hsl(var(--foreground))",
-                        navy: {
-                            50: '#eef2f6',
-                            100: '#d9e2ec',
-                            500: '#1a365d',
-                            600: '#152b4a',
-                            700: '#0f1f38',
-                            900: '#0a1424'
-                        },
-                        govgreen: {
-                            50: '#edf7ed',
-                            100: '#cce8cc',
-                            500: '#2e7d32',
-                            600: '#256428'
-                        },
-                        saffron: {
-                            50: '#fff3e0',
-                            100: '#ffe0b2',
-                            500: '#f57c00',
-                            600: '#e65100'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-
     <style>
-        /* Base styles and ShadCN-like variables */
-        :root {
-            --background: 0 0% 100%;
-            --foreground: 222.2 84% 4.9%;
-            --border: 214.3 31.8% 91.4%;
-        }
-        .dark {
-            --background: 222.2 84% 4.9%;
-            --foreground: 210 40% 98%;
-            --border: 217.2 32.6% 17.5%;
-        }
-        
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: hsl(var(--background));
-            color: hsl(var(--foreground));
-        }
-
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 3px;
-        }
-        .dark ::-webkit-scrollbar-thumb {
-            background: #475569;
-        }
-
         .glass-panel {
             background: rgba(255, 255, 255, 0.7);
             backdrop-filter: blur(10px);
@@ -116,86 +30,11 @@ if (!isset($_SESSION['user_id'])) {
     <style>
         #map { height: 100%; width: 100%; border-radius: 0.5rem; z-index: 1; }
     </style>
-</head>
-<body class="h-screen flex overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
-
-    <!-- SIDEBAR -->
-    <aside class="w-64 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-all duration-300 z-20" id="sidebar">
-        <!-- Sidebar Header -->
-        <div class="h-16 flex items-center px-6 border-b border-slate-200 dark:border-slate-800">
-            <div class="w-8 h-8 rounded bg-navy-600 flex items-center justify-center mr-3">
-                <i data-lucide="landmark" class="text-white w-5 h-5"></i>
-            </div>
-            <span class="font-bold text-lg text-navy-700 dark:text-white tracking-tight">Amravati Connect</span>
-        </div>
-
-        <!-- Sidebar Navigation -->
-        <div class="flex-1 overflow-y-auto py-4">
-            <nav class="space-y-1 px-3">
-                <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-4">Main Modules</p>
-                <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3 text-navy-600 dark:text-blue-400"></i>
-                    Executive Dashboard
-                </a>
-                <a href="announcements.php" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="megaphone" class="w-5 h-5 mr-3 text-slate-400"></i>
-                    Announcement Center
-                </a>
-                <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="network" class="w-5 h-5 mr-3 text-slate-400"></i>
-                    Task Allocation
-                </a>
-                <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="bell-ring" class="w-5 h-5 mr-3 text-slate-400"></i>
-                    Announcements
-                </a>
-                <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="award" class="w-5 h-5 mr-3 text-slate-400"></i>
-                    Appreciation
-                </a>
-                
-                <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6">Analytics & Data</p>
-                <a href="reports.php" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="pie-chart" class="w-5 h-5 mr-3 text-slate-400"></i>
-                    Reports & Analytics
-                </a>
-                <a href="graph.php" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md bg-navy-50 text-navy-700 dark:bg-slate-800 dark:text-white">
-                    <i data-lucide="map" class="w-5 h-5 mr-3 text-navy-600 dark:text-blue-400"></i>
-                    GIS Map View
-                </a>
-                <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="folder-open" class="w-5 h-5 mr-3 text-slate-400"></i>
-                    Document Management
-                </a>
-
-                <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6">Administration</p>
-                <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="users" class="w-5 h-5 mr-3 text-slate-400"></i>
-                    User Management
-                </a>
-                <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="map-pin" class="w-5 h-5 mr-3 text-slate-400"></i>
-                    Location Hierarchy
-                </a>
-                <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="shield-check" class="w-5 h-5 mr-3 text-slate-400"></i>
-                    Audit Logs
-                </a>
-                <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="settings" class="w-5 h-5 mr-3 text-slate-400"></i>
-                    Settings
-                </a>
-            </nav>
-        </div>
-        
-        <!-- Sidebar Footer -->
-        <div class="p-4 border-t border-slate-200 dark:border-slate-800">
-            <button class="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-navy-600 to-navy-500 hover:from-navy-700 hover:to-navy-600 focus:outline-none">
-                <i data-lucide="bot" class="w-4 h-4 mr-2"></i>
-                Ask Amravati AI
-            </button>
-        </div>
-    </aside>
+EOT;
+include 'include/header.php';
+$activePage = 'graph';
+include 'include/sidebar.php';
+?>
 
     <!-- MAIN WRAPPER -->
     <div class="flex-1 flex flex-col overflow-hidden">
@@ -553,5 +392,4 @@ if (!isset($_SESSION['user_id'])) {
         fetchNotifications();
 
     </script>
-</body>
-</html>
+<?php include 'include/footer.php'; ?>

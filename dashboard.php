@@ -1031,196 +1031,13 @@ function priorityCss(string $p): string {
 close_db_connection();
 >>>>>>> origin/dev
 ?>
-<!DOCTYPE html>
-<html lang="<?= $lang ?>" class="light" id="htmlRoot">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($t['title']) ?></title>
-    <meta name="description"
-          content="<?= htmlspecialchars($t['desc']) ?>">
-
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- ApexCharts with CDN fallback -->
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-    <script>
-        if (typeof ApexCharts === 'undefined') {
-            document.write('<scr' + 'ipt src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.49.0/apexcharts.min.js"><\/scr' + 'ipt>');
-        }
-    </script>
-    <!-- Chart.js for Task Completion Trend & Status Pie -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
-    <!-- Tailwind config — identical to blank_wrushabh.php ─── -->
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: {
-                        border:     "hsl(var(--border))",
-                        background: "hsl(var(--background))",
-                        foreground: "hsl(var(--foreground))",
-                        navy: {
-                            50:'#eef2f6', 100:'#d9e2ec',
-                            500:'#1a365d', 600:'#152b4a',
-                            700:'#0f1f38', 900:'#0a1424'
-                        },
-                        govgreen: { 50:'#edf7ed', 100:'#cce8cc', 500:'#2e7d32', 600:'#256428' },
-                        saffron:  { 50:'#fff3e0', 100:'#ffe0b2', 500:'#f57c00', 600:'#e65100' }
-                    }
-                }
-            }
-        }
-    </script>
-
-    <style>
-        /* CSS vars ─ identical to blank_wrushabh.php */
-        :root { --background:0 0% 100%; --foreground:222.2 84% 4.9%; --border:214.3 31.8% 91.4%; }
-        .dark { --background:222.2 84% 4.9%; --foreground:210 40% 98%; --border:217.2 32.6% 17.5%; }
-
-        body { font-family:'Inter',sans-serif; background-color:hsl(var(--background)); color:hsl(var(--foreground)); }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar { width:6px; height:6px; }
-        ::-webkit-scrollbar-track { background:transparent; }
-        ::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
-        .dark ::-webkit-scrollbar-thumb { background:#475569; }
-
-        /* Glass panel */
-        .glass-panel { background:rgba(255,255,255,0.7); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.2); }
-        .dark .glass-panel { background:rgba(15,23,42,0.7); border:1px solid rgba(255,255,255,0.05); }
-
-        /* KPI card hover */
-        .kpi-card { transition:transform .2s ease, box-shadow .2s ease; }
-        .kpi-card:hover { transform:translateY(-3px); box-shadow:0 12px 28px -6px rgba(0,0,0,.12); }
-
-        /* Collapsible sections */
-        .sec-body {
-            overflow:hidden;
-            transition:max-height .4s cubic-bezier(.4,0,.2,1), opacity .3s ease;
-            max-height:9999px; opacity:1;
-        }
-        .sec-body.closed { max-height:0; opacity:0; }
-        .chevron { transition:transform .3s ease; }
-        .chevron.open { transform:rotate(-180deg); }
-
-        /* Level badges */
-        .badge-l1 { background:#dbeafe; color:#1e3a8a; border:1px solid #bfdbfe; }
-        .badge-l2 { background:#fef3c7; color:#92400e; border:1px solid #fde68a; }
-        .badge-l3 { background:#d1fae5; color:#065f46; border:1px solid #a7f3d0; }
-        .dark .badge-l1 { background:#1e3a8a33; color:#93c5fd; border-color:#1e40af; }
-        .dark .badge-l2 { background:#92400e33; color:#fcd34d; border-color:#b45309; }
-        .dark .badge-l3 { background:#065f4633; color:#6ee7b7; border-color:#047857; }
-
-        /* Active nav */
-        .nav-active { background:#eef2f6; color:#152b4a; }
-        .dark .nav-active { background:#1e293b; color:#fff; }
-
-        /* Pulse for overdue dot */
-        @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:.35;} }
-        .pulse { animation:pulse-dot 1.5s ease-in-out infinite; }
-    </style>
-</head>
-<body class="h-screen flex overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
-
-<!-- ════════════════════════════════════════════════════════════
-     SIDEBAR  ─  matches blank_wrushabh.php exactly
-════════════════════════════════════════════════════════════ -->
-<aside id="sidebar"
-       class="w-64 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800
-              flex flex-col transition-all duration-300 z-20">
-
-    <!-- Logo / Brand -->
-    <div class="h-16 flex items-center px-6 border-b border-slate-200 dark:border-slate-800">
-        <div class="w-8 h-8 rounded bg-navy-600 flex items-center justify-center mr-3">
-            <i data-lucide="landmark" class="text-white w-5 h-5"></i>
-        </div>
-        <span class="font-bold text-lg text-navy-700 dark:text-white tracking-tight"><?= htmlspecialchars($t['brand_name']) ?></span>
-    </div>
-
-    <!-- Navigation -->
-    <div class="flex-1 overflow-y-auto py-4">
-        <nav class="space-y-1 px-3">
-            <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-4"><?= htmlspecialchars($t['menu_main_modules']) ?></p>
-            <a href="dashboard.php?lang=<?= $lang ?>"
-               class="nav-active flex items-center px-3 py-2.5 text-sm font-medium rounded-md">
-                <i data-lucide="layout-dashboard" class="w-5 h-5 mr-3 text-navy-600 dark:text-blue-400"></i>
-                <?= htmlspecialchars($t['menu_dashboard']) ?>
-            </a>
-            <a href="announcements.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
-                text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="megaphone" class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($t['menu_announcement_center'] ?? 'Announcement Center') ?>
-            </a>
-            <a href="create_task.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
-                text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="network"   class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($t['menu_task_alloc']) ?>
-            </a>
-            <a href="notifications.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
-                text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="bell-ring" class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($t['menu_notifications']) ?>
-            </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
-                text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="award"     class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($t['menu_appreciation']) ?>
-            </a>
-
-            <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6"><?= htmlspecialchars($t['menu_analytics']) ?></p>
-            <a href="reports.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
-                text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="pie-chart"   class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($t['menu_reports']) ?>
-            </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
-                text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="map"         class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($t['menu_gis']) ?>
-            </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
-                text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="folder-open" class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($t['menu_docs']) ?>
-            </a>
-
-            <?php if ($level === 1): ?>
-            <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-6"><?= htmlspecialchars($t['menu_admin']) ?></p>
-            <a href="user_creation.php?lang=<?= $lang ?>" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
-                text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="users"        class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($t['menu_users']) ?>
-            </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
-                text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="map-pin"      class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($t['menu_hierarchy']) ?>
-            </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
-                text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="shield-check" class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($t['menu_audit']) ?>
-            </a>
-            <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
-                text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="settings"     class="w-5 h-5 mr-3 text-slate-400"></i><?= htmlspecialchars($t['menu_settings']) ?>
-            </a>
-            <?php endif; ?>
-            <a href="logout.php" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-md
-                text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors">
-                <i data-lucide="log-out" class="w-5 h-5 mr-3 text-red-500"></i><?= htmlspecialchars($t['menu_logout']) ?>
-            </a>
-        </nav>
-    </div>
-
-    <!-- Footer CTA -->
-    <div class="p-4 border-t border-slate-200 dark:border-slate-800">
-        <button class="w-full flex items-center justify-center px-4 py-2 border border-transparent
-                       rounded-md shadow-sm text-sm font-medium text-white
-                       bg-gradient-to-r from-navy-600 to-navy-500
-                       hover:from-navy-700 hover:to-navy-600 focus:outline-none transition-all">
-            <i data-lucide="bot" class="w-4 h-4 mr-2"></i><?= htmlspecialchars($t['btn_ask_ai']) ?>
-        </button>
-    </div>
-</aside>
+<?php
+$pageTitle = $t['title'] ?? 'Amravati Connect Dashboard';
+$pageDesc = $t['desc'] ?? 'Dashboard';
+include 'include/header.php';
+$activePage = 'dashboard';
+include 'include/sidebar.php';
+?>
 
 <!-- ════════════════════════════════════════════════════════════
      MAIN WRAPPER
@@ -1342,15 +1159,10 @@ close_db_connection();
                     <i data-lucide="shield" class="w-3.5 h-3.5"></i>
                     <?= htmlspecialchars($t['badge_level']) ?> <?= $level ?> &middot; <?= htmlspecialchars($roleLabel) ?>
                 </span>
-                <button onclick="exportDashboardData()" class="inline-flex items-center px-4 py-2 border border-slate-300
-                               dark:border-slate-600 shadow-sm text-sm font-medium rounded-md
-                               text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800
-                               hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none transition-colors">
+                <button onclick="exportDashboardData()" class="btn-modern bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm">
                     <i data-lucide="download" class="w-4 h-4 mr-2"></i><?= htmlspecialchars($t['btn_export']) ?>
                 </button>
-                <button onclick="window.location.href='create_task.php?lang=<?= $lang ?>'" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm
-                               text-sm font-medium rounded-md text-white
-                               bg-navy-600 hover:bg-navy-700 focus:outline-none transition-colors">
+                <button onclick="window.location.href='create_task.php?lang=<?= $lang ?>'" class="btn-modern btn-primary shadow-official">
                     <i data-lucide="plus" class="w-4 h-4 mr-2"></i><?= htmlspecialchars($t['btn_allocate']) ?>
                 </button>
             </div>
@@ -1422,9 +1234,10 @@ close_db_connection();
 
                     foreach ($dkpi as [$label,$val,$icon,$clr,$trendIcon,$trendTxt,$trendUp]):
                     ?>
-                    <div class="kpi-card bg-white dark:bg-slate-800 overflow-hidden shadow-sm
-                                rounded-xl border border-slate-200 dark:border-slate-700">
-                        <div class="p-5">
+                    <div class="kpi-card bg-gradient-to-br from-<?= $clr ?>-50 to-white dark:from-<?= $clr ?>-900/40 dark:to-slate-800 overflow-hidden shadow-sm
+                                rounded-xl border-l-4 border-l-<?= $clr ?>-500 border-t border-r border-b border-slate-200 dark:border-slate-700">
+                        <div class="p-5 relative">
+                            <i data-lucide="<?= $icon ?>" class="absolute right-0 bottom-0 w-24 h-24 text-<?= $clr ?>-500 opacity-5 transform translate-x-4 translate-y-4 pointer-events-none"></i>
                             <div class="flex items-center justify-between">
                                 <div class="flex-1 min-w-0">
                                     <p class="text-sm font-medium text-slate-500 dark:text-slate-400 truncate">
@@ -1599,7 +1412,7 @@ close_db_connection();
                                     $dotColors = ['bg-red-500','bg-saffron-500','bg-blue-500','bg-govgreen-500','bg-purple-500','bg-teal-500'];
                                     $dot = $dotColors[$idx % count($dotColors)];
                                 ?>
-                                <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                                <tr class="table-row-modern border-b border-slate-100 dark:border-slate-700/50">
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="flex items-center">
                                             <div class="flex-shrink-0 w-2 h-2 rounded-full <?= $dot ?> mr-3"></div>
@@ -1709,9 +1522,10 @@ close_db_connection();
                     ];
                     foreach ($tkpi as [$label,$val,$icon,$clr,$tIcon,$tTxt,$tUp]):
                     ?>
-                    <div class="kpi-card bg-white dark:bg-slate-800 overflow-hidden shadow-sm
-                                rounded-xl border border-slate-200 dark:border-slate-700">
-                        <div class="p-5">
+                    <div class="kpi-card bg-gradient-to-br from-<?= $clr ?>-50 to-white dark:from-<?= $clr ?>-900/40 dark:to-slate-800 overflow-hidden shadow-sm
+                                rounded-xl border-l-4 border-l-<?= $clr ?>-500 border-t border-r border-b border-slate-200 dark:border-slate-700">
+                        <div class="p-5 relative">
+                            <i data-lucide="<?= $icon ?>" class="absolute right-0 bottom-0 w-24 h-24 text-<?= $clr ?>-500 opacity-5 transform translate-x-4 translate-y-4 pointer-events-none"></i>
                             <div class="flex items-center justify-between">
                                 <div class="flex-1 min-w-0">
                                     <p class="text-sm font-medium text-slate-500 dark:text-slate-400 truncate">
@@ -1859,7 +1673,7 @@ close_db_connection();
                                 <?php foreach ($talData['villages'] as $v):
                                     $vRate = $v['total'] > 0 ? round($v['completed']/$v['total']*100,1) : 0;
                                 ?>
-                                <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                                <tr class="table-row-modern border-b border-slate-100 dark:border-slate-700/50">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium
                                                text-slate-900 dark:text-white">
                                         <?= htmlspecialchars($v['village']) ?>
@@ -1934,9 +1748,10 @@ close_db_connection();
                     ];
                     foreach ($vkpi as [$label,$val,$icon,$clr,$tIcon,$tTxt,$tUp]):
                     ?>
-                    <div class="kpi-card bg-white dark:bg-slate-800 overflow-hidden shadow-sm
-                                rounded-xl border border-slate-200 dark:border-slate-700">
-                        <div class="p-5">
+                    <div class="kpi-card bg-gradient-to-br from-<?= $clr ?>-50 to-white dark:from-<?= $clr ?>-900/40 dark:to-slate-800 overflow-hidden shadow-sm
+                                rounded-xl border-l-4 border-l-<?= $clr ?>-500 border-t border-r border-b border-slate-200 dark:border-slate-700">
+                        <div class="p-5 relative">
+                            <i data-lucide="<?= $icon ?>" class="absolute right-0 bottom-0 w-24 h-24 text-<?= $clr ?>-500 opacity-5 transform translate-x-4 translate-y-4 pointer-events-none"></i>
                             <div class="flex items-center justify-between">
                                 <div class="flex-1 min-w-0">
                                     <p class="text-sm font-medium text-slate-500 dark:text-slate-400 truncate">
@@ -2084,7 +1899,7 @@ close_db_connection();
                                     $name = $task['assigned_to_name'] ?? '—';
                                     $ini  = strtoupper(substr($name, 0, 1));
                                 ?>
-                                <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors task-row"
+                                <tr class="table-row-modern border-b border-slate-100 dark:border-slate-700/50 task-row"
                                     data-status="<?= htmlspecialchars($task['status']) ?>">
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="flex items-center">
@@ -2136,11 +1951,11 @@ close_db_connection();
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <button class="text-navy-600 dark:text-blue-400 hover:text-navy-900
+                                        <button onclick="window.location.href='task_tracking.php?id=<?= $task['task_id'] ?>'" class="text-navy-600 dark:text-blue-400 hover:text-navy-900
                                                        dark:hover:text-blue-300 mr-3" title="View">
                                             <i data-lucide="eye" class="w-4 h-4"></i>
                                         </button>
-                                        <button class="text-slate-400 hover:text-slate-600
+                                        <button onclick="window.location.href='task_tracking.php?id=<?= $task['task_id'] ?>'" class="text-slate-400 hover:text-slate-600
                                                        dark:hover:text-slate-200" title="More">
                                             <i data-lucide="more-horizontal" class="w-4 h-4"></i>
                                         </button>
@@ -2868,7 +2683,7 @@ fetchNotifications();
             
             <div>
                 <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Rejection Reason *</label>
-                <select name="reason" required class="block w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2.5 text-sm focus:ring-red-500">
+                <select name="reason" required class="input-modern">
                     <option value="">-- Choose Rejection Reason --</option>
                     <option value="Overlapping Priorities">Overlapping Priorities</option>
                     <option value="Resource Unavailability">Resource Unavailability</option>
@@ -2963,5 +2778,4 @@ fetchNotifications();
         </form>
     </div>
 </div>
-</body>
-</html>
+<?php include 'include/footer.php'; ?>
