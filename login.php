@@ -25,10 +25,27 @@ session_start();
 // Generate CSRF token if not exists
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+<<<<<<< HEAD
+}
+
+// Database Connection (uses remote+local fallback from dbConfig.php)
+include_once("include/dbConfig.php");
+
+if (!isset($conn) || $conn->connect_error) {
+    die("System Connection Failure. Please try again later.");
+}
+
+// If already logged in, redirect to dashboard
+if (!empty($_SESSION['user_id'])) {
+    header('Location: dashboard.php');
+    exit;
+}
+=======
 }
 
 // Database Configuration File Inclusion
 require_once "include/dbConfig.php";
+>>>>>>> origin/dev
 
 // Language Toggle Setup (Support Marathi & English)
 $lang = isset($_GET['lang']) && $_GET['lang'] === 'mr' ? 'mr' : 'en';
@@ -77,12 +94,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $rate_limit_sql = "SELECT COUNT(*) as attempt_count FROM login_history 
                            WHERE ip_address = ? AND status LIKE 'Failed%' 
                            AND login_time >= DATE_SUB(NOW(), INTERVAL 15 MINUTE)";
+<<<<<<< HEAD
+        $rl_stmt = $conn->prepare($rate_limit_sql);
+        if ($rl_stmt) {
+            $rl_stmt->bind_param("s", $ip_address);
+            $rl_stmt->execute();
+            $rl_result = $rl_stmt->get_result();
+            $rl_row = $rl_result->fetch_assoc();
+            $rl_stmt->close();
+        } else {
+            $rl_row = null;
+        }
+=======
         $rl_stmt = mysqli_prepare($conn, $rate_limit_sql);
         mysqli_stmt_bind_param($rl_stmt, "s", $ip_address);
         mysqli_stmt_execute($rl_stmt);
         $rl_result = mysqli_stmt_get_result($rl_stmt);
         $rl_row = mysqli_fetch_assoc($rl_result);
         mysqli_stmt_close($rl_stmt);
+>>>>>>> origin/dev
 
         if ($rl_row && $rl_row['attempt_count'] >= 5) {
             $error_message = "Too many failed attempts. Please try again after 15 minutes.";
@@ -100,16 +130,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 WHERE u.employee_code = ? OR u.email = ?
                 LIMIT 1";
                 
-        $stmt = mysqli_prepare($conn, $sql);
-        mysqli_stmt_bind_param($stmt, "ss", $username_input, $username_input);
-        mysqli_stmt_execute($stmt);
-        $result = mysqli_stmt_get_result($stmt);
-        $user = mysqli_fetch_assoc($result);
-        mysqli_stmt_close($stmt);
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("ss", $username_input, $username_input);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $user = $result->fetch_assoc();
+        $stmt->close();
         
-        // Metadata processing targets for audit tracking
+        // Metadata for audit tracking
         $user_id_for_log = $user ? $user['user_id'] : null;
-        $ip_address = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
+        $ip_address  = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
         $device_info = substr($_SERVER['HTTP_USER_AGENT'] ?? 'UNKNOWN', 0, 255);
         
         if ($user) {
@@ -138,8 +168,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['taluka_id'] = $user['taluka_id'];
                 $_SESSION['village_id'] = $user['village_id'];
                 
+<<<<<<< HEAD
+                header("Location: dashboard.php?lang=" . $lang);
+=======
                 close_db_connection();
                 header("Location: dashboard.php");
+>>>>>>> origin/dev
                 exit;
             } else {
                 $error_message = $t['err_invalid'];
@@ -157,18 +191,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
  * Audit History writer using native mysqli tracking logic
  */
 function log_login_attempt($conn, $user_id, $ip, $device, $status) {
-    $log_sql = "INSERT INTO login_history (user_id, login_time, ip_address, device_info, status) 
-                VALUES (?, NOW(), ?, ?, ?)";
-    $log_stmt = mysqli_prepare($conn, $log_sql);
-    if ($log_stmt) {
-        mysqli_stmt_bind_param($log_stmt, "isss", $user_id, $ip, $device, $status);
-        mysqli_stmt_execute($log_stmt);
-        mysqli_stmt_close($log_stmt);
+    try {
+        $log_sql = "INSERT INTO login_history (user_id, login_time, ip_address, device_info, status) 
+                    VALUES (?, NOW(), ?, ?, ?)";
+        $log_stmt = $conn->prepare($log_sql);
+        if ($log_stmt) {
+            $log_stmt->bind_param("isss", $user_id, $ip, $device, $status);
+            $log_stmt->execute();
+            $log_stmt->close();
+        }
+    } catch (Exception $e) {
+        // Silently fail if login_history table doesn't exist yet
+        error_log('Login history error: ' . $e->getMessage());
     }
 }
 
+<<<<<<< HEAD
+=======
 // Close the database connection explicitly at the end of PHP processing
 close_db_connection();
+>>>>>>> origin/dev
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo $lang; ?>">

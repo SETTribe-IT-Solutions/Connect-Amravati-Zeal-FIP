@@ -364,6 +364,12 @@ const ROLE_LEVEL_MAP = [
     'Gramsevak'            => 3,
 ];
 
+/* ─── Authentication Guard ─────────────────────────────────── */
+if (empty($_SESSION['user_id']) && !isset($_GET['role'])) {
+    header('Location: login.php');
+    exit;
+}
+
 /* ─── DEV: ?role=Collector in URL switches the demo role ───── */
 if (isset($_GET['role']) && array_key_exists($_GET['role'], ROLE_LEVEL_MAP)) {
     $_SESSION['user_role']       = $_GET['role'];
@@ -380,7 +386,7 @@ if (isset($_SESSION['role_name'])) {
     $_SESSION['user_village_id'] = $_SESSION['village_id'];
 }
 
-/* ─── Session defaults (dev preview) ───────────────────────── */
+/* ─── Session defaults (only used for ?role= dev override) ─── */
 if (empty($_SESSION['user_role'])) {
     $_SESSION['user_role']       = 'Collector';
     $_SESSION['user_name']       = 'Hon. Collector';
@@ -908,6 +914,29 @@ $level   = $dbAvailable ? getDashboardLevel($sRole, $conn) : (ROLE_LEVEL_MAP[$sR
 $showL1  = ($level === 1);
 $showL2  = ($level <= 2);
 $showL3  = true;
+<<<<<<< HEAD
+=======
+
+$distData = ($showL1 && $dbAvailable) ? getDistrictStats($conn)           : _mockDistrict();
+$talData  = ($showL2 && $dbAvailable) ? getTalukaStats($conn, $sTalukaId) : _mockTaluka();
+$vilData  = $dbAvailable              ? getVillageStats($conn, $sVillageId) : _mockVillage();
+
+// Replace hardcoded / mock counts with the real-time values from database
+$distData['active']    = $totalActiveTasks;
+$distData['pending']   = $pendingTasks;
+$distData['completed'] = $completedTasks;
+$distData['overdue']   = $overdueTasks;
+
+$talData['active']     = $totalActiveTasks;
+$talData['pending']    = $pendingTasks;
+$talData['completed']  = $completedTasks;
+$talData['overdue']    = $overdueTasks;
+
+$vilData['active']     = $totalActiveTasks;
+$vilData['pending']    = $pendingTasks;
+$vilData['completed']  = $completedTasks;
+$vilData['overdue']    = $overdueTasks;
+>>>>>>> origin/dev
 
 $distData = ($showL1 && $dbAvailable) ? getDistrictStats($conn)           : _mockDistrict();
 $talData  = ($showL2 && $dbAvailable) ? getTalukaStats($conn, $sTalukaId) : _mockTaluka();
@@ -929,22 +958,22 @@ $vilData['pending']    = $pendingTasks;
 $vilData['completed']  = $completedTasks;
 $vilData['overdue']    = $overdueTasks;
 
-$distTrend  = $showL1 ? getMonthlyTrend($conn, 'district', 0, $lang) : null;
-$talTrend   = $showL2 ? getMonthlyTrend($conn, 'taluka', $sTalukaId, $lang) : null;
-$vilTrend   = getMonthlyTrend($conn, 'village', $sVillageId, $lang);
+$distTrend  = ($showL1 && $dbAvailable) ? getMonthlyTrend($conn, 'district', 0, $lang)          : ['categories'=>[],'assigned'=>[],'completed'=>[]];
+$talTrend   = ($showL2 && $dbAvailable) ? getMonthlyTrend($conn, 'taluka', $sTalukaId, $lang)    : ['categories'=>[],'assigned'=>[],'completed'=>[]];
+$vilTrend   = $dbAvailable              ? getMonthlyTrend($conn, 'village', $sVillageId, $lang)   : ['categories'=>[],'assigned'=>[],'completed'=>[]];
 
-$distPriority   = $showL1 ? getPriorityDistribution($conn, 'district', 0) : ['Critical'=>1, 'High'=>3, 'Medium'=>5, 'Low'=>4];
-$distAgeing     = $showL1 ? getTaskAgeing($conn, 'district', 0) : ['< 5 Days'=>2, '5-10 Days'=>4, '11-30 Days'=>3, '> 30 Days'=>1];
-$distRejections = $showL1 ? getRejectionAnalysis($conn, 'district', 0) : ['Overlapping Priorities'=>2, 'Resource Unavailability'=>1];
-$distPerform    = $showL1 ? getUserPerformance($conn, 'district', 0) : [];
+$distPriority   = ($showL1 && $dbAvailable) ? getPriorityDistribution($conn, 'district', 0)          : ['Critical'=>1,'High'=>3,'Medium'=>5,'Low'=>4];
+$distAgeing     = ($showL1 && $dbAvailable) ? getTaskAgeing($conn, 'district', 0)                    : ['< 5 Days'=>2,'5-10 Days'=>4,'11-30 Days'=>3,'> 30 Days'=>1];
+$distRejections = ($showL1 && $dbAvailable) ? getRejectionAnalysis($conn, 'district', 0)             : ['Overlapping Priorities'=>2,'Resource Unavailability'=>1];
+$distPerform    = ($showL1 && $dbAvailable) ? getUserPerformance($conn, 'district', 0)               : [];
 
-$talPriority   = $showL2 ? getPriorityDistribution($conn, 'taluka', $sTalukaId) : ['Critical'=>1, 'High'=>2, 'Medium'=>3, 'Low'=>2];
-$talAgeing     = $showL2 ? getTaskAgeing($conn, 'taluka', $sTalukaId) : ['< 5 Days'=>1, '5-10 Days'=>2, '11-30 Days'=>1, '> 30 Days'=>0];
-$talRejections = $showL2 ? getRejectionAnalysis($conn, 'taluka', $sTalukaId) : ['Overlapping Priorities'=>1];
-$talPerform    = $showL2 ? getUserPerformance($conn, 'taluka', $sTalukaId) : [];
+$talPriority   = ($showL2 && $dbAvailable) ? getPriorityDistribution($conn, 'taluka', $sTalukaId)   : ['Critical'=>1,'High'=>2,'Medium'=>3,'Low'=>2];
+$talAgeing     = ($showL2 && $dbAvailable) ? getTaskAgeing($conn, 'taluka', $sTalukaId)              : ['< 5 Days'=>1,'5-10 Days'=>2,'11-30 Days'=>1,'> 30 Days'=>0];
+$talRejections = ($showL2 && $dbAvailable) ? getRejectionAnalysis($conn, 'taluka', $sTalukaId)       : ['Overlapping Priorities'=>1];
+$talPerform    = ($showL2 && $dbAvailable) ? getUserPerformance($conn, 'taluka', $sTalukaId)         : [];
 
-$vilPriority   = getPriorityDistribution($conn, 'village', $sVillageId);
-$vilAgeing     = getTaskAgeing($conn, 'village', $sVillageId);
+$vilPriority   = $dbAvailable ? getPriorityDistribution($conn, 'village', $sVillageId) : ['Critical'=>0,'High'=>1,'Medium'=>2,'Low'=>1];
+$vilAgeing     = $dbAvailable ? getTaskAgeing($conn, 'village', $sVillageId)             : ['< 5 Days'=>1,'5-10 Days'=>1,'11-30 Days'=>0,'> 30 Days'=>0];
 
 /* Friendly role label */
 $roleKey = match($sRole) {
@@ -997,7 +1026,10 @@ function priorityCss(string $p): string {
     };
 }
 
+<<<<<<< HEAD
+=======
 close_db_connection();
+>>>>>>> origin/dev
 ?>
 <!DOCTYPE html>
 <html lang="<?= $lang ?>" class="light" id="htmlRoot">
@@ -1021,6 +1053,8 @@ close_db_connection();
             document.write('<scr' + 'ipt src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.49.0/apexcharts.min.js"><\/scr' + 'ipt>');
         }
     </script>
+    <!-- Chart.js for Task Completion Trend & Status Pie -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
     <!-- Tailwind config — identical to blank_wrushabh.php ─── -->
     <script>
@@ -1423,7 +1457,7 @@ close_db_connection();
                     <?php endforeach; ?>
                 </div>
 
-                <!-- Charts — same 3-col grid as blank_wrushabh.php -->
+                <!-- Charts — matching blank_wrushabh.php (Trend and Taluka Bar in same row) -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
                     <!-- Line / Area Chart -->
                     <div class="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm
@@ -1440,6 +1474,24 @@ close_db_connection();
                             <canvas id="chartjs-line-trend"></canvas>
                         </div>
                     </div>
+                    
+                    <!-- Top Performing Offices — bar chart -->
+                    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm
+                                border border-slate-200 dark:border-slate-700 p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
+                                <?= htmlspecialchars($t['chart_taluka']) ?>
+                            </h2>
+                            <button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                                <i data-lucide="more-vertical" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                        <div id="chart-dist-bar" class="h-72 w-full"></div>
+                    </div>
+                </div>
+
+                <!-- Secondary Charts Grid (Status, Priority, Ageing) -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
                     <!-- Donut -->
                     <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm
                                 border border-slate-200 dark:border-slate-700 p-6">
@@ -1455,24 +1507,7 @@ close_db_connection();
                             <canvas id="chartjs-pie-status"></canvas>
                         </div>
                     </div>
-                </div>
 
-                <!-- Top Performing Offices — bar chart -->
-                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm
-                            border border-slate-200 dark:border-slate-700 p-6 mb-8">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
-                            <?= htmlspecialchars($t['chart_taluka']) ?>
-                        </h2>
-                        <button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                            <i data-lucide="more-vertical" class="w-5 h-5"></i>
-                        </button>
-                    </div>
-                    <div id="chart-dist-bar" class="h-60 w-full"></div>
-                </div>
-
-                <!-- New District Graphs -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
                     <!-- Priority Distribution -->
                     <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
                         <div class="flex justify-between items-center mb-4">
@@ -1482,16 +1517,19 @@ close_db_connection();
                         </div>
                         <div id="chart-dist-priority" class="h-72 w-full"></div>
                     </div>
+
                     <!-- Task Ageing -->
                     <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
                         <div class="flex justify-between items-center mb-4">
                             <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
-                                <?= $lang === 'en' ? 'Task Ageing Analysis (Open Tasks)' : 'कार्य प्रलंबित कालावधी विश्लेषण (सक्रिय कार्ये)' ?>
+                                <?= $lang === 'en' ? 'Task Ageing Analysis' : 'कार्य वयोमान विश्लेषण' ?>
                             </h2>
                         </div>
                         <div id="chart-dist-ageing" class="h-72 w-full"></div>
                     </div>
                 </div>
+
+                <!-- Third Tier Charts (Rejections, Performance) -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
                     <!-- Rejection Analysis -->
                     <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
@@ -2313,8 +2351,9 @@ const LBL = {
     vilOverdue: <?= json_encode($t['status_overdue']) ?>
 };
 
-/* ── Chart registry ──────────────────────────────────────── */
+/* ── Chart registries ───────────────────────────────────── */
 let charts = {};
+let chartJsInstances = {};
 function destroyAll() {
     Object.values(charts).forEach(c => { try { c.destroy(); } catch(_){} });
     charts = {};
