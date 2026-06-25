@@ -8,10 +8,10 @@
  */
 
 // Database credentials
-define('DB_HOST', '82.25.121.144');
-define('DB_USER', 'u196817721_districCNTZEAL');
+define('DB_HOST', '103.160.107.18');
+define('DB_USER', 'nmrmlatur_districCNTZEAL');
 define('DB_PASS', 'districtCNTDB@2026');
-define('DB_NAME', 'u196817721_districtCNTDB');
+define('DB_NAME', 'nmrmlatur_districtCNTDB');
 
 // Disable persistent connections at runtime level for MySQLi
 ini_set('mysqli.allow_persistent', '0');
