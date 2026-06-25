@@ -184,6 +184,9 @@ function log_login_attempt($conn, $user_id, $ip, $device, $status) {
         error_log('Login history error: ' . $e->getMessage());
     }
 }
+
+// Close the database connection explicitly at the end of PHP processing
+close_db_connection();
 ?>
 <?php
 $pageTitle = htmlspecialchars($t['title']);
