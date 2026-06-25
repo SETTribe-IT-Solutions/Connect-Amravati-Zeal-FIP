@@ -25,6 +25,7 @@ session_start();
 // Generate CSRF token if not exists
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+<<<<<<< HEAD
 }
 
 // Database Connection (uses remote+local fallback from dbConfig.php)
@@ -39,6 +40,12 @@ if (!empty($_SESSION['user_id'])) {
     header('Location: dashboard.php');
     exit;
 }
+=======
+}
+
+// Database Configuration File Inclusion
+require_once "include/dbConfig.php";
+>>>>>>> origin/dev
 
 // Language Toggle Setup (Support Marathi & English)
 $lang = isset($_GET['lang']) && $_GET['lang'] === 'mr' ? 'mr' : 'en';
@@ -87,6 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $rate_limit_sql = "SELECT COUNT(*) as attempt_count FROM login_history 
                            WHERE ip_address = ? AND status LIKE 'Failed%' 
                            AND login_time >= DATE_SUB(NOW(), INTERVAL 15 MINUTE)";
+<<<<<<< HEAD
         $rl_stmt = $conn->prepare($rate_limit_sql);
         if ($rl_stmt) {
             $rl_stmt->bind_param("s", $ip_address);
@@ -97,6 +105,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $rl_row = null;
         }
+=======
+        $rl_stmt = mysqli_prepare($conn, $rate_limit_sql);
+        mysqli_stmt_bind_param($rl_stmt, "s", $ip_address);
+        mysqli_stmt_execute($rl_stmt);
+        $rl_result = mysqli_stmt_get_result($rl_stmt);
+        $rl_row = mysqli_fetch_assoc($rl_result);
+        mysqli_stmt_close($rl_stmt);
+>>>>>>> origin/dev
 
         if ($rl_row && $rl_row['attempt_count'] >= 5) {
             $error_message = "Too many failed attempts. Please try again after 15 minutes.";
@@ -152,7 +168,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['taluka_id'] = $user['taluka_id'];
                 $_SESSION['village_id'] = $user['village_id'];
                 
+<<<<<<< HEAD
                 header("Location: dashboard.php?lang=" . $lang);
+=======
+                close_db_connection();
+                header("Location: dashboard.php");
+>>>>>>> origin/dev
                 exit;
             } else {
                 $error_message = $t['err_invalid'];
@@ -185,6 +206,11 @@ function log_login_attempt($conn, $user_id, $ip, $device, $status) {
     }
 }
 
+<<<<<<< HEAD
+=======
+// Close the database connection explicitly at the end of PHP processing
+close_db_connection();
+>>>>>>> origin/dev
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo $lang; ?>">
