@@ -1,0 +1,154 @@
+MATCH IN user_creation.php:
+<!-- Profile -->
+                <div class="flex items-center space-x-3 border-l border-slate-200
+                            dark:border-slate-700 pl-4 ml-2 cursor-pointer">
+                    <div class="flex flex-col text-right hidden sm:block">
+                        <span class="text-sm font-semibold text-slate-900 dark:text-white">
+                            <?= htmlspecialchars($sName) ?>
+                        </span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">
+                            <?= htmlspecialchars($roleLabel) ?>
+                        </span>
+                    </div>
+                    <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center
+                                text-white font-bold text-sm border-2 border-white dark:border-slate-800 shadow-sm">
+                        <?= htmlspecialchars($initials) ?>
+                    </div>
+                </div>
+            
+
+-----------------
+
+MATCH IN reports.php:
+<div class="flex items-center space-x-3 border-l border-slate-200 dark:border-slate-700 pl-4 ml-2 cursor-pointer">
+                <div class="flex flex-col text-right hidden sm:block">
+                    <span class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($sName) ?></span>
+                    <span class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($sRole) ?></span>
+                </div>
+                <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border-2 border-white dark:border-slate-800 shadow-sm">
+                    <?= htmlspecialchars($initials) ?>
+                </div>
+            </div>
+        
+
+-----------------
+
+MATCH IN notifications.php:
+<!-- Profile -->
+                <div class="flex items-center space-x-3 border-l border-slate-200 dark:border-slate-700 pl-4">
+                    <div class="flex flex-col text-right hidden sm:block">
+                        <span class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($sName) ?></span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($roleLabel) ?></span>
+                    </div>
+                    <div class="h-9 w-9 rounded-full bg-navy-500 flex items-center justify-center text-white font-bold text-sm border shadow-sm">
+                        <?= htmlspecialchars($initials) ?>
+                    </div>
+                </div>
+            
+
+-----------------
+
+MATCH IN graph.php:
+<div class="flex items-center space-x-3 border-l border-slate-200 dark:border-slate-700 pl-4 ml-2 cursor-pointer">
+                    <div class="flex flex-col text-right hidden sm:block">
+                        <span class="text-sm font-semibold text-slate-900 dark:text-white">Hon. Collector</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">Amravati District</span>
+                    </div>
+                    <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border-2 border-white dark:border-slate-800 shadow-sm">
+                        C
+                    </div>
+                </div>
+            
+
+-----------------
+
+MATCH IN dashboard.php:
+<!-- Profile -->
+            <div class="flex items-center space-x-3 border-l border-slate-200
+                        dark:border-slate-700 pl-4 ml-2 cursor-pointer">
+                <div class="flex flex-col text-right hidden sm:block">
+                    <span class="text-sm font-semibold text-slate-900 dark:text-white">
+                        <?= htmlspecialchars($sName) ?>
+                    </span>
+                    <span class="text-xs text-slate-500 dark:text-slate-400">
+                        <?= htmlspecialchars($roleLabel) ?>
+                    </span>
+                </div>
+                <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center
+                            text-white font-bold text-sm border-2 border-white dark:border-slate-800 shadow-sm">
+                    <?= htmlspecialchars($initials) ?>
+                </div>
+            </div>
+        
+
+-----------------
+
+MATCH IN create_task.php:
+<!-- Profile -->
+            <div class="flex items-center space-x-3 border-l border-slate-200 dark:border-slate-700 pl-4 ml-2 cursor-pointer">
+                <div class="flex flex-col text-right hidden sm:block">
+                    <span class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($sName) ?></span>
+                    <span class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($sRole) ?></span>
+                </div>
+                <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border-2 border-white dark:border-slate-800 shadow-sm"><?= htmlspecialchars($initials) ?></div>
+            </div>
+        
+
+-----------------
+
+MATCH IN blank_wrushabh.php:
+<div class="flex items-center space-x-3 border-l border-slate-200 dark:border-slate-700 pl-4 ml-2 cursor-pointer">
+                    <div class="flex flex-col text-right hidden sm:block">
+                        <span class="text-sm font-semibold text-slate-900 dark:text-white">Hon. Collector</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">Amravati District</span>
+                    </div>
+                    <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border-2 border-white dark:border-slate-800 shadow-sm">
+                        C
+                    </div>
+                </div>
+            
+
+-----------------
+
+MATCH IN announcements.php:
+<!-- Profile -->
+                <div class="flex items-center space-x-3 border-l border-slate-200 dark:border-slate-700 pl-4">
+                    <div class="flex flex-col text-right hidden sm:block">
+                        <span class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($sName) ?></span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($roleLabel) ?></span>
+                    </div>
+                    <div class="h-9 w-9 rounded-full bg-navy-500 flex items-center justify-center text-white font-bold text-sm border shadow-sm">
+                        <?= htmlspecialchars($initials) ?>
+                    </div>
+                </div>
+            
+
+-----------------
+
+MATCH IN task_tracking.php:
+<div class="flex items-center gap-3 border-l border-slate-200 dark:border-slate-700 pl-3 ml-1">
+                <div class="hidden sm:flex flex-col text-right leading-tight">
+                    <span class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($sName) ?></span>
+                    <span class="text-xs text-slate-500"><?= htmlspecialchars($sRole) ?></span>
+                </div>
+                <div class="h-9 w-9 rounded-full bg-gradient-to-br from-navy-600 to-navy-500 flex items-center justify-center text-white font-bold text-sm border-2 border-white dark:border-slate-800 shadow-sm"><?= htmlspecialchars($initials) ?></div>
+            </div>
+        
+
+-----------------
+
+MATCH IN announcements.php:
+<!-- Profile -->
+                <div class="flex items-center space-x-3 border-l border-slate-200 dark:border-slate-700 pl-4">
+                    <div class="flex flex-col text-right hidden sm:block">
+                        <span class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($sName) ?></span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($roleLabel) ?></span>
+                    </div>
+                    <div class="h-9 w-9 rounded-full bg-navy-500 flex items-center justify-center text-white font-bold text-sm border shadow-sm">
+                        <?= htmlspecialchars($initials) ?>
+                    </div>
+                </div>
+            
+
+-----------------
+
