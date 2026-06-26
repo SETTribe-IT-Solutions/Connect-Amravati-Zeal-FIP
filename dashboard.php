@@ -1093,23 +1093,34 @@ include 'include/sidebar.php';
                     </div>
                 </div>
             </div>
-            <!-- Profile -->
-            <div class="flex items-center space-x-3 border-l border-slate-200
-                        dark:border-slate-700 pl-4 ml-2 cursor-pointer">
-                <div class="flex flex-col text-right hidden sm:block">
-                    <span class="text-sm font-semibold text-slate-900 dark:text-white">
-                        <?= htmlspecialchars($sName) ?>
-                    </span>
-                    <span class="text-xs text-slate-500 dark:text-slate-400">
-                        <?= htmlspecialchars($roleLabel) ?>
-                    </span>
+                        <!-- Profile dropdown container -->
+            <div class="relative pl-4 border-l border-slate-200 dark:border-slate-700">
+                <button id="profileDropdownBtn" class="flex items-center space-x-3 cursor-pointer focus:outline-none">
+                    <div class="flex flex-col text-right hidden sm:block">
+                        <span class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($sName ?? 'User') ?></span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($sRole ?? $roleLabel ?? 'Officer') ?></span>
+                    </div>
+                    <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-sm">
+                        <?= htmlspecialchars($initials ?? 'U') ?>
+                    </div>
+                </button>
+                <div id="profileDropdownMenu" class="hidden absolute right-0 mt-2 w-48 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md z-50">
+                    <div class="py-1">
+                        <a href="profile_update.php?lang=<?= $lang ?? 'en' ?>" class="flex items-center px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+                            <i data-lucide="user" class="w-4 h-4 mr-2 text-slate-400"></i><?= ($lang ?? 'en') === 'en' ? 'User Profile Update' : 'वापरकर्ता प्रोफाइल अपडेट' ?>
+                        </a>
+                        <a href="settings.php?lang=<?= $lang ?? 'en' ?>" class="flex items-center px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+                            <i data-lucide="settings" class="w-4 h-4 mr-2 text-slate-400"></i><?= ($lang ?? 'en') === 'en' ? 'Settings' : 'सेटिंग्ज' ?>
+                        </a>
+                        <a href="passwordChange.php?lang=<?= $lang ?? 'en' ?>" class="flex items-center px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+                            <i data-lucide="key" class="w-4 h-4 mr-2 text-slate-400"></i><?= ($lang ?? 'en') === 'en' ? 'Password Change' : 'पासवर्ड बदला' ?>
+                        </a>
+                        <a href="logout.php" class="flex items-center px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
+                            <i data-lucide="log-out" class="w-4 h-4 mr-2 text-red-500"></i><?= ($lang ?? 'en') === 'en' ? 'Logout' : 'लॉगआउट' ?>
+                        </a>
+                    </div>
                 </div>
-                <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center
-                            text-white font-bold text-sm border-2 border-white dark:border-slate-800 shadow-sm">
-                    <?= htmlspecialchars($initials) ?>
-                </div>
-            </div>
-        </div>
+            </div></div>
     </header>
 
     <!-- ── MAIN SCROLL AREA ───────────────────────────────── -->
@@ -1132,7 +1143,7 @@ include 'include/sidebar.php';
                     <i data-lucide="shield" class="w-3.5 h-3.5"></i>
                     <?= htmlspecialchars($t['badge_level']) ?> <?= $level ?> &middot; <?= htmlspecialchars($roleLabel) ?>
                 </span>
-                <button onclick="exportDashboardData()" class="btn-modern bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm">
+                <button onclick="Swal.fire({icon: 'info', title: 'Export Unavailable', text: 'The export module is currently offline for maintenance.', confirmButtonColor: '#0069cd'});" class="btn-modern bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm">
                     <i data-lucide="download" class="w-4 h-4 mr-2"></i><?= htmlspecialchars($t['btn_export']) ?>
                 </button>
                 <button onclick="window.location.href='create_task.php?lang=<?= $lang ?>'" class="btn-modern btn-primary shadow-official">
@@ -1350,7 +1361,7 @@ include 'include/sidebar.php';
                                 <option><?= htmlspecialchars($tRow['taluka']) ?></option>
                                 <?php endforeach; ?>
                             </select>
-                            <button class="p-2 border border-slate-300 dark:border-slate-600 rounded-md
+                            <button onclick="Swal.fire({icon: 'info', title: 'Filter', text: 'Advanced filtering is coming soon.', confirmButtonColor: '#0069cd'}); return false;" class="p-2 border border-slate-300 dark:border-slate-600 rounded-md
                                           text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">
                                 <i data-lucide="filter" class="w-4 h-4"></i>
                             </button>
@@ -1424,7 +1435,7 @@ include 'include/sidebar.php';
                                 <?= sprintf($t['showing_results'], count($distData['talukas']), number_format($distData['total'])) ?>
                             </p>
                             <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                                <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-l-md
+                                <a href="#" onclick="Swal.fire({icon: 'info', title: 'Pagination', text: 'More data is coming soon.', confirmButtonColor: '#0069cd'}); return false;" class="relative inline-flex items-center px-2 py-2 rounded-l-md
                                     border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700
                                     text-sm font-medium text-slate-500 dark:text-slate-300
                                     hover:bg-slate-50 dark:hover:bg-slate-600">
@@ -1437,7 +1448,7 @@ include 'include/sidebar.php';
                                 <a href="#" class="bg-white dark:bg-slate-700 border-slate-300
                                     dark:border-slate-600 text-slate-500 dark:text-slate-300
                                     hover:bg-slate-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">2</a>
-                                <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-r-md
+                                <a href="#" onclick="Swal.fire({icon: 'info', title: 'Pagination', text: 'More data is coming soon.', confirmButtonColor: '#0069cd'}); return false;" class="relative inline-flex items-center px-2 py-2 rounded-r-md
                                     border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700
                                     text-sm font-medium text-slate-500 dark:text-slate-300
                                     hover:bg-slate-50 dark:hover:bg-slate-600">
@@ -1820,7 +1831,7 @@ include 'include/sidebar.php';
                                 <option value="In Progress"><?= htmlspecialchars($t['status_in_progress']) ?></option>
                                 <option value="Overdue"><?= htmlspecialchars($t['status_overdue']) ?></option>
                             </select>
-                            <button class="p-2 border border-slate-300 dark:border-slate-600 rounded-md
+                            <button onclick="Swal.fire({icon: 'info', title: 'Filter', text: 'Advanced filtering is coming soon.', confirmButtonColor: '#0069cd'}); return false;" class="p-2 border border-slate-300 dark:border-slate-600 rounded-md
                                           text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">
                                 <i data-lucide="filter" class="w-4 h-4"></i>
                             </button>
@@ -1920,11 +1931,11 @@ include 'include/sidebar.php';
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <button onclick="window.location.href='task_tracking.php?id=<?= $task['task_id'] ?>'" class="text-navy-600 dark:text-blue-400 hover:text-navy-900
+                                        <button onclick="openTrackModal(<?= $task['task_id'] ?>); return false;" class="text-navy-600 dark:text-blue-400 hover:text-navy-900
                                                        dark:hover:text-blue-300 mr-3" title="View">
                                             <i data-lucide="eye" class="w-4 h-4"></i>
                                         </button>
-                                        <button onclick="window.location.href='task_tracking.php?id=<?= $task['task_id'] ?>'" class="text-slate-400 hover:text-slate-600
+                                        <button onclick="openTrackModal(<?= $task['task_id'] ?>); return false;" class="text-slate-400 hover:text-slate-600
                                                        dark:hover:text-slate-200" title="More">
                                             <i data-lucide="more-horizontal" class="w-4 h-4"></i>
                                         </button>
@@ -1943,7 +1954,7 @@ include 'include/sidebar.php';
                                 <?= sprintf($t['showing_results'], count($vilData['tasks']), number_format($vilData['total'])) ?>
                             </p>
                             <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                                <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-l-md border
+                                <a href="#" onclick="Swal.fire({icon: 'info', title: 'Pagination', text: 'More data is coming soon.', confirmButtonColor: '#0069cd'}); return false;" class="relative inline-flex items-center px-2 py-2 rounded-l-md border
                                     border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm
                                     font-medium text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600">
                                     <i data-lucide="chevron-left" class="h-5 w-5"></i>
@@ -1955,7 +1966,7 @@ include 'include/sidebar.php';
                                 <a href="#" class="bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600
                                     text-slate-500 dark:text-slate-300 hover:bg-slate-50 relative inline-flex
                                     items-center px-4 py-2 border text-sm font-medium">2</a>
-                                <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-r-md border
+                                <a href="#" onclick="Swal.fire({icon: 'info', title: 'Pagination', text: 'More data is coming soon.', confirmButtonColor: '#0069cd'}); return false;" class="relative inline-flex items-center px-2 py-2 rounded-r-md border
                                     border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm
                                     font-medium text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600">
                                     <i data-lucide="chevron-right" class="h-5 w-5"></i>
@@ -1971,14 +1982,7 @@ include 'include/sidebar.php';
     </main>
 </div><!-- /main wrapper -->
 
-<!-- AI Chatbot FAB -->
-<div class="fixed bottom-6 right-6 z-50">
-    <button class="w-14 h-14 bg-gradient-to-r from-navy-600 to-navy-500 rounded-full shadow-lg
-                   flex items-center justify-center text-white hover:scale-105 transition-transform
-                   shadow-navy-500/30" title="Ask Amravati AI">
-        <i data-lucide="message-square-text" class="w-6 h-6"></i>
-    </button>
-</div>
+<!-- AI Chatbot FAB Removed -->
 
 <!-- ════════════════════════════════════════════════════════════
      SCRIPTS — Initialise Icons, Dark Mode, Sidebar & Charts
@@ -2747,4 +2751,6 @@ fetchNotifications();
         </form>
     </div>
 </div>
+<?php include 'include/tracking_modal.php'; ?>
+<?php include 'include/tracking_modal.php'; ?>
 <?php include 'include/footer.php'; ?>

@@ -31,15 +31,15 @@
             });
         }
         // Dropdown Toggle Logic
-        const profileBtn = document.getElementById('profileBtn');
+        const profileDropdownBtn = document.getElementById('profileDropdownBtn');
         const profileDropdownMenu = document.getElementById('profileDropdownMenu');
-        if(profileBtn && profileDropdownMenu) {
-            profileBtn.addEventListener('click', (e) => {
+        if(profileDropdownBtn && profileDropdownMenu) {
+            profileDropdownBtn.addEventListener('click', (e) => {
                 profileDropdownMenu.classList.toggle('hidden');
                 e.stopPropagation();
             });
             document.addEventListener('click', (e) => {
-                if (!profileBtn.contains(e.target) && !profileDropdownMenu.contains(e.target)) {
+                if (!profileDropdownBtn.contains(e.target) && !profileDropdownMenu.contains(e.target)) {
                     profileDropdownMenu.classList.add('hidden');
                 }
             });

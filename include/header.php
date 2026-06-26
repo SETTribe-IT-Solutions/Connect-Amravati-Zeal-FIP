@@ -183,15 +183,7 @@ $pageDesc = $pageDesc ?? 'Official District Administration Portal';
         }
 
         /* Modern Form Inputs */
-        .input-modern,
-        input[type="text"],
-        input[type="password"],
-        input[type="email"],
-        input[type="number"],
-        input[type="datetime-local"],
-        input[type="date"],
-        textarea,
-        select {
+        :where(.input-modern, input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="datetime-local"], input[type="date"], textarea, select) {
             border-radius: 0.5rem;
             border: 1px solid #e2e8f0;
             padding: 0.625rem 1rem;
@@ -201,42 +193,18 @@ $pageDesc = $pageDesc ?? 'Official District Administration Portal';
             font-size: 0.875rem;
             width: 100%;
         }
-        .dark .input-modern,
-        .dark input[type="text"],
-        .dark input[type="password"],
-        .dark input[type="email"],
-        .dark input[type="number"],
-        .dark input[type="datetime-local"],
-        .dark input[type="date"],
-        .dark textarea,
-        .dark select {
+        :where(.dark .input-modern, .dark input[type="text"], .dark input[type="password"], .dark input[type="email"], .dark input[type="number"], .dark input[type="datetime-local"], .dark input[type="date"], .dark textarea, .dark select) {
             border-color: #334155;
             background-color: #0f172a;
             color: #e2e8f0;
         }
-        .input-modern:focus,
-        input[type="text"]:focus,
-        input[type="password"]:focus,
-        input[type="email"]:focus,
-        input[type="number"]:focus,
-        input[type="datetime-local"]:focus,
-        input[type="date"]:focus,
-        textarea:focus,
-        select:focus {
+        :where(.input-modern:focus, input[type="text"]:focus, input[type="password"]:focus, input[type="email"]:focus, input[type="number"]:focus, input[type="datetime-local"]:focus, input[type="date"]:focus, textarea:focus, select:focus) {
             outline: none !important;
             border-color: #0054a4 !important;
             box-shadow: 0 0 0 3px rgba(0, 84, 164, 0.2) !important;
             background-color: #ffffff !important;
         }
-        .dark .input-modern:focus,
-        .dark input[type="text"]:focus,
-        .dark input[type="password"]:focus,
-        .dark input[type="email"]:focus,
-        .dark input[type="number"]:focus,
-        .dark input[type="datetime-local"]:focus,
-        .dark input[type="date"]:focus,
-        .dark textarea:focus,
-        .dark select:focus {
+        :where(.dark .input-modern:focus, .dark input[type="text"]:focus, .dark input[type="password"]:focus, .dark input[type="email"]:focus, .dark input[type="number"]:focus, .dark input[type="datetime-local"]:focus, .dark input[type="date"]:focus, .dark textarea:focus, .dark select:focus) {
             border-color: #3387d7 !important;
             box-shadow: 0 0 0 3px rgba(51, 135, 215, 0.2) !important;
             background-color: #1e293b !important;

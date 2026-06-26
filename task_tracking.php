@@ -176,7 +176,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'timeline') {
         SELECT tt.*, u.full_name AS actor_name, u.designation AS actor_desig
           FROM task_tracking tt
           LEFT JOIN users u ON u.user_id = tt.updated_by
-         WHERE tt.task_id = $tid ORDER BY COALESCE(tt.updated_date, tt.created_date) ASC");
+         WHERE tt.task_id = $tid ORDER BY tt.updated_at ASC");
     if ($tr) {
         while ($row = $tr->fetch_assoc()) {
             $events[] = [
@@ -189,7 +189,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'timeline') {
                 'actor_desig' => $row['actor_desig'] ?? '',
                 'remarks'     => $row['remarks'],
                 'attachment'  => null,
-                'event_date'  => $row['updated_date'] ?? $row['created_date'] ?? '',
+                'event_date'  => $row['updated_at'] ?? '',
             ];
         }
     }
@@ -289,8 +289,8 @@ $conn->query("
         `status`       VARCHAR(50)  NOT NULL DEFAULT 'Pending',
         `remarks`      TEXT                  DEFAULT NULL,
         `updated_by`   INT(11)               DEFAULT NULL,
-        `updated_date` DATETIME              DEFAULT NULL,
-        `created_date` TIMESTAMP   NOT NULL  DEFAULT CURRENT_TIMESTAMP,
+        
+        `updated_at`   DATETIME              DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY (`tracking_id`),
         KEY `idx_task_id` (`task_id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -356,7 +356,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_t
 
         // 1. Insert manual tracking entry
         $ok = $conn->query("
-            INSERT INTO task_tracking (task_id, status, remarks, updated_by, updated_date)
+            INSERT INTO task_tracking (task_id, status, remarks, updated_by, updated_at)
             VALUES ($pt_task_id, '$sStatus', '$sRemarks', $bySQL, NOW())
         ");
 
@@ -501,7 +501,7 @@ if ($raw_task_id !== '') {
         // ── Manual tracking entries ───────────────────────────────
         $tt_res = $conn->query("
             SELECT tt.tracking_id AS id, tt.status, tt.remarks,
-                   COALESCE(tt.updated_date, tt.created_date) AS event_date,
+                   tt.updated_at AS event_date,
                    u.full_name AS actor_name, u.designation AS actor_desig
               FROM task_tracking tt
               LEFT JOIN users u ON u.user_id = tt.updated_by
@@ -942,14 +942,34 @@ include 'include/sidebar.php';
             </button>
             <!-- Notifications -->
             <?php include 'include/notification_widget.php'; ?>
-            <div class="flex items-center gap-3 border-l border-slate-200 dark:border-slate-700 pl-3 ml-1">
-                <div class="hidden sm:flex flex-col text-right leading-tight">
-                    <span class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($sName) ?></span>
-                    <span class="text-xs text-slate-500"><?= htmlspecialchars($sRole) ?></span>
+                        <!-- Profile dropdown container -->
+            <div class="relative pl-4 border-l border-slate-200 dark:border-slate-700">
+                <button id="profileDropdownBtn" class="flex items-center space-x-3 cursor-pointer focus:outline-none">
+                    <div class="flex flex-col text-right hidden sm:block">
+                        <span class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($sName ?? 'User') ?></span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($sRole ?? $roleLabel ?? 'Officer') ?></span>
+                    </div>
+                    <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-sm">
+                        <?= htmlspecialchars($initials ?? 'U') ?>
+                    </div>
+                </button>
+                <div id="profileDropdownMenu" class="hidden absolute right-0 mt-2 w-48 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md z-50">
+                    <div class="py-1">
+                        <a href="profile_update.php?lang=<?= $lang ?? 'en' ?>" class="flex items-center px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+                            <i data-lucide="user" class="w-4 h-4 mr-2 text-slate-400"></i><?= ($lang ?? 'en') === 'en' ? 'User Profile Update' : 'वापरकर्ता प्रोफाइल अपडेट' ?>
+                        </a>
+                        <a href="settings.php?lang=<?= $lang ?? 'en' ?>" class="flex items-center px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+                            <i data-lucide="settings" class="w-4 h-4 mr-2 text-slate-400"></i><?= ($lang ?? 'en') === 'en' ? 'Settings' : 'सेटिंग्ज' ?>
+                        </a>
+                        <a href="passwordChange.php?lang=<?= $lang ?? 'en' ?>" class="flex items-center px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+                            <i data-lucide="key" class="w-4 h-4 mr-2 text-slate-400"></i><?= ($lang ?? 'en') === 'en' ? 'Password Change' : 'पासवर्ड बदला' ?>
+                        </a>
+                        <a href="logout.php" class="flex items-center px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
+                            <i data-lucide="log-out" class="w-4 h-4 mr-2 text-red-500"></i><?= ($lang ?? 'en') === 'en' ? 'Logout' : 'लॉगआउट' ?>
+                        </a>
+                    </div>
                 </div>
-                <div class="h-9 w-9 rounded-full bg-gradient-to-br from-navy-600 to-navy-500 flex items-center justify-center text-white font-bold text-sm border-2 border-white dark:border-slate-800 shadow-sm"><?= htmlspecialchars($initials) ?></div>
-            </div>
-        </div>
+            </div></div>
     </header>
 
     <!-- SCROLLABLE MAIN -->

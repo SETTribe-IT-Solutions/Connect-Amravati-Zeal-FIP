@@ -12,11 +12,6 @@ define('DB_USER',      'nmrmlatur_districCNTZEAL');
 define('DB_PASS',      'districtCNTDB@2026');
 define('DB_NAME',      'nmrmlatur_districtCNTDB');
 
-// ── Local XAMPP credentials (fallback) ────────────────────────
-define('DB_HOST_LOCAL', '127.0.0.1');
-define('DB_USER_LOCAL', 'root');
-define('DB_PASS_LOCAL', '');
-define('DB_NAME_LOCAL', 'nmrmlatur_districtCNTDB');
 
 $conn = null;
 
@@ -41,6 +36,12 @@ if ($conn->connect_errno) {
     }
 } else {
     $conn->set_charset('utf8mb4');
+}
+
+// Auto-patch missing columns to fix graph data and functionality silently
+if ($conn instanceof mysqli) {
+    @$conn->query("ALTER TABLE `tasks` ADD COLUMN `completion_date` DATETIME NULL AFTER `due_date`");
+    @$conn->query("ALTER TABLE `announcements` ADD COLUMN `category` VARCHAR(100) NULL AFTER `title`");
 }
 
 // Re-enable strict mode only after successful connection
