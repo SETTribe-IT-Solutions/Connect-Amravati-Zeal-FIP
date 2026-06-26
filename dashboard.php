@@ -1189,7 +1189,7 @@ include 'include/sidebar.php';
                     <?php
                     // 1. Total Tasks KPI
                     $dkpi = [
-                        ['Total Tasks', $dynamicTotalTasks, 'hash', 'blue', '', '', false]
+                        ['Total Tasks', $dynamicTotalTasks, 'hash', 'blue', '', '', false, 'all']
                     ];
 
                     // 2. Status-wise KPIs
@@ -1203,8 +1203,20 @@ include 'include/sidebar.php';
                         'Rejected'    => ['icon' => 'x-circle', 'color' => 'red'],
                     ];
 
+                    // Explicitly add Overdue Tasks (uses $overdueTasks calculated earlier)
+                    $dkpi[] = [
+                        'Total Overdue Tasks',
+                        $overdueTasks ?? 0,
+                        'alert-octagon',
+                        'red',
+                        '', '', false,
+                        'Overdue'
+                    ];
+
                     foreach ($dynamicStatusCounts as $row) {
                         $st = $row['status'];
+                        if ($st === 'Overdue' || $st === 'Escalated') continue; // Handled by consolidated Overdue card
+
                         $val = (int)$row['total'];
                         $style = $statusStyles[$st] ?? ['icon' => 'layers', 'color' => 'slate'];
                         
@@ -1213,45 +1225,49 @@ include 'include/sidebar.php';
                             $val,
                             $style['icon'],
                             $style['color'],
-                            '', '', false // No trend data for dynamic statuses
+                            '', '', false,
+                            $st
                         ];
                     }
 
-                    foreach ($dkpi as [$label,$val,$icon,$clr,$trendIcon,$trendTxt,$trendUp]):
+                    foreach ($dkpi as [$label,$val,$icon,$clr,$trendIcon,$trendTxt,$trendUp,$filterStatus]):
+                        $linkUrl = "task_tracking.php?lang={$lang}&filter_status=" . urlencode($filterStatus);
                     ?>
-                    <div class="kpi-card bg-gradient-to-br from-<?= $clr ?>-50 to-white dark:from-<?= $clr ?>-900/40 dark:to-slate-800 overflow-hidden shadow-sm
-                                rounded-xl border-l-4 border-l-<?= $clr ?>-500 border-t border-r border-b border-slate-200 dark:border-slate-700">
-                        <div class="p-5 relative">
-                            <i data-lucide="<?= $icon ?>" class="absolute right-0 bottom-0 w-24 h-24 text-<?= $clr ?>-500 opacity-5 transform translate-x-4 translate-y-4 pointer-events-none"></i>
-                            <div class="flex items-center justify-between">
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-medium text-slate-500 dark:text-slate-400 truncate">
-                                        <?= htmlspecialchars($label) ?>
-                                    </p>
-                                    <div class="mt-1 flex items-baseline">
-                                        <p class="text-3xl font-bold
-                                           <?= $clr==='red' ? 'text-red-600 dark:text-red-400'
-                                                           : 'text-slate-900 dark:text-white' ?>">
-                                            <?php echo number_format($val); ?>
+                    <a href="<?= htmlspecialchars($linkUrl) ?>" class="block transition-transform hover:scale-105 cursor-pointer" style="text-decoration: none;">
+                        <div class="kpi-card bg-gradient-to-br from-<?= $clr ?>-50 to-white dark:from-<?= $clr ?>-900/40 dark:to-slate-800 overflow-hidden shadow-sm
+                                    rounded-xl border-l-4 border-l-<?= $clr ?>-500 border-t border-r border-b border-slate-200 dark:border-slate-700 h-full">
+                            <div class="p-5 relative">
+                                <i data-lucide="<?= $icon ?>" class="absolute right-0 bottom-0 w-24 h-24 text-<?= $clr ?>-500 opacity-5 transform translate-x-4 translate-y-4 pointer-events-none"></i>
+                                <div class="flex items-center justify-between">
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-medium text-slate-500 dark:text-slate-400 truncate">
+                                            <?= htmlspecialchars($label) ?>
                                         </p>
-                                        <?php if ($trendTxt): ?>
-                                        <p class="ml-2 flex items-baseline text-sm font-semibold
-                                           <?= $trendUp ? 'text-govgreen-600 dark:text-green-400'
-                                                        : 'text-red-600 dark:text-red-400' ?>">
-                                            <i data-lucide="<?= $trendIcon ?>" class="w-3 h-3 mr-1"></i>
-                                            <?= $trendTxt ?>
-                                        </p>
-                                        <?php endif; ?>
+                                        <div class="mt-1 flex items-baseline">
+                                            <p class="text-3xl font-bold
+                                               <?= $clr==='red' ? 'text-red-600 dark:text-red-400'
+                                                               : 'text-slate-900 dark:text-white' ?>">
+                                                <?php echo number_format($val); ?>
+                                            </p>
+                                            <?php if ($trendTxt): ?>
+                                            <p class="ml-2 flex items-baseline text-sm font-semibold
+                                               <?= $trendUp ? 'text-govgreen-600 dark:text-green-400'
+                                                            : 'text-red-600 dark:text-red-400' ?>">
+                                                <i data-lucide="<?= $trendIcon ?>" class="w-3 h-3 mr-1"></i>
+                                                <?= $trendTxt ?>
+                                            </p>
+                                            <?php endif; ?>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="w-12 h-12 bg-<?= $clr ?>-50 dark:bg-<?= $clr ?>-900/30
-                                            rounded-full flex items-center justify-center">
-                                    <i data-lucide="<?= $icon ?>"
-                                       class="w-6 h-6 text-<?= $clr ?>-600 dark:text-<?= $clr ?>-400 <?= $clr==='red'?'pulse':'' ?>"></i>
+                                    <div class="w-12 h-12 bg-<?= $clr ?>-50 dark:bg-<?= $clr ?>-900/30
+                                                rounded-full flex items-center justify-center">
+                                        <i data-lucide="<?= $icon ?>"
+                                           class="w-6 h-6 text-<?= $clr ?>-600 dark:text-<?= $clr ?>-400 <?= $clr==='red'?'pulse':'' ?>"></i>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </a>
                     <?php endforeach; ?>
                 </div>
 
@@ -1262,15 +1278,13 @@ include 'include/sidebar.php';
                                 border border-slate-200 dark:border-slate-700 p-6">
                         <div class="flex justify-between items-center mb-4">
                             <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
-                                <?= htmlspecialchars($t['chart_trend']) ?>
+                                <?= htmlspecialchars($t['chart_monthly_trend']) ?>
                             </h2>
                             <button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                                 <i data-lucide="more-vertical" class="w-5 h-5"></i>
                             </button>
                         </div>
-                        <div class="h-72 w-full relative">
-                            <canvas id="chartjs-line-trend"></canvas>
-                        </div>
+                        <div id="chart-dist-trend" class="h-72 w-full"></div>
                     </div>
                     
                     <!-- Top Performing Offices — bar chart -->
@@ -1301,9 +1315,7 @@ include 'include/sidebar.php';
                                 <i data-lucide="more-vertical" class="w-5 h-5"></i>
                             </button>
                         </div>
-                        <div class="h-72 w-full relative">
-                            <canvas id="chartjs-pie-status"></canvas>
-                        </div>
+                        <div id="chart-dist-donut" class="h-72 w-full"></div>
                     </div>
 
                     <!-- Priority Distribution -->
@@ -2065,9 +2077,30 @@ function toggleSec(id) {
 
 /* ── Status Filter ─────────────────────────────────────────── */
 function filterRows() {
-    const val = document.getElementById('statusFilter').value;
+    const statusVal = document.getElementById('statusFilter') ? document.getElementById('statusFilter').value : '';
+    const searchInput = document.getElementById('globalSearch');
+    const searchVal = searchInput ? searchInput.value.toLowerCase() : '';
+    
     document.querySelectorAll('#taskTable .task-row').forEach(r => {
-        r.style.display = (!val || r.dataset.status === val) ? '' : 'none';
+        const statusMatch = (!statusVal || r.dataset.status === statusVal);
+        const textMatch = (!searchVal || r.textContent.toLowerCase().includes(searchVal));
+        r.style.display = (statusMatch && textMatch) ? '' : 'none';
+    });
+}
+
+const globalSearchEl = document.getElementById('globalSearch');
+if (globalSearchEl) {
+    globalSearchEl.addEventListener('input', filterRows);
+    globalSearchEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'info',
+                title: 'Coming Soon',
+                text: 'Global Search across all modules is currently under development.',
+                confirmButtonColor: '#0069cd'
+            });
+        }
     });
 }
 
@@ -2226,9 +2259,10 @@ function buildHBar(el, data, cats, color, isDark) {
         plotOptions:{bar:{borderRadius:6,horizontal:true,barHeight:'55%',
             dataLabels:{position:'right'}}},
         dataLabels:{enabled:true,
+            textAnchor: 'start',
             formatter:v=>v>0?v.toFixed(1)+'%':'',
             style:{fontSize:'11px',fontFamily:'Inter,sans-serif',colors:[isDark?'#94a3b8':'#475569']},
-            offsetX:5},
+            offsetX:25},
         xaxis:{categories:cats, max:100, labels:_ax(tc)},
         yaxis:{labels:{..._ax(tc), maxWidth:160}},
         grid:{borderColor:gc,strokeDashArray:4,xaxis:{lines:{show:true}},yaxis:{lines:{show:false}}},
@@ -2391,15 +2425,7 @@ const notificationDropdown = document.getElementById('notificationDropdown');
 const unreadCountBadge = document.getElementById('unreadCountBadge');
 const notificationList = document.getElementById('notificationList');
 
-notificationBtn.addEventListener('click', () => {
-    notificationDropdown.classList.toggle('hidden');
-});
 
-document.addEventListener('click', (e) => {
-    if (!notificationBtn.contains(e.target) && !notificationDropdown.contains(e.target)) {
-        notificationDropdown.classList.add('hidden');
-    }
-});
 
 let lastUnreadCount = 0;
 
