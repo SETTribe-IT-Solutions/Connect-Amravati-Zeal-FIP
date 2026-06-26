@@ -331,15 +331,6 @@ include 'include/sidebar.php';
         });
     }
     
-    // Profile Dropdown Toggle
-    const dropdownBtn = document.getElementById('profileDropdownBtn');
-    const dropdownMenu = document.getElementById('profileDropdownMenu');
-    if (dropdownBtn && dropdownMenu) {
-        dropdownBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            dropdownMenu.classList.toggle('hidden');
-        });
-        document.addEventListener('click', () => dropdownMenu.classList.add('hidden'));
-    }
+
 </script>
 <?php include 'include/footer.php'; ?>
