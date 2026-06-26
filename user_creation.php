@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once 'include/dbConfig.php';
+require_once 'include/mailer.php';
 
 // Language Toggle Setup (Support Marathi & English)
 $lang = isset($_GET['lang']) && $_GET['lang'] === 'mr' ? 'mr' : 'en';
@@ -279,7 +280,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmtInsert = $conn->prepare($insertSql);
                     $stmtInsert->bind_param("ssssiiiiiss", $generated_employee_code, $full_name, $email, $mobile, $department_id, $role_id, $district_id, $taluka_id, $village_id, $defaultPassword, $status);
                     if ($stmtInsert->execute()) {
-                        $_SESSION['msg'] = "User created successfully!";
+                        // Send welcome email with credentials
+                        if (SMTP_ENABLED) {
+                            try {
+                                $subject = "Welcome to Connect Amravati - Your Account Credentials";
+                                $loginUrl = "http://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['SCRIPT_NAME']) . "/index.php";
+                                $loginUrl = str_replace('\\', '/', $loginUrl);
+                                
+                                $email_html = "
+                                <html>
+                                <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
+                                    <div style='max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;'>
+                                        <h2 style='color: #1e3a8a;'>Welcome to Connect Amravati, {$full_name}!</h2>
+                                        <p>Your account has been successfully created by the administrator.</p>
+                                        <p>Here are your login credentials:</p>
+                                        <div style='background-color: #f8fafc; padding: 15px; border-radius: 6px; margin: 20px 0;'>
+                                            <p style='margin: 5px 0;'><strong>Username (Email):</strong> {$email}</p>
+                                            <p style='margin: 5px 0;'><strong>Password:</strong> {$defaultPassText}</p>
+                                            <p style='margin: 5px 0;'><strong>Employee Code:</strong> {$generated_employee_code}</p>
+                                        </div>
+                                        <p>Please log in using the link below:</p>
+                                        <a href='{$loginUrl}' style='display: inline-block; padding: 10px 20px; background-color: #1e3a8a; color: #fff; text-decoration: none; border-radius: 5px; margin-top: 10px;'>Login to Your Account</a>
+                                        <p style='margin-top: 20px; font-size: 0.9em; color: #666;'><em>Please change your password immediately after logging in for security purposes.</em></p>
+                                    </div>
+                                </body>
+                                </html>
+                                ";
+                                
+                                send_smtp_email(
+                                    $email,
+                                    $subject,
+                                    $email_html,
+                                    SMTP_USER,
+                                    SMTP_FROM_NAME,
+                                    SMTP_HOST,
+                                    SMTP_PORT,
+                                    SMTP_USER,
+                                    SMTP_PASS,
+                                    SMTP_SECURE
+                                );
+                                $_SESSION['msg'] = "User created successfully! Login credentials emailed to {$email}.";
+                            } catch (Exception $e) {
+                                $_SESSION['msg'] = "User created successfully, but email failed: " . $e->getMessage();
+                            }
+                        } else {
+                            $_SESSION['msg'] = "User created successfully!";
+                        }
                         $_SESSION['msgType'] = "success";
                         header("Location: user_creation.php?lang=" . $lang);
                         exit();

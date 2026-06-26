@@ -419,10 +419,12 @@ $task_doc       = null;
 $search_results = [];
 $search_error   = '';
 
-if (!empty($search_query)) {
+if (!empty($search_query) || isset($_GET['filter_status'])) {
     $safe_q = $conn->real_escape_string($search_query);
 
-    if ($search_type === 'task_no') {
+    if (empty($search_query)) {
+        $where = "1=1";
+    } elseif ($search_type === 'task_no') {
         $where = "t.task_no = '$safe_q'";
     } elseif ($search_type === 'task_title') {
         $where = "t.task_title LIKE '%$safe_q%'";
@@ -430,7 +432,7 @@ if (!empty($search_query)) {
         $where = "(t.task_no = '$safe_q' OR t.task_title LIKE '%$safe_q%')";
     }
 
-    $status_clause = $filter_status ? " AND t.status = '" . $conn->real_escape_string($filter_status) . "'" : '';
+    $status_clause = ($filter_status && $filter_status !== 'all') ? " AND t.status = '" . $conn->real_escape_string($filter_status) . "'" : '';
 
     $list_sql = "
         SELECT t.task_id, t.task_no, t.task_title, t.status, t.priority,
@@ -1053,7 +1055,7 @@ include 'include/sidebar.php';
                             <select name="filter_status"
                                     class="w-full px-3 py-2.5 text-sm border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-navy-500 transition-colors">
                                 <option value="">All Statuses</option>
-                                <?php foreach (['Pending','Assigned','In Progress','On Hold','Completed','Rejected'] as $st): ?>
+                                <?php foreach (['Pending','Assigned','In Progress','On Hold','Completed','Rejected','Overdue','Escalated'] as $st): ?>
                                 <option value="<?= $st ?>" <?= $filter_status === $st ? 'selected' : '' ?>><?= $st ?></option>
                                 <?php endforeach; ?>
                             </select>
@@ -1064,7 +1066,7 @@ include 'include/sidebar.php';
                                     class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-navy-600 hover:bg-navy-700 rounded-xl shadow-sm transition-colors">
                                 <i data-lucide="search" class="w-4 h-4"></i> Search
                             </button>
-                            <?php if ($search_query): ?>
+                            <?php if ($search_query || $filter_status): ?>
                             <a href="task_tracking.php"
                                class="inline-flex items-center px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                                 <i data-lucide="x" class="w-4 h-4"></i>
@@ -1084,7 +1086,7 @@ include 'include/sidebar.php';
                 <i data-lucide="search-x" class="w-7 h-7 text-slate-400"></i>
             </div>
             <h3 class="text-base font-semibold text-slate-700 dark:text-slate-200 mb-1">No Tasks Found</h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400">No tasks matched "<strong><?= htmlspecialchars($search_query) ?></strong>". Try a different term.</p>
+            <p class="text-sm text-slate-500 dark:text-slate-400">No tasks matched your search or filter criteria. Try a different term.</p>
         </div>
         <?php endif; ?>
 
@@ -1096,7 +1098,7 @@ include 'include/sidebar.php';
             <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
                 <div>
                     <h2 class="text-sm font-semibold text-slate-800 dark:text-white">Search Results</h2>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5"><?= count($search_results) ?> task(s) found for "<?= htmlspecialchars($search_query) ?>"</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5"><?= count($search_results) ?> task(s) found</p>
                 </div>
                 <span class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                     <?= count($search_results) ?> result<?= count($search_results) !== 1 ? 's' : '' ?>
@@ -1144,10 +1146,17 @@ include 'include/sidebar.php';
                                 <span class="px-2.5 py-1 text-xs font-semibold rounded-full <?= statusBadgeClass($sr['status']) ?>"><?= htmlspecialchars($sr['status']) ?></span>
                             </td>
                             <td class="px-5 py-3.5 whitespace-nowrap text-right">
+                                <?php if (in_array($sr['status'], ['Overdue', 'Escalated'])): ?>
+                                <button onclick="event.stopPropagation(); openTrackModal(<?= $sr['task_id'] ?>)"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg text-white bg-gradient-to-r from-red-600 to-red-500 hover:opacity-90 shadow-sm transition-all hover:scale-105 active:scale-95 pulse">
+                                    <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> Take Action
+                                </button>
+                                <?php else: ?>
                                 <button onclick="event.stopPropagation(); openTrackModal(<?= $sr['task_id'] ?>)"
                                         class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg text-white bg-gradient-to-r from-navy-600 to-navy-500 hover:opacity-90 shadow-sm transition-all hover:scale-105 active:scale-95">
                                     <i data-lucide="route" class="w-3.5 h-3.5"></i> Track
                                 </button>
+                                <?php endif; ?>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -1653,7 +1662,7 @@ include 'include/sidebar.php';
         <!-- ──────────────────────────────────────────────────────────
              LANDING / EMPTY STATE
         ─────────────────────────────────────────────────────────── -->
-        <?php if (!$search_query && !$task): ?>
+        <?php if (!$search_query && !isset($_GET['filter_status']) && !$task && empty($search_results)): ?>
         <div class="glass-panel rounded-2xl shadow-official border border-slate-200/50 dark:border-slate-700/50 p-16 text-center animate-in">
             <div class="w-20 h-20 bg-gradient-to-br from-navy-600 to-navy-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-navy-500/30">
                 <i data-lucide="route" class="w-10 h-10 text-white"></i>
