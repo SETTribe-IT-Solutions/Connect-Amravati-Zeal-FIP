@@ -458,7 +458,7 @@ include 'include/sidebar.php';
     <!-- GLOBAL HEADER -->
     <header class="h-16 glass-panel border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 z-10 sticky top-0">
         <div class="flex items-center flex-1">
-            <button class="mr-4 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 focus:outline-none hidden md:block" id="sidebarToggle">
+            <button class="mr-4 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 focus:outline-none block lg:hidden" id="sidebarToggle">
                 <i data-lucide="menu" class="w-6 h-6"></i>
             </button>
             <!-- Breadcrumb -->
@@ -687,7 +687,7 @@ include 'include/sidebar.php';
                                 <label class="form-label">
                                     Allocation Type <span class="text-red-500">*</span>
                                 </label>
-                                <div class="grid grid-cols-2 gap-3" id="allocationTypeGroup">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="allocationTypeGroup">
                                     <!-- By Name -->
                                     <label class="allocation-card cursor-pointer" id="card-byname">
                                         <input type="radio" name="allocation_type" value="by_name"
@@ -981,7 +981,7 @@ include 'include/sidebar.php';
                             </div>
                         </div>
                         <div class="p-6">
-                            <div class="grid grid-cols-2 gap-3" id="priorityGroup">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="priorityGroup">
                                 <?php
                                 $priorities = [
                                     'Low'      => ['icon' => 'arrow-down', 'cls' => 'badge-low',      'ring' => 'border-green-400'],

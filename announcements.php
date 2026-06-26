@@ -338,7 +338,7 @@ include 'include/sidebar.php';
         <!-- HEADER -->
         <header class="h-16 glass-panel border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 z-10 sticky top-0">
             <div class="flex items-center flex-1">
-                <button class="mr-4 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 focus:outline-none hidden md:block" id="sidebarToggle">
+                <button class="mr-4 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 focus:outline-none block lg:hidden" id="sidebarToggle">
                     <i data-lucide="menu" class="w-6 h-6"></i>
                 </button>
             </div>
@@ -349,6 +349,85 @@ include 'include/sidebar.php';
                     <i data-lucide="languages" class="w-4 h-4 mr-2 text-slate-500"></i>
                     <?= $lang === 'en' ? 'मराठी (MR)' : 'English (EN)' ?>
                 </a>
+                
+                <!-- RSVP Modal (For Participants) -->
+    <div id="rsvpModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="closeRsvpModal()"></div>
+        <div class="relative bg-white dark:bg-slate-800 w-full max-w-md rounded-xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-700">
+            <div class="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
+                <h3 class="text-lg font-bold">Meeting RSVP</h3>
+                <button onclick="closeRsvpModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <form id="rsvpForm" onsubmit="submitRsvp(event)">
+                <input type="hidden" id="rsvpMeetingId" name="meeting_id">
+                <div class="p-6">
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold mb-2 uppercase text-slate-400">Will you attend?</label>
+                        <div class="flex items-center space-x-4">
+                            <label class="flex items-center">
+                                <input type="radio" name="rsvp_status" value="Joined" required onchange="toggleRsvpReason()" class="mr-2"> Yes, I will join
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="rsvp_status" value="Not Joining" required onchange="toggleRsvpReason()" class="mr-2"> No, I cannot join
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-4 hidden" id="rsvpReasonContainer">
+                        <label class="block text-xs font-bold mb-1 uppercase text-slate-400">Reason for not joining <span class="text-red-500">*</span></label>
+                        <textarea id="rsvpReason" name="rsvp_reason" rows="3" class="w-full px-3 py-2 border rounded-lg bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none"></textarea>
+                    </div>
+                </div>
+                <div class="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-700 flex justify-end space-x-3">
+                    <button type="button" onclick="closeRsvpModal()" class="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-300 rounded-lg shadow-sm hover:bg-slate-50">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-bold text-white bg-navy-600 rounded-lg shadow-sm hover:bg-navy-700">Submit RSVP</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- View RSVPs Modal (For Creators) -->
+    <div id="viewRsvpsModal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="closeViewRsvpsModal()"></div>
+        <div class="relative bg-white dark:bg-slate-800 w-full max-w-2xl rounded-xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh]">
+            <div class="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
+                <h3 class="text-lg font-bold">Meeting RSVP Stats</h3>
+                <button onclick="closeViewRsvpsModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <div class="p-6 flex-1 overflow-y-auto">
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div class="bg-govgreen-50 p-4 rounded-lg text-center border border-govgreen-100">
+                        <div class="text-xs font-bold text-govgreen-600 uppercase mb-1">Joined</div>
+                        <div class="text-2xl font-bold text-govgreen-700" id="rsvpStatJoined">0</div>
+                    </div>
+                    <div class="bg-red-50 p-4 rounded-lg text-center border border-red-100">
+                        <div class="text-xs font-bold text-red-600 uppercase mb-1">Not Joining</div>
+                        <div class="text-2xl font-bold text-red-700" id="rsvpStatNotJoining">0</div>
+                    </div>
+                    <div class="bg-saffron-50 p-4 rounded-lg text-center border border-saffron-100">
+                        <div class="text-xs font-bold text-saffron-600 uppercase mb-1">Pending</div>
+                        <div class="text-2xl font-bold text-saffron-700" id="rsvpStatPending">0</div>
+                    </div>
+                </div>
+                <h4 class="font-bold mb-3 border-b pb-2">RSVP Details</h4>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                        <thead class="bg-slate-50 dark:bg-slate-900/50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-slate-500 uppercase">Participant</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-slate-500 uppercase">Status</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold text-slate-500 uppercase">Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rsvpDetailsBody" class="divide-y divide-slate-200 dark:divide-slate-700">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Container -->
                 
                 <!-- Theme Toggle -->
                 <button id="themeToggle" class="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
@@ -433,7 +512,7 @@ include 'include/sidebar.php';
             <!-- DASHBOARD WIDGET CARDS -->
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-5 mb-8">
                 <!-- Card 1 -->
-                <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                <div onclick="switchTab('all_annc')" class="cursor-pointer bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
                     <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Annc</p>
                     <div class="flex items-baseline justify-between mt-2">
                         <span class="text-2xl font-bold text-slate-900 dark:text-white"><?= $totalAnnc ?></span>
@@ -441,7 +520,7 @@ include 'include/sidebar.php';
                     </div>
                 </div>
                 <!-- Card 2 -->
-                <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                <div onclick="switchTab('all_annc')" class="cursor-pointer bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
                     <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Active Annc</p>
                     <div class="flex items-baseline justify-between mt-2">
                         <span class="text-2xl font-bold text-slate-900 dark:text-white"><?= $activeAnnc ?></span>
@@ -449,7 +528,7 @@ include 'include/sidebar.php';
                     </div>
                 </div>
                 <!-- Card 3 -->
-                <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                <div onclick="switchTab('meetings')" class="cursor-pointer bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
                     <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Upcoming Mtgs</p>
                     <div class="flex items-baseline justify-between mt-2">
                         <span class="text-2xl font-bold text-slate-900 dark:text-white"><?= $upcomingMeetings ?></span>
@@ -457,7 +536,7 @@ include 'include/sidebar.php';
                     </div>
                 </div>
                 <!-- Card 4 -->
-                <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                <div onclick="switchTab('meetings')" class="cursor-pointer bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
                     <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Live Meetings</p>
                     <div class="flex items-baseline justify-between mt-2">
                         <span class="text-2xl font-bold text-slate-900 dark:text-white"><?= $liveMeetings ?></span>
@@ -465,7 +544,7 @@ include 'include/sidebar.php';
                     </div>
                 </div>
                 <!-- Card 5 -->
-                <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                <div onclick="switchTab('shared_msgs')" class="cursor-pointer bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
                     <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Unread Msgs</p>
                     <div class="flex items-baseline justify-between mt-2">
                         <span class="text-2xl font-bold text-slate-900 dark:text-white"><?= $unreadMsgs ?></span>
@@ -1040,7 +1119,7 @@ include 'include/sidebar.php';
                         <label class="block text-xs font-bold mb-1 uppercase text-slate-400">Description</label>
                         <textarea name="description" rows="3" class="w-full px-3 py-2 border rounded-lg bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none"></textarea>
                     </div>
-                    <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                         <div>
                             <label class="block text-xs font-bold mb-1 uppercase text-slate-400">Classification Level</label>
                             <select name="classification_level" class="w-full px-3 py-2 border rounded-lg bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
@@ -1056,7 +1135,7 @@ include 'include/sidebar.php';
                         </div>
                     </div>
                     
-                    <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                         <div>
                             <label class="block text-xs font-bold mb-1 uppercase text-slate-400">View Rights</label>
                             <select name="allow_view" class="w-full px-3 py-2 border rounded-lg bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
@@ -1637,6 +1716,13 @@ include 'include/sidebar.php';
                                 <td class="px-6 py-4 text-sm text-slate-500">${locationVal}</td>
                                 <td class="px-6 py-4 text-right text-sm">
                                     ${props.status === 'Live' ? `<a href="${props.meeting_link}" target="_blank" onclick="trackJoin(${evt.id || evt.meeting_id})" class="px-3 py-1 bg-govgreen-500 hover:bg-govgreen-600 text-white rounded text-xs font-bold mr-2">Join</a>` : ''}
+                                    ${props.created_by != USER_ID ? `
+                                        <button onclick="openRsvpModal(${evt.id || evt.meeting_id}, '${props.rsvp_status}')" class="px-3 py-1 ${props.rsvp_status === 'Joined' ? 'bg-govgreen-100 text-govgreen-700' : (props.rsvp_status === 'Not Joining' ? 'bg-red-100 text-red-700' : 'bg-saffron-100 text-saffron-700')} hover:bg-opacity-80 rounded text-xs font-bold mr-2">
+                                            ${props.rsvp_status === 'Pending' ? 'RSVP' : props.rsvp_status}
+                                        </button>
+                                    ` : `
+                                        <button onclick="viewRsvps(${evt.id || evt.meeting_id})" class="px-3 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-xs font-bold mr-2">View RSVPs</button>
+                                    `}
                                     <button onclick="viewMeetingDetailsFromList(${evt.id || evt.meeting_id})" class="text-navy-500 hover:text-navy-600 font-semibold">Details</button>
                                 </td>
                             `;
@@ -2363,6 +2449,111 @@ include 'include/sidebar.php';
 
         // Live Poll (5 seconds)
         setInterval(fetchNotifications, 5000);
+        // --- RSVP Functions ---
+        function openRsvpModal(meetingId, currentStatus) {
+            document.getElementById('rsvpMeetingId').value = meetingId;
+            const radios = document.getElementsByName('rsvp_status');
+            radios.forEach(r => r.checked = (r.value === currentStatus));
+            toggleRsvpReason();
+            document.getElementById('rsvpModal').classList.remove('hidden');
+        }
+
+        function closeRsvpModal() {
+            document.getElementById('rsvpModal').classList.add('hidden');
+            document.getElementById('rsvpForm').reset();
+        }
+
+        function toggleRsvpReason() {
+            const notJoining = document.querySelector('input[name="rsvp_status"][value="Not Joining"]').checked;
+            const container = document.getElementById('rsvpReasonContainer');
+            const reasonInput = document.getElementById('rsvpReason');
+            if (notJoining) {
+                container.classList.remove('hidden');
+                reasonInput.setAttribute('required', 'required');
+            } else {
+                container.classList.add('hidden');
+                reasonInput.removeAttribute('required');
+                reasonInput.value = '';
+            }
+        }
+
+        function submitRsvp(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            formData.append('action', 'submit_rsvp');
+            
+            fetch('api/meeting_actions.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.status === 'success') {
+                    showToast('RSVP submitted successfully!', 'success');
+                    closeRsvpModal();
+                    loadMeetingsList(); // Reload to show new status
+                } else {
+                    showToast('Error: ' + res.message, 'error');
+                }
+            })
+            .catch(err => {
+                showToast('Failed to submit RSVP.', 'error');
+            });
+        }
+
+        function viewRsvps(meetingId) {
+            document.getElementById('viewRsvpsModal').classList.remove('hidden');
+            document.getElementById('rsvpDetailsBody').innerHTML = '<tr><td colspan="3" class="px-4 py-4 text-center text-slate-500">Loading...</td></tr>';
+            
+            const formData = new FormData();
+            formData.append('action', 'get_rsvps');
+            formData.append('meeting_id', meetingId);
+            
+            fetch('api/meeting_actions.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.status === 'success') {
+                    document.getElementById('rsvpStatJoined').innerText = res.stats.Joined || 0;
+                    document.getElementById('rsvpStatNotJoining').innerText = res.stats['Not Joining'] || 0;
+                    document.getElementById('rsvpStatPending').innerText = res.stats.Pending || 0;
+                    
+                    const tbody = document.getElementById('rsvpDetailsBody');
+                    tbody.innerHTML = '';
+                    if (res.participants.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="3" class="px-4 py-4 text-center text-slate-500">No participants found.</td></tr>';
+                    } else {
+                        res.participants.forEach(p => {
+                            let statusBadge = `<span class="px-2 py-1 rounded text-xs font-bold bg-saffron-100 text-saffron-700">Pending</span>`;
+                            if (p.rsvp_status === 'Joined') statusBadge = `<span class="px-2 py-1 rounded text-xs font-bold bg-govgreen-100 text-govgreen-700">Joined</span>`;
+                            else if (p.rsvp_status === 'Not Joining') statusBadge = `<span class="px-2 py-1 rounded text-xs font-bold bg-red-100 text-red-700">Not Joining</span>`;
+                            
+                            tbody.innerHTML += `
+                                <tr>
+                                    <td class="px-4 py-3 text-sm text-slate-900 dark:text-white font-medium">
+                                        ${p.full_name} <br>
+                                        <span class="text-xs text-slate-500">${p.department_name} - ${p.role_name}</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-sm">${statusBadge}</td>
+                                    <td class="px-4 py-3 text-sm text-slate-600 dark:text-slate-300">${p.rsvp_reason || '-'}</td>
+                                </tr>
+                            `;
+                        });
+                    }
+                } else {
+                    showToast('Error: ' + res.message, 'error');
+                }
+            })
+            .catch(err => {
+                document.getElementById('rsvpDetailsBody').innerHTML = '<tr><td colspan="3" class="px-4 py-4 text-center text-red-500">Failed to load data.</td></tr>';
+            });
+        }
+
+        function closeViewRsvpsModal() {
+            document.getElementById('viewRsvpsModal').classList.add('hidden');
+        }
     </script>
 
     <!-- MODALS FOR TASK WORKFLOW ACTIONS -->
