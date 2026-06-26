@@ -7,7 +7,7 @@
  */
 
 // ── Remote credentials ────────────────────────────────────────
-define('DB_HOST',      '103.160.107.18');
+define('DB_HOST',      'p:103.160.107.18');
 define('DB_USER',      'nmrmlatur_districCNTZEAL');
 define('DB_PASS',      'districtCNTDB@2026');
 define('DB_NAME',      'nmrmlatur_districtCNTDB');
