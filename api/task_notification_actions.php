@@ -390,6 +390,67 @@ elseif ($action === 'get_rejection_details') {
     }
     exit;
 }
+elseif ($action === 'take_action') {
+    // 1. Fetch assigned user email and details
+    $emailRes = $conn->query("
+        SELECT t.task_title, u.email, u.full_name, u.user_id as assignee_id 
+        FROM tasks t 
+        JOIN task_assignments ta ON t.task_id = ta.task_id 
+        JOIN users u ON ta.assigned_to_user = u.user_id 
+        WHERE t.task_id = $taskId LIMIT 1
+    ");
+    $taskData = $emailRes ? $emailRes->fetch_assoc() : null;
+
+    if ($taskData && !empty($taskData['email'])) {
+        require_once __DIR__ . '/../include/mailer.php';
+        
+        $to = $taskData['email'];
+        $subject = "Action Required: Overdue Task '{$taskData['task_title']}'";
+        
+        $email_html = "
+        <html>
+        <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
+            <div style='max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;'>
+                <h2 style='color: #ef4444;'>Urgent: Action Taken on Overdue Task</h2>
+                <p>Dear {$taskData['full_name']},</p>
+                <p>This is an official notification that administrative action has been taken regarding your assigned task:</p>
+                <div style='background-color: #fef2f2; padding: 15px; border-left: 4px solid #ef4444; margin: 20px 0;'>
+                    <p style='margin: 0; font-weight: bold;'>Task Title: {$taskData['task_title']}</p>
+                    <p style='margin: 5px 0 0 0; color: #b91c1c;'>Status: Overdue</p>
+                </div>
+                <p>Please log in to the system immediately to track the journey and update the status of this task to prevent further escalation.</p>
+                <br>
+                <p>Thank you,</p>
+                <p><strong>Administration</strong><br>Connect Amravati</p>
+            </div>
+        </body>
+        </html>
+        ";
+        
+        try {
+            if (SMTP_ENABLED) {
+                send_smtp_email(
+                    $to, $subject, $email_html, 
+                    SMTP_USER, SMTP_FROM_NAME, 
+                    SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SECURE
+                );
+            }
+            
+            // Log audit
+            logAuditAction($conn, $userId, $taskId, 'Action Taken', "Sent overdue action email to {$to}");
+            
+            // Add notification
+            createTaskNotification($conn, 'Task', 'Urgent Action Taken', "Administrative action has been taken regarding your overdue task: {$taskData['task_title']}", $taskId, $userId, $taskData['assignee_id']);
+
+            echo json_encode(['status' => 'success', 'message' => 'Action taken successfully. Notification email sent to candidate.']);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => 'Action recorded, but email failed: ' . $e->getMessage()]);
+        }
+    } else {
+        echo json_encode(['status' => 'error', 'message' => 'Candidate email not found or task unassigned.']);
+    }
+    exit;
+}
 else {
     echo json_encode(['status' => 'error', 'message' => 'Invalid action']);
     exit;
