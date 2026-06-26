@@ -106,15 +106,16 @@ if ($action === 'create') {
             $conn->query("INSERT INTO meeting_reminders (meeting_id, reminder_type, sent_status) VALUES ($meeting_id, '15m', 0)");
             $conn->query("INSERT INTO meeting_reminders (meeting_id, reminder_type, sent_status) VALUES ($meeting_id, 'live', 0)");
             
-            // Manage custom selection or targeted user notification triggers
+            // Include mailer to send email invitations
+            require_once '../include/mailer.php';
+
+            // Gather targeted user IDs
+            $targeted_users = [];
             if ($audience_type === 'Custom' && isset($_POST['custom_users']) && is_array($_POST['custom_users'])) {
-                foreach ($_POST['custom_users'] as $partUserId) {
-                    $pUserId = (int)$partUserId;
-                    $conn->query("INSERT INTO meeting_participants (meeting_id, user_id) VALUES ($meeting_id, $pUserId)");
-                    createNotification($conn, 'Meeting', 'New Meeting: ' . $title, "You have been invited to a meeting on " . $meeting_date . " at " . $meeting_time, $meeting_id, $userId, $pUserId);
+                foreach ($_POST['custom_users'] as $uid) {
+                    $targeted_users[] = (int)$uid;
                 }
             } else {
-                // Bulk notify targeted levels
                 $roleLevelFilter = '';
                 if ($audience_type === 'L1') $roleLevelFilter = 'WHERE role_id IN (SELECT role_id FROM roles WHERE role_level = 1)';
                 elseif ($audience_type === 'L2') $roleLevelFilter = 'WHERE role_id IN (SELECT role_id FROM roles WHERE role_level = 2)';
@@ -123,8 +124,68 @@ if ($action === 'create') {
                 $usersRes = $conn->query("SELECT user_id FROM users " . $roleLevelFilter);
                 if ($usersRes) {
                     while ($row = $usersRes->fetch_assoc()) {
-                        $targetUserId = (int)$row['user_id'];
-                        createNotification($conn, 'Meeting', 'New Meeting: ' . $title, "A new meeting has been scheduled: " . $title . " on " . $meeting_date, $meeting_id, $userId, $targetUserId);
+                        $targeted_users[] = (int)$row['user_id'];
+                    }
+                }
+            }
+            
+            // Process participants: insert into meeting_participants, create notification, and send email
+            if (!empty($targeted_users)) {
+                $unique_users = array_unique($targeted_users);
+                foreach ($unique_users as $pUserId) {
+                    $conn->query("INSERT INTO meeting_participants (meeting_id, user_id, rsvp_status) VALUES ($meeting_id, $pUserId, 'Pending')");
+                    
+                    createNotification($conn, 'Meeting', 'New Meeting: ' . $title, "You have been invited to a meeting on " . $meeting_date . " at " . $meeting_time, $meeting_id, $userId, $pUserId);
+                    
+                    // Fetch user details for email
+                    $uRes = $conn->query("SELECT email, full_name FROM users WHERE user_id = $pUserId LIMIT 1");
+                    if ($uRes && $uRow = $uRes->fetch_assoc()) {
+                        if (!empty($uRow['email'])) {
+                            $email_html = "
+                            <div style='font-family: Arial, sans-serif; padding: 20px; background-color: #f8fafc; border-radius: 8px;'>
+                                <div style='background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);'>
+                                    <h2 style='color: #0f172a; margin-top: 0;'>Meeting Invitation: {$title}</h2>
+                                    <p style='color: #334155;'>Hello {$uRow['full_name']},</p>
+                                    <p style='color: #334155;'>You have been invited to a meeting via Connect Amravati.</p>
+                                    <div style='background-color: #f1f5f9; padding: 15px; border-radius: 5px; margin: 20px 0;'>
+                                        <p style='margin: 5px 0;'><strong>Date:</strong> {$meeting_date}</p>
+                                        <p style='margin: 5px 0;'><strong>Time:</strong> {$meeting_time}</p>
+                                        <p style='margin: 5px 0;'><strong>Duration:</strong> {$duration} mins</p>
+                                        <p style='margin: 5px 0;'><strong>Type:</strong> {$meeting_type}</p>";
+                            if (!empty($location)) {
+                                $email_html .= "<p style='margin: 5px 0;'><strong>Location:</strong> {$location}</p>";
+                            }
+                            if (!empty($meeting_link)) {
+                                $email_html .= "<p style='margin: 5px 0;'><strong>Link:</strong> <a href='{$meeting_link}'>{$meeting_link}</a></p>";
+                                if (!empty($meeting_password)) {
+                                    $email_html .= "<p style='margin: 5px 0;'><strong>Password:</strong> {$meeting_password}</p>";
+                                }
+                            }
+                            $email_html .= "
+                                    </div>
+                                    <p style='color: #334155;'>Please log in to your dashboard to RSVP for this meeting.</p>
+                                    <p style='color: #64748b; font-size: 12px; margin-top: 30px;'>This is an automated message from Connect Amravati.</p>
+                                </div>
+                            </div>";
+                            
+                            try {
+                                send_smtp_email(
+                                    $uRow['email'],
+                                    "Meeting Invitation: " . $title,
+                                    $email_html,
+                                    SMTP_USER,
+                                    SMTP_FROM_NAME,
+                                    SMTP_HOST,
+                                    SMTP_PORT,
+                                    SMTP_USER,
+                                    SMTP_PASS,
+                                    SMTP_SECURE
+                                );
+                            } catch (Exception $e) {
+                                // Log or ignore email failure to not break creation
+                                error_log("Failed to send meeting email to {$uRow['email']}: " . $e->getMessage());
+                            }
+                        }
                     }
                 }
             }
@@ -151,18 +212,23 @@ elseif ($action === 'list_events') {
         default => 3
     };
     
-    $whereClause = "WHERE audience_type = 'All' 
-                    OR created_by = $userId 
-                    OR (audience_type = 'L1' AND $userLevel == 1)
-                    OR (audience_type = 'L2' AND $userLevel == 2)
-                    OR (audience_type = 'L3' AND $userLevel == 3)
-                    OR meeting_id IN (SELECT meeting_id FROM meeting_participants WHERE user_id = $userId)";
+    $whereClause = "WHERE m.audience_type = 'All' 
+                    OR m.created_by = $userId 
+                    OR (m.audience_type = 'L1' AND $userLevel == 1)
+                    OR (m.audience_type = 'L2' AND $userLevel == 2)
+                    OR (m.audience_type = 'L3' AND $userLevel == 3)
+                    OR m.meeting_id IN (SELECT meeting_id FROM meeting_participants WHERE user_id = $userId)";
                     
-    $res = $conn->query("SELECT * FROM meetings $whereClause");
+    $res = $conn->query("
+        SELECT m.*, mp.rsvp_status 
+        FROM meetings m 
+        LEFT JOIN meeting_participants mp ON m.meeting_id = mp.meeting_id AND mp.user_id = $userId 
+        $whereClause
+    ");
+    
     if ($res) {
         while ($row = $res->fetch_assoc()) {
             // Determine Color Code for Calendar events based on status
-            // Green = Upcoming, Orange = Starting Soon, Blue = Live, Gray = Completed, Red = Missed / Cancelled
             $color = '#10B981'; // Green (default upcoming)
             if ($row['status'] === 'Starting Soon') $color = '#F59E0B'; // Orange
             elseif ($row['status'] === 'Live') $color = '#2563EB'; // Blue
@@ -189,7 +255,9 @@ elseif ($action === 'list_events') {
                     'meeting_password' => $row['meeting_password'],
                     'status' => $row['status'],
                     'duration' => $row['duration'],
-                    'location' => $row['location']
+                    'location' => $row['location'],
+                    'rsvp_status' => $row['rsvp_status'] ?? 'Pending',
+                    'created_by' => $row['created_by']
                 ]
             ];
         }
@@ -224,6 +292,58 @@ elseif ($action === 'cancel') {
             echo json_encode(['status' => 'error', 'message' => 'Database execution failed']);
         }
     }
+}
+elseif ($action === 'submit_rsvp') {
+    $meeting_id = (int)($_POST['meeting_id'] ?? 0);
+    $rsvp_status = $_POST['rsvp_status'] ?? 'Pending';
+    $rsvp_reason = $_POST['rsvp_reason'] ?? '';
+    
+    $stmt = $conn->prepare("UPDATE meeting_participants SET rsvp_status = ?, rsvp_reason = ? WHERE meeting_id = ? AND user_id = ?");
+    if ($stmt) {
+        $stmt->bind_param("ssii", $rsvp_status, $rsvp_reason, $meeting_id, $userId);
+        if ($stmt->execute()) {
+            echo json_encode(['status' => 'success']);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'DB error']);
+        }
+        $stmt->close();
+    } else {
+        echo json_encode(['status' => 'error', 'message' => 'Prepare failed']);
+    }
+}
+elseif ($action === 'get_rsvps') {
+    $meeting_id = (int)($_POST['meeting_id'] ?? 0);
+    
+    // Check if creator
+    $mRes = $conn->query("SELECT created_by FROM meetings WHERE meeting_id = $meeting_id");
+    if ($mRes && $mRow = $mRes->fetch_assoc()) {
+        if ($mRow['created_by'] != $userId && !$isL1) {
+            echo json_encode(['status' => 'error', 'message' => 'Permission denied']);
+            exit;
+        }
+    }
+    
+    $stats = ['Joined' => 0, 'Not Joining' => 0, 'Pending' => 0];
+    $participants = [];
+    
+    $query = "
+        SELECT mp.rsvp_status, mp.rsvp_reason, u.full_name, d.department_name, r.role_name
+        FROM meeting_participants mp
+        JOIN users u ON mp.user_id = u.user_id
+        LEFT JOIN departments d ON u.department_id = d.department_id
+        LEFT JOIN roles r ON u.role_id = r.role_id
+        WHERE mp.meeting_id = $meeting_id
+    ";
+    $res = $conn->query($query);
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $status = $row['rsvp_status'];
+            if (isset($stats[$status])) $stats[$status]++;
+            $participants[] = $row;
+        }
+    }
+    
+    echo json_encode(['status' => 'success', 'stats' => $stats, 'participants' => $participants]);
 }
 else {
     echo json_encode(['status' => 'error', 'message' => 'Invalid action']);

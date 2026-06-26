@@ -135,8 +135,13 @@ $cleanQueries = [
       `participant_id` INT(11) AUTO_INCREMENT PRIMARY KEY,
       `meeting_id` INT(11) NOT NULL,
       `user_id` INT(11) NOT NULL,
+      `rsvp_status` ENUM('Pending', 'Joined', 'Not Joining') DEFAULT 'Pending',
+      `rsvp_reason` TEXT NULL,
       FOREIGN KEY (`meeting_id`) REFERENCES `meetings`(`meeting_id`) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+    
+    "ALTER TABLE `meeting_participants` ADD COLUMN IF NOT EXISTS `rsvp_status` ENUM('Pending', 'Joined', 'Not Joining') DEFAULT 'Pending'",
+    "ALTER TABLE `meeting_participants` ADD COLUMN IF NOT EXISTS `rsvp_reason` TEXT NULL",
     
     "CREATE TABLE IF NOT EXISTS `meeting_attendance` (
       `attendance_id` INT(11) AUTO_INCREMENT PRIMARY KEY,

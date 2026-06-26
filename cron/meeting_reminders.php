@@ -77,27 +77,41 @@ while ($row = $result->fetch_assoc()) {
     }
     
     if ($shouldSend) {
-        // Fetch recipients
+        // Fetch recipients including emails
         $recipients = [];
-        if ($audienceType === 'Custom') {
-            $partRes = $conn->query("SELECT user_id FROM meeting_participants WHERE meeting_id = $meetingId");
-            if ($partRes) {
-                while ($pr = $partRes->fetch_assoc()) $recipients[] = (int)$pr['user_id'];
+        // We now have meeting_participants for all audience types, but let's query users directly to get emails.
+        $partRes = $conn->query("
+            SELECT u.user_id, u.email, u.full_name, mp.rsvp_status 
+            FROM meeting_participants mp
+            JOIN users u ON mp.user_id = u.user_id
+            WHERE mp.meeting_id = $meetingId
+        ");
+        
+        if ($partRes && $partRes->num_rows > 0) {
+            while ($pr = $partRes->fetch_assoc()) {
+                $recipients[] = $pr;
             }
         } else {
+            // Fallback for older meetings without meeting_participants populated
             $roleLevelFilter = '';
             if ($audienceType === 'L1') $roleLevelFilter = 'WHERE role_id IN (SELECT role_id FROM roles WHERE role_level = 1)';
             elseif ($audienceType === 'L2') $roleLevelFilter = 'WHERE role_id IN (SELECT role_id FROM roles WHERE role_level = 2)';
             elseif ($audienceType === 'L3') $roleLevelFilter = 'WHERE role_id IN (SELECT role_id FROM roles WHERE role_level = 3)';
             
-            $usersRes = $conn->query("SELECT user_id FROM users " . $roleLevelFilter);
+            $usersRes = $conn->query("SELECT user_id, email, full_name FROM users " . $roleLevelFilter);
             if ($usersRes) {
-                while ($ur = $usersRes->fetch_assoc()) $recipients[] = (int)$ur['user_id'];
+                while ($ur = $usersRes->fetch_assoc()) {
+                    $ur['rsvp_status'] = 'Pending';
+                    $recipients[] = $ur;
+                }
             }
         }
         
-        // Dispatch notifications
-        foreach ($recipients as $recId) {
+        require_once __DIR__ . '/../include/mailer.php';
+        
+        // Dispatch notifications and emails
+        foreach ($recipients as $rec) {
+            $recId = (int)$rec['user_id'];
             $titleEsc = $conn->real_escape_string("Meeting Alert: " . $meetingTitle);
             $msgEsc = $conn->real_escape_string($msgText);
             
@@ -105,6 +119,35 @@ while ($row = $result->fetch_assoc()) {
                 INSERT INTO notifications (notification_type, title, message, meeting_id, sender_id, receiver_id, status)
                 VALUES ('Meeting', '$titleEsc', '$msgEsc', $meetingId, $creatorId, $recId, 'Unread')
             ");
+            
+            // Send email for 1h reminder if they haven't explicitly said "Not Joining"
+            if ($reminderType === '1h' && !empty($rec['email']) && $rec['rsvp_status'] !== 'Not Joining') {
+                $email_html = "
+                <div style='font-family: Arial, sans-serif; padding: 20px; background-color: #f8fafc; border-radius: 8px;'>
+                    <div style='background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);'>
+                        <h2 style='color: #0f172a; margin-top: 0;'>Meeting Reminder: {$meetingTitle}</h2>
+                        <p style='color: #334155;'>Hello {$rec['full_name']},</p>
+                        <p style='color: #334155;'>This is a reminder that your meeting will start in 1 hour.</p>
+                        <p style='color: #64748b; font-size: 12px; margin-top: 30px;'>This is an automated message from Connect Amravati.</p>
+                    </div>
+                </div>";
+                try {
+                    send_smtp_email(
+                        $rec['email'],
+                        "Reminder: " . $meetingTitle . " starts in 1 hour",
+                        $email_html,
+                        SMTP_USER,
+                        SMTP_FROM_NAME,
+                        SMTP_HOST,
+                        SMTP_PORT,
+                        SMTP_USER,
+                        SMTP_PASS,
+                        SMTP_SECURE
+                    );
+                } catch (Exception $e) {
+                    error_log("Failed to send reminder email: " . $e->getMessage());
+                }
+            }
         }
         
         // Update reminder state to sent
