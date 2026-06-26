@@ -35,7 +35,19 @@ $translations = [
         'opt_light' => 'Light Theme',
         'opt_dark' => 'Dark Theme',
         'opt_enabled' => 'Enabled',
-        'opt_disabled' => 'Disabled'
+        'opt_disabled' => 'Disabled',
+        'label_email_notif' => 'Email Notifications',
+        'label_email_notif_desc' => 'Frequency of email reports and updates.',
+        'opt_daily' => 'Daily Summary',
+        'opt_immediate' => 'Immediate',
+        'label_2fa' => 'Two-Factor Authentication',
+        'label_2fa_desc' => 'Add an extra layer of security to your account.',
+        'label_pwd' => 'Account Password',
+        'label_pwd_desc' => 'Update your login password regularly.',
+        'btn_change_pwd' => 'Change Password',
+        'label_data' => 'Data Export',
+        'label_data_desc' => 'Download all your personal account data.',
+        'btn_export_data' => 'Export My Data'
     ],
     'mr' => [
         'title' => 'सेटिंग्ज — अमरावती कनेक्ट',
@@ -61,7 +73,19 @@ $translations = [
         'opt_light' => 'प्रकाश देखावा (Light Theme)',
         'opt_dark' => 'गडद देखावा (Dark Theme)',
         'opt_enabled' => 'सक्षम (Enabled)',
-        'opt_disabled' => 'अक्षम (Disabled)'
+        'opt_disabled' => 'अक्षम (Disabled)',
+        'label_email_notif' => 'ईमेल सूचना (Email Notifications)',
+        'label_email_notif_desc' => 'ईमेल अहवाल आणि अद्यतनांची वारंवारता.',
+        'opt_daily' => 'दैनिक सारांश (Daily Summary)',
+        'opt_immediate' => 'तात्काळ (Immediate)',
+        'label_2fa' => 'दोन-घटक प्रमाणीकरण (2FA)',
+        'label_2fa_desc' => 'तुमच्या खात्यामध्ये सुरक्षिततेचा अतिरिक्त स्तर जोडा.',
+        'label_pwd' => 'खाते पासवर्ड (Account Password)',
+        'label_pwd_desc' => 'तुमचा लॉगिन पासवर्ड नियमितपणे अपडेट करा.',
+        'btn_change_pwd' => 'पासवर्ड बदला (Change Password)',
+        'label_data' => 'डेटा निर्यात (Data Export)',
+        'label_data_desc' => 'तुमचा सर्व वैयक्तिक खाते डेटा डाउनलोड करा.',
+        'btn_export_data' => 'माझा डेटा निर्यात करा'
     ]
 ];
 $t = $translations[$lang];
@@ -73,6 +97,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Save in cookies or session for demonstration
     $_SESSION['pref_theme'] = $_POST['theme'] ?? 'light';
     $_SESSION['pref_notif'] = $_POST['notifications'] ?? 'enabled';
+    $_SESSION['pref_email'] = $_POST['email_notifications'] ?? 'daily';
+    $_SESSION['pref_2fa'] = isset($_POST['two_factor']) ? true : false;
     
     $new_lang = $_POST['lang'] ?? 'en';
     $success_msg = $t['msg_success'];
@@ -85,6 +111,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $pref_theme = $_SESSION['pref_theme'] ?? 'light';
 $pref_notif = $_SESSION['pref_notif'] ?? 'enabled';
+$pref_email = $_SESSION['pref_email'] ?? 'daily';
+$pref_2fa   = $_SESSION['pref_2fa'] ?? false;
 
 // Fetch user data for initials
 $user_data = [];
@@ -212,6 +240,49 @@ include 'include/sidebar.php';
                         <option value="enabled" <?= $pref_notif==='enabled'?'selected':'' ?>><?= htmlspecialchars($t['opt_enabled']) ?></option>
                         <option value="disabled" <?= $pref_notif==='disabled'?'selected':'' ?>><?= htmlspecialchars($t['opt_disabled']) ?></option>
                     </select>
+                </div>
+
+                <div class="flex items-center justify-between pt-4 border-t dark:border-slate-700">
+                    <div>
+                        <label class="block text-sm font-semibold"><?= htmlspecialchars($t['label_email_notif']) ?></label>
+                        <span class="text-xs text-slate-400"><?= htmlspecialchars($t['label_email_notif_desc']) ?></span>
+                    </div>
+                    <select name="email_notifications" class="px-3 py-1.5 border rounded-lg bg-white dark:bg-slate-900 dark:border-slate-700 text-sm">
+                        <option value="daily" <?= $pref_email==='daily'?'selected':'' ?>><?= htmlspecialchars($t['opt_daily']) ?></option>
+                        <option value="immediate" <?= $pref_email==='immediate'?'selected':'' ?>><?= htmlspecialchars($t['opt_immediate']) ?></option>
+                        <option value="disabled" <?= $pref_email==='disabled'?'selected':'' ?>><?= htmlspecialchars($t['opt_disabled']) ?></option>
+                    </select>
+                </div>
+
+                <div class="flex items-center justify-between pt-4 border-t dark:border-slate-700">
+                    <div>
+                        <label class="block text-sm font-semibold"><?= htmlspecialchars($t['label_2fa']) ?></label>
+                        <span class="text-xs text-slate-400"><?= htmlspecialchars($t['label_2fa_desc']) ?></span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="two_factor" value="1" <?= $pref_2fa ? 'checked' : '' ?> class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-navy-600"></div>
+                    </label>
+                </div>
+
+                <div class="flex items-center justify-between pt-4 border-t dark:border-slate-700">
+                    <div>
+                        <label class="block text-sm font-semibold"><?= htmlspecialchars($t['label_pwd']) ?></label>
+                        <span class="text-xs text-slate-400"><?= htmlspecialchars($t['label_pwd_desc']) ?></span>
+                    </div>
+                    <button type="button" onclick="Swal.fire({icon: 'info', title: '<?= htmlspecialchars($t['btn_change_pwd']) ?>', text: 'This feature is coming soon.', confirmButtonColor: '#0069cd'})" class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors">
+                        <?= htmlspecialchars($t['btn_change_pwd']) ?>
+                    </button>
+                </div>
+
+                <div class="flex items-center justify-between pt-4 border-t dark:border-slate-700">
+                    <div>
+                        <label class="block text-sm font-semibold"><?= htmlspecialchars($t['label_data']) ?></label>
+                        <span class="text-xs text-slate-400"><?= htmlspecialchars($t['label_data_desc']) ?></span>
+                    </div>
+                    <button type="button" onclick="Swal.fire({icon: 'info', title: '<?= htmlspecialchars($t['btn_export_data']) ?>', text: 'Your data archive is being prepared. We will notify you when it is ready to download.', confirmButtonColor: '#0069cd'})" class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors">
+                        <i data-lucide="download" class="w-4 h-4 inline-block mr-1"></i><?= htmlspecialchars($t['btn_export_data']) ?>
+                    </button>
                 </div>
 
                 <div class="pt-6 flex items-center justify-between border-t dark:border-slate-700">

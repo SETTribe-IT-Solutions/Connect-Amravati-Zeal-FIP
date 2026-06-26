@@ -12,13 +12,6 @@ define('DB_USER',      'nmrmlatur_districCNTZEAL');
 define('DB_PASS',      'districtCNTDB@2026');
 define('DB_NAME',      'nmrmlatur_districtCNTDB');
 
-<<<<<<< HEAD
-// ── Local XAMPP credentials (fallback) ────────────────────────
-define('DB_HOST_LOCAL', '127.0.0.1');
-define('DB_USER_LOCAL', 'root');
-define('DB_PASS_LOCAL', '');
-define('DB_NAME_LOCAL', 'nmrmlatur_districtCNTDB');
-
 $conn = null;
 
 // 1. Try remote server first (suppress error output with @)
@@ -44,6 +37,12 @@ if ($conn->connect_errno) {
     $conn->set_charset('utf8mb4');
 }
 
+// Auto-patch missing columns to fix graph data and functionality silently
+if ($conn instanceof mysqli) {
+    @$conn->query("ALTER TABLE `tasks` ADD COLUMN `completion_date` DATETIME NULL AFTER `due_date`");
+    @$conn->query("ALTER TABLE `announcements` ADD COLUMN `category` VARCHAR(100) NULL AFTER `title`");
+}
+
 // Re-enable strict mode only after successful connection
 if ($conn instanceof mysqli) {
     mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
@@ -62,7 +61,7 @@ function close_db_connection() {
 }
 
 register_shutdown_function('close_db_connection');
-=======
+
 // Create MySQLi connection (@ suppresses printed warning; error is handled via connect_error check below)
 $conn = @new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
 
@@ -86,13 +85,4 @@ register_shutdown_function(function() {
  * Explicitly close the database connection and set it to null.
  * Call this function at the end of database operations to release connection limits immediately.
  */
-function close_db_connection() {
-    global $conn;
-    if (isset($conn) && $conn instanceof mysqli) {
-        @$conn->close();
-        $conn = null;
-    }
-}
-
->>>>>>> origin/dev
 ?>
