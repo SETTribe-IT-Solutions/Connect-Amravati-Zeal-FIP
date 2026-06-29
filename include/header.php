@@ -9,6 +9,20 @@ $pageDesc = $pageDesc ?? 'Official District Administration Portal';
 <!DOCTYPE html>
 <html lang="<?= htmlspecialchars($lang) ?>" class="light" id="htmlRoot">
 <head>
+    <script>
+        (function() {
+            const stored = localStorage.getItem('acTheme') || localStorage.getItem('theme');
+            const prefersDark = stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const htmlEl = document.documentElement;
+            if (prefersDark) {
+                htmlEl.classList.add('dark');
+                htmlEl.classList.remove('light');
+            } else {
+                htmlEl.classList.remove('dark');
+                htmlEl.classList.add('light');
+            }
+        })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($pageTitle) ?></title>

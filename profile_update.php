@@ -218,13 +218,7 @@ include 'include/sidebar.php';
 <script>
     lucide.createIcons();
     
-    // Theme
-    const themeToggle = document.getElementById('themeToggle');
-    themeToggle.addEventListener('click', () => {
-        const isDark = document.documentElement.classList.toggle('dark');
-        localStorage.setItem('acTheme', isDark ? 'dark' : 'light');
-        localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    });
+
     
     // Dropdown
     const dropdownBtn = document.getElementById('profileDropdownBtn');

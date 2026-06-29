@@ -1703,11 +1703,7 @@ include 'include/sidebar.php';
 <script>
     lucide.createIcons();
 
-    // Dark mode toggle
-    const themeToggle = document.getElementById('themeToggle');
-    themeToggle.addEventListener('click', () => {
-        document.documentElement.classList.toggle('dark');
-    });
+
 
     // Sidebar toggle
     const sidebar = document.getElementById('sidebar');

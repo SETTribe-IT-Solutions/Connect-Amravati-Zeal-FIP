@@ -14,6 +14,271 @@ require_once 'include/dbConfig.php';
 // Language Toggle Setup (Support Marathi & English)
 $lang = isset($_GET['lang']) && $_GET['lang'] === 'mr' ? 'mr' : 'en';
 
+$translations = [
+    'en' => [
+        // Sidebar & Header Menu
+        'brand_name' => 'Amravati Connect',
+        'menu_main_modules' => 'Main Modules',
+        'menu_dashboard' => 'Executive Dashboard',
+        'menu_task_alloc' => 'Task Allocation',
+        'menu_announcements' => 'Announcements',
+        'menu_announcement_center' => 'Announcement Center',
+        'menu_notifications' => 'Notification Center',
+        'menu_appreciation' => 'Appreciation',
+        'menu_analytics' => 'Analytics & Data',
+        'menu_reports' => 'Reports & Analytics',
+        'menu_gis' => 'GIS Map View',
+        'menu_docs' => 'Document Management',
+        'menu_admin' => 'Administration',
+        'menu_users' => 'User Management',
+        'menu_hierarchy' => 'Location Hierarchy',
+        'menu_audit' => 'Audit Logs',
+        'menu_settings' => 'Settings',
+        'menu_logout' => 'Logout',
+        'btn_ask_ai' => 'Ask Amravati AI',
+
+        // Profile Menu
+        'profile_update' => 'User Profile Update',
+        'profile_settings' => 'Settings',
+        'profile_password_change' => 'Password Change',
+        'profile_logout' => 'Logout',
+
+        // Roles
+        'role_administrator' => 'System Administrator',
+        'role_collector' => 'District Collector',
+        'role_additional_collector' => 'Additional Collector',
+        'role_deputy_collector' => 'Deputy Collector',
+        'role_sdo' => 'Sub-Divisional Officer',
+        'role_tehsildar' => 'Tehsildar',
+        'role_bdo' => 'Block Development Officer',
+        'role_talathi' => 'Talathi',
+        'role_gramsevak' => 'Gramsevak',
+
+        // Page Headings & Breadcrumbs
+        'breadcrumb_dashboard' => 'Dashboard',
+        'breadcrumb_task_allocation' => 'Task Allocation',
+        'breadcrumb_create_task' => 'Create Task',
+        'page_title' => 'Create & Allocate Task',
+        'page_subtitle' => 'Assign official tasks to government employees by name or by role/department.',
+        'lbl_auto_id' => 'Auto ID:',
+        'lbl_auto_generated' => 'Auto-Generated',
+        'btn_back' => 'Back',
+
+        // Form fields & sections
+        'section_basic_info' => 'Basic Information',
+        'section_basic_info_desc' => 'Core task details',
+        'lbl_task_id' => 'Task ID',
+        'lbl_task_title' => 'Task Title',
+        'placeholder_task_title' => 'e.g. Crop Damage Assessment Report – Chandur Block',
+        'lbl_task_desc' => 'Task Description',
+        'placeholder_task_desc' => 'Provide a detailed description of the task, objectives, and expected outcomes...',
+        'lbl_task_category' => 'Task Category',
+        'placeholder_task_category' => 'e.g. Revenue, Health, Education, Infrastructure',
+
+        'section_task_alloc' => 'Task Allocation',
+        'section_task_alloc_desc' => 'Assign to an individual or a role/department',
+        'lbl_alloc_type' => 'Allocation Type',
+        'lbl_by_name' => 'By Name',
+        'lbl_by_name_desc' => 'Assign to specific employee',
+        'lbl_by_role' => 'By Role',
+        'lbl_by_role_desc' => 'Assign to a role/department',
+        'lbl_select_employee' => 'Select Employee',
+        'opt_select_employee' => '— Select an employee —',
+        'opt_no_employees' => 'No active employees found in database',
+        'lbl_select_role' => 'Select Role',
+        'opt_select_role' => '— Select a role —',
+        'opt_no_roles' => 'No active roles found in database',
+        'lbl_filter_department' => 'Filter by Department',
+        'lbl_optional' => '(optional)',
+        'opt_all_departments' => '— All Departments —',
+
+        'section_attachment' => 'Attachment',
+        'section_attachment_desc' => 'PDF, Word, Images, Audio & Video accepted',
+        'drop_zone_text' => 'Drop your file here or',
+        'drop_zone_browse' => 'browse',
+        'drop_zone_types' => 'PDF · Word · JPG · PNG · MP3 · MP4 · and more (max 20 MB)',
+
+        'section_schedule' => 'Schedule',
+        'section_schedule_desc' => 'Deadlines & targets',
+        'lbl_due_date' => 'Due Date & Time',
+        'msg_date_past' => 'Due date cannot be in the past.',
+        'lbl_target' => 'Target / Milestone',
+        'placeholder_target' => 'e.g. Submit 50 survey forms',
+
+        'section_priority' => 'Priority Level',
+        'section_priority_desc' => 'Set task urgency',
+        'priority_low' => 'Low',
+        'priority_medium' => 'Medium',
+        'priority_high' => 'High',
+        'priority_critical' => 'Critical',
+
+        'section_preview' => 'Live Preview',
+        'lbl_title' => 'Title',
+        'lbl_priority' => 'Priority',
+        'lbl_allocation' => 'Allocation',
+        'lbl_attachment' => 'Attachment',
+        'lbl_none' => 'None',
+
+        'btn_submit' => 'Create & Allocate Task',
+        'btn_reset' => 'Reset Form',
+
+        'msg_task_visible' => 'The task is now visible to the assigned employee(s).',
+        'msg_upload_failed' => 'File upload failed. Please check folder permissions.',
+        'msg_invalid_type' => 'Invalid file type. Only PDF, Word, Images, Audio, and Video are allowed.',
+        'msg_db_unavailable' => 'Database connection unavailable. Cannot create task.',
+
+        'msg_fetching_employees' => 'Fetching employees with this role…',
+        'msg_employees_receive' => '%d employee(s) will receive this task',
+        'msg_employees_receive_preview' => 'users',
+        'btn_show_all' => 'Show all',
+        'btn_hide' => 'Hide',
+        'msg_no_employees_role' => 'No active employees found with this role.',
+        'btn_submitting' => 'Creating Task…',
+
+        'toast_title_req' => 'Task title is required.',
+        'toast_due_req' => 'Please select a due date & time.',
+        'toast_employee_req' => 'Please select an employee to assign.',
+        'toast_role_req' => 'Please select a role to assign.',
+        'toast_created' => 'created!',
+        'toast_warning' => 'warning',
+        'toast_success' => 'success',
+        
+        'char_counter' => '%d / 255 characters'
+    ],
+    'mr' => [
+        // Sidebar & Header Menu
+        'brand_name' => 'अमरावती कनेक्ट',
+        'menu_main_modules' => 'मुख्य मॉड्युल्स',
+        'menu_dashboard' => 'कार्यकारी डॅशबोर्ड',
+        'menu_task_alloc' => 'कार्य वाटप',
+        'menu_announcements' => 'घोषणा',
+        'menu_announcement_center' => 'घोषणा केंद्र',
+        'menu_notifications' => 'सूचना केंद्र',
+        'menu_appreciation' => 'कौतुक',
+        'menu_analytics' => 'विश्लेषण आणि डेटा',
+        'menu_reports' => 'अहवाल आणि विश्लेषण',
+        'menu_gis' => 'जीआयएस नकाशा',
+        'menu_docs' => 'दस्तऐवज व्यवस्थापन',
+        'menu_admin' => 'प्रशासन',
+        'menu_users' => 'वापरकर्ता व्यवस्थापन',
+        'menu_hierarchy' => 'स्थान उतरंड',
+        'menu_audit' => 'ऑडिट लॉग्स',
+        'menu_settings' => 'सेटिंग्ज',
+        'menu_logout' => 'लॉगआउट',
+        'btn_ask_ai' => 'अमरावती एआय विचारा',
+
+        // Profile Menu
+        'profile_update' => 'वापरकर्ता प्रोफाइल अपडेट',
+        'profile_settings' => 'सेटिंग्ज',
+        'profile_password_change' => 'पासवर्ड बदला',
+        'profile_logout' => 'लॉगआउट',
+
+        // Roles
+        'role_administrator' => 'सिस्टम प्रशासक',
+        'role_collector' => 'जिल्हाधिकारी',
+        'role_additional_collector' => 'अपर जिल्हाधिकारी',
+        'role_deputy_collector' => 'उपजिल्हाधिकारी',
+        'role_sdo' => 'उपविभागीय अधिकारी (SDO)',
+        'role_tehsildar' => 'तहसीलदार',
+        'role_bdo' => 'गट विकास अधिकारी (BDO)',
+        'role_talathi' => 'तलाठी',
+        'role_gramsevak' => 'ग्रामसेवक',
+
+        // Page Headings & Breadcrumbs
+        'breadcrumb_dashboard' => 'डॅशबोर्ड',
+        'breadcrumb_task_allocation' => 'कार्य वाटप',
+        'breadcrumb_create_task' => 'कार्य तयार करा',
+        'page_title' => 'कार्य तयार करा आणि वाटप करा',
+        'page_subtitle' => 'शासकीय कर्मचाऱ्यांना नावानुसार किंवा भूमिका/विभागानुसार अधिकृत कार्ये सोपवा.',
+        'lbl_auto_id' => 'स्वयंचलित आयडी (Auto ID):',
+        'lbl_auto_generated' => 'स्वयंचलित व्युत्पन्न',
+        'btn_back' => 'मागे',
+
+        // Form fields & sections
+        'section_basic_info' => 'मूलभूत माहिती',
+        'section_basic_info_desc' => 'कार्याचा मुख्य तपशील',
+        'lbl_task_id' => 'कार्य आयडी',
+        'lbl_task_title' => 'कार्याचे शीर्षक',
+        'placeholder_task_title' => 'उदा. पीक नुकसान मूल्यांकन अहवाल – चांदूर रेल्वे गट',
+        'lbl_task_desc' => 'कार्याचे वर्णन',
+        'placeholder_task_desc' => 'कार्याचे सविस्तर वर्णन, उद्दिष्टे आणि अपेक्षित परिणाम प्रदान करा...',
+        'lbl_task_category' => 'कार्याची श्रेणी',
+        'placeholder_task_category' => 'उदा. महसूल, आरोग्य, शिक्षण, पायाभूत सुविधा',
+
+        'section_task_alloc' => 'कार्य वाटप',
+        'section_task_alloc_desc' => 'वैयक्तिक कर्मचारी किंवा भूमिका/विभागानुसार नियुक्त करा',
+        'lbl_alloc_type' => 'वाटपाचा प्रकार',
+        'lbl_by_name' => 'नावानुसार',
+        'lbl_by_name_desc' => 'विशिष्ट कर्मचाऱ्याला नियुक्त करा',
+        'lbl_by_role' => 'भूमिकेनुसार',
+        'lbl_by_role_desc' => 'भूमिका किंवा विभागानुसार नियुक्त करा',
+        'lbl_select_employee' => 'कर्मचारी निवडा',
+        'opt_select_employee' => '— कर्मचारी निवडा —',
+        'opt_no_employees' => 'डेटाबेसमध्ये कोणतेही सक्रिय कर्मचारी आढळले नाहीत',
+        'lbl_select_role' => 'भूमिका निवडा',
+        'opt_select_role' => '— भूमिका निवडा —',
+        'opt_no_roles' => 'डेटाबेसमध्ये कोणतीही सक्रिय भूमिका आढळली नाही',
+        'lbl_filter_department' => 'विभागानुसार फिल्टर करा',
+        'lbl_optional' => '(पर्यायी)',
+        'opt_all_departments' => '— सर्व विभाग —',
+
+        'section_attachment' => 'जोडलेली फाईल (अटॅचमेंट)',
+        'section_attachment_desc' => 'पीडीएफ, वर्ड, प्रतिमा, ऑडिओ आणि व्हिडिओ स्वीकारले जातात',
+        'drop_zone_text' => 'तुमची फाईल येथे ड्रॉप करा किंवा',
+        'drop_zone_browse' => 'ब्राउझ करा',
+        'drop_zone_types' => 'पीडीएफ · वर्ड · जेपीजी · पीएनजी · एमपी३ · एमपी४ · आणि इतर (कमाल २० एमबी)',
+
+        'section_schedule' => 'वेळापत्रक',
+        'section_schedule_desc' => 'अंतिम मुदत आणि उद्दिष्टे',
+        'lbl_due_date' => 'नियत तारीख आणि वेळ',
+        'msg_date_past' => 'नियत तारीख भूतकाळातील असू शकत नाही.',
+        'lbl_target' => 'लक्ष्य / टप्पा (Milestone)',
+        'placeholder_target' => 'उदा. ५० सर्वेक्षण फॉर्म सबमिट करा',
+
+        'section_priority' => 'प्राधान्य पातळी',
+        'section_priority_desc' => 'कार्याची निकड सेट करा',
+        'priority_low' => 'कमी',
+        'priority_medium' => 'मध्यम',
+        'priority_high' => 'उच्च',
+        'priority_critical' => 'अति-तातडीचे (Critical)',
+
+        'section_preview' => 'थेट पूर्वदृश्य (Live Preview)',
+        'lbl_title' => 'शीर्षक',
+        'lbl_priority' => 'प्राधान्य',
+        'lbl_allocation' => 'वाटप',
+        'lbl_attachment' => 'अटॅचमेंट',
+        'lbl_none' => 'काहीही नाही',
+
+        'btn_submit' => 'कार्य तयार करा आणि वाटप करा',
+        'btn_reset' => 'फॉर्म रिसेट करा',
+
+        'msg_task_visible' => 'कार्य आता नियुक्त केलेल्या कर्मचाऱ्यास (कर्मचाऱ्यांना) दिसेल.',
+        'msg_upload_failed' => 'फाईल अपलोड अयशस्वी. कृपया फोल्डर परवानग्या तपासा.',
+        'msg_invalid_type' => 'अवैध फाईल प्रकार. फक्त पीडीएफ, वर्ड, प्रतिमा, ऑडिओ आणि व्हिडिओ अपलोड करण्याची परवानगी आहे.',
+        'msg_db_unavailable' => 'डेटाबेस कनेक्शन उपलब्ध नाही. कार्य तयार करणे शक्य नाही.',
+
+        'msg_fetching_employees' => 'या भूमिकेचे कर्मचारी शोधत आहे...',
+        'msg_employees_receive' => '%d कर्मचाऱ्यांना हे कार्य प्राप्त होईल',
+        'msg_employees_receive_preview' => 'कर्मचारी',
+        'btn_show_all' => 'सर्व दाखवा',
+        'btn_hide' => 'लपवा',
+        'msg_no_employees_role' => 'या भूमिकेसह कोणतेही सक्रिय कर्मचारी आढळले नाहीत.',
+        'btn_submitting' => 'कार्य तयार करत आहे...',
+
+        'toast_title_req' => 'कार्याचे शीर्षक आवश्यक आहे.',
+        'toast_due_req' => 'कृपया नियत तारीख आणि वेळ निवडा.',
+        'toast_employee_req' => 'कृपया नियुक्त करण्यासाठी कर्मचारी निवडा.',
+        'toast_role_req' => 'कृपया नियुक्त करण्यासाठी भूमिका निवडा.',
+        'toast_created' => 'तयार केले!',
+        'toast_warning' => 'चेतावणी',
+        'toast_success' => 'यशस्वी',
+        
+        'char_counter' => '%d / २५५ अक्षरे'
+    ]
+];
+
+$t = $translations[$lang];
+
 if (isset($_GET['role']) && in_array($_GET['role'], ['Collector', 'SDO', 'Tehsildar', 'BDO', 'Talathi', 'Gramsevak'])) {
     $_SESSION['user_role']       = $_GET['role'];
     $_SESSION['user_name']       = 'Demo – ' . $_GET['role'];
@@ -182,7 +447,7 @@ $assigned_count = 0; // how many users received the task (for role-based)
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$conn) {
-        $error_msg = "Database connection unavailable. Cannot create task.";
+        $error_msg = $lang === 'mr' ? 'डेटाबेस कनेक्शन उपलब्ध नाही. कार्य तयार करणे शक्य नाही.' : "Database connection unavailable. Cannot create task.";
     } else {
         // ── Sanitise inputs ────────────────────────────────────────────
         $task_title       = $conn->real_escape_string(trim($_POST['task_title']       ?? ''));
@@ -226,10 +491,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (move_uploaded_file($_FILES['attachment']['tmp_name'], $upload_dir . $file_name)) {
                 $attachment_path = 'uploads/tasks/' . $file_name;
             } else {
-                $error_msg = 'File upload failed. Please check folder permissions.';
+                $error_msg = $lang === 'mr' ? 'फाईल अपलोड अयशस्वी. कृपया फोल्डर परवानग्या तपासा.' : 'File upload failed. Please check folder permissions.';
             }
         } else {
-            $error_msg = 'Invalid file type. Only PDF, Word, Images, Audio, and Video are allowed.';
+            $error_msg = $lang === 'mr' ? 'अवैध फाईल प्रकार. फक्त पीडीएफ, वर्ड, प्रतिमा, ऑडिओ आणि व्हिडिओ अपलोड करण्याची परवानगी आहे.' : 'Invalid file type. Only PDF, Word, Images, Audio, and Video are allowed.';
         }
     }
 
@@ -367,11 +632,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $count_label = $assigned_count > 0
-                ? " Assigned to <strong>$assigned_count</strong> employee" . ($assigned_count > 1 ? 's' : '') . '.'
+                ? ($lang === 'mr'
+                    ? " <strong>$assigned_count</strong> कर्मचाऱ्यास नियुक्त केले."
+                    : " Assigned to <strong>$assigned_count</strong> employee" . ($assigned_count > 1 ? 's' : '') . '.')
                 : '';
-            $success_msg = "Task <strong>$task_id_str</strong> created successfully!$count_label";
+            $success_msg = $lang === 'mr'
+                ? "कार्य <strong>$task_id_str</strong> यशस्वीरित्या तयार केले!$count_label"
+                : "Task <strong>$task_id_str</strong> created successfully!$count_label";
         } else {
-            $error_msg = 'Database error: ' . $conn->error;
+            $error_msg = ($lang === 'mr' ? 'डेटाबेस त्रुटी: ' : 'Database error: ') . $conn->error;
         }
     }
     } // End of if(!$conn) check
@@ -384,8 +653,8 @@ $next_id = (int)($row['next_id'] ?? 1);
 $task_id_preview = 'TASK_' . str_pad($next_id, 3, '0', STR_PAD_LEFT);
 ?>
 <?php
-$pageTitle = 'Create Task - Amravati Connect';
-$pageDesc = 'Create and allocate tasks to employees by name or role on the Amravati Connect Government Workflow Platform.';
+$pageTitle = $t['breadcrumb_create_task'] . ' - ' . $t['brand_name'];
+$pageDesc = $t['page_subtitle'];
 $extraHead = <<<'EOT'
     <style>
         /* Form inputs */
@@ -463,20 +732,26 @@ include 'include/sidebar.php';
             </button>
             <!-- Breadcrumb -->
             <nav class="flex items-center text-sm" aria-label="Breadcrumb">
-                <a href="dashboard.php?lang=<?= $lang ?>" class="text-slate-500 dark:text-slate-400 hover:text-navy-600 dark:hover:text-blue-400 transition-colors">Dashboard</a>
+                <a href="dashboard.php?lang=<?= $lang ?>" class="text-slate-500 dark:text-slate-400 hover:text-navy-600 dark:hover:text-blue-400 transition-colors"><?= htmlspecialchars($t['breadcrumb_dashboard'] ?? 'Dashboard') ?></a>
                 <i data-lucide="chevron-right" class="w-4 h-4 mx-2 text-slate-400"></i>
-                <a href="create_task.php?lang=<?= $lang ?>" class="text-slate-500 dark:text-slate-400 hover:text-navy-600 dark:hover:text-blue-400 transition-colors">Task Allocation</a>
+                <a href="create_task.php?lang=<?= $lang ?>" class="text-slate-500 dark:text-slate-400 hover:text-navy-600 dark:hover:text-blue-400 transition-colors"><?= htmlspecialchars($t['breadcrumb_task_allocation'] ?? 'Task Allocation') ?></a>
                 <i data-lucide="chevron-right" class="w-4 h-4 mx-2 text-slate-400"></i>
-                <span class="font-semibold text-slate-800 dark:text-white">Create Task</span>
+                <span class="font-semibold text-slate-800 dark:text-white"><?= htmlspecialchars($t['breadcrumb_create_task'] ?? 'Create Task') ?></span>
             </nav>
         </div>
 
         <div class="flex items-center space-x-4">
             <!-- Language Toggle -->
-            <button class="flex items-center text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-1.5 rounded-md transition-colors border border-slate-200 dark:border-slate-700">
+            <?php
+            $queryParams = $_GET;
+            $queryParams['lang'] = ($lang === 'en' ? 'mr' : 'en');
+            $lang_switch_url = 'create_task.php?' . http_build_query($queryParams);
+            ?>
+            <a href="<?php echo htmlspecialchars($lang_switch_url); ?>"
+               class="flex items-center text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-1.5 rounded-md transition-colors border border-slate-200 dark:border-slate-700" style="text-decoration: none;">
                 <i data-lucide="languages" class="w-4 h-4 mr-2 text-slate-500"></i>
-                EN / MR
-            </button>
+                <?php echo $lang === 'en' ? 'मराठी (MR)' : 'English (EN)'; ?>
+            </a>
             <!-- Theme Switcher -->
             <button id="themeToggle" class="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <i data-lucide="moon" class="w-5 h-5 dark:hidden"></i>
@@ -498,16 +773,16 @@ include 'include/sidebar.php';
                 <div id="profileDropdownMenu" class="hidden absolute right-0 mt-2 w-48 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md z-50">
                     <div class="py-1">
                         <a href="profile_update.php?lang=<?= $lang ?? 'en' ?>" class="flex items-center px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
-                            <i data-lucide="user" class="w-4 h-4 mr-2 text-slate-400"></i><?= ($lang ?? 'en') === 'en' ? 'User Profile Update' : 'वापरकर्ता प्रोफाइल अपडेट' ?>
+                            <i data-lucide="user" class="w-4 h-4 mr-2 text-slate-400"></i><?= htmlspecialchars($t['profile_update'] ?? 'User Profile Update') ?>
                         </a>
                         <a href="settings.php?lang=<?= $lang ?? 'en' ?>" class="flex items-center px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
-                            <i data-lucide="settings" class="w-4 h-4 mr-2 text-slate-400"></i><?= ($lang ?? 'en') === 'en' ? 'Settings' : 'सेटिंग्ज' ?>
+                            <i data-lucide="settings" class="w-4 h-4 mr-2 text-slate-400"></i><?= htmlspecialchars($t['profile_settings'] ?? 'Settings') ?>
                         </a>
                         <a href="passwordChange.php?lang=<?= $lang ?? 'en' ?>" class="flex items-center px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
-                            <i data-lucide="key" class="w-4 h-4 mr-2 text-slate-400"></i><?= ($lang ?? 'en') === 'en' ? 'Password Change' : 'पासवर्ड बदला' ?>
+                            <i data-lucide="key" class="w-4 h-4 mr-2 text-slate-400"></i><?= htmlspecialchars($t['profile_password_change'] ?? 'Password Change') ?>
                         </a>
                         <a href="logout.php" class="flex items-center px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
-                            <i data-lucide="log-out" class="w-4 h-4 mr-2 text-red-500"></i><?= ($lang ?? 'en') === 'en' ? 'Logout' : 'लॉगआउट' ?>
+                            <i data-lucide="log-out" class="w-4 h-4 mr-2 text-red-500"></i><?= htmlspecialchars($t['profile_logout'] ?? 'Logout') ?>
                         </a>
                     </div>
                 </div>
@@ -523,7 +798,7 @@ include 'include/sidebar.php';
             <i data-lucide="check-circle-2" class="w-5 h-5 text-govgreen-600 dark:text-green-400 flex-shrink-0 mt-0.5"></i>
             <div>
                 <p class="text-sm font-medium text-govgreen-700 dark:text-green-300"><?= $success_msg ?></p>
-                <p class="text-xs text-govgreen-600 dark:text-green-400 mt-0.5">The task is now visible to the assigned employee(s).</p>
+                <p class="text-xs text-govgreen-600 dark:text-green-400 mt-0.5"><?= htmlspecialchars($t['msg_task_visible'] ?? 'The task is now visible to the assigned employee(s).') ?></p>
             </div>
             <button onclick="document.getElementById('phpAlert').remove()" class="ml-auto text-govgreen-500 hover:text-govgreen-700">
                 <i data-lucide="x" class="w-4 h-4"></i>
@@ -547,18 +822,18 @@ include 'include/sidebar.php';
                     <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-navy-600 to-navy-500 flex items-center justify-center shadow-md">
                         <i data-lucide="clipboard-plus" class="w-5 h-5 text-white"></i>
                     </div>
-                    <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Create &amp; Allocate Task</h1>
+                    <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight"><?= htmlspecialchars($t['page_title'] ?? 'Create & Allocate Task') ?></h1>
                 </div>
-                <p class="text-sm text-slate-500 dark:text-slate-400 ml-13">Assign official tasks to government employees by name or by role/department.</p>
+                <p class="text-sm text-slate-500 dark:text-slate-400 ml-13"><?= htmlspecialchars($t['page_subtitle'] ?? 'Assign official tasks to government employees by name or by role/department.') ?></p>
             </div>
             <div class="mt-4 md:mt-0 flex items-center gap-3">
                 <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                     <i data-lucide="hash" class="w-3.5 h-3.5 mr-1.5"></i>
-                    Auto ID: <span id="taskIdPreview" class="font-bold ml-1"><?= htmlspecialchars($task_id_preview) ?></span>
+                    <?= htmlspecialchars($t['lbl_auto_id'] ?? 'Auto ID:') ?> <span id="taskIdPreview" class="font-bold ml-1"><?= htmlspecialchars($task_id_preview) ?></span>
                 </span>
                 <a href="dashboard.php?lang=<?= $lang ?>" class="inline-flex items-center px-4 py-2 border border-slate-300 dark:border-slate-600 shadow-sm text-sm font-medium rounded-lg text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                     <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>
-                    Back
+                    <?= htmlspecialchars($t['btn_back'] ?? 'Back') ?>
                 </a>
             </div>
         </div>
@@ -578,8 +853,8 @@ include 'include/sidebar.php';
                                 <i data-lucide="file-text" class="w-4 h-4 text-navy-600 dark:text-blue-400"></i>
                             </div>
                             <div>
-                                <h2 class="text-sm font-semibold text-slate-800 dark:text-white">Basic Information</h2>
-                                <p class="text-xs text-slate-500 dark:text-slate-400">Core task details</p>
+                                <h2 class="text-sm font-semibold text-slate-800 dark:text-white"><?= htmlspecialchars($t['section_basic_info'] ?? 'Basic Information') ?></h2>
+                                <p class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($t['section_basic_info_desc'] ?? 'Core task details') ?></p>
                             </div>
                         </div>
                         <div class="p-6 space-y-5">
@@ -587,9 +862,9 @@ include 'include/sidebar.php';
                             <!-- Task ID (read-only) -->
                             <div>
                                 <label class="form-label" for="task_no">
-                                    Task ID <span class="text-saffron-500">*</span>
+                                    <?= htmlspecialchars($t['lbl_task_id'] ?? 'Task ID') ?> <span class="text-saffron-500">*</span>
                                     <span class="ml-2 text-xs font-normal text-govgreen-600 dark:text-green-400 inline-flex items-center gap-1">
-                                        <i data-lucide="zap" class="w-3 h-3"></i> Auto-Generated
+                                        <i data-lucide="zap" class="w-3 h-3"></i> <?= htmlspecialchars($t['lbl_auto_generated'] ?? 'Auto-Generated') ?>
                                     </span>
                                 </label>
                                 <div class="relative">
@@ -608,26 +883,26 @@ include 'include/sidebar.php';
                             <!-- Task Title -->
                             <div>
                                 <label class="form-label" for="task_title">
-                                    Task Title <span class="text-red-500">*</span>
+                                    <?= htmlspecialchars($t['lbl_task_title'] ?? 'Task Title') ?> <span class="text-red-500">*</span>
                                 </label>
                                 <input type="text" id="task_title" name="task_title" required
-                                       placeholder="e.g. Crop Damage Assessment Report – Chandur Block"
+                                       placeholder="<?= htmlspecialchars($t['placeholder_task_title'] ?? 'e.g. Crop Damage Assessment Report – Chandur Block') ?>"
                                        value="<?= htmlspecialchars($_POST['task_title'] ?? '') ?>"
                                        class="w-full px-3 py-2.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg
                                               bg-white dark:bg-slate-800 text-slate-900 dark:text-white
                                               placeholder-slate-400 dark:placeholder-slate-500
                                               focus:outline-none focus:ring-2 focus:ring-navy-500 focus:border-navy-500
                                               transition-colors">
-                                <p class="mt-1 text-xs text-slate-400 dark:text-slate-500" id="titleCounter">0 / 255 characters</p>
+                                <p class="mt-1 text-xs text-slate-400 dark:text-slate-500" id="titleCounter"><?= sprintf($t['char_counter'] ?? '%d / 255 characters', 0) ?></p>
                             </div>
 
                             <!-- Task Description -->
                             <div>
                                 <label class="form-label" for="task_description">
-                                    Task Description <span class="text-red-500">*</span>
+                                    <?= htmlspecialchars($t['lbl_task_desc'] ?? 'Task Description') ?> <span class="text-red-500">*</span>
                                 </label>
                                 <textarea id="task_description" name="task_description" required rows="4"
-                                          placeholder="Provide a detailed description of the task, objectives, and expected outcomes..."
+                                          placeholder="<?= htmlspecialchars($t['placeholder_task_desc'] ?? 'Provide a detailed description of the task, objectives, and expected outcomes...') ?>"
                                           class="w-full px-3 py-2.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg
                                                  bg-white dark:bg-slate-800 text-slate-900 dark:text-white
                                                  placeholder-slate-400 dark:placeholder-slate-500
@@ -637,13 +912,13 @@ include 'include/sidebar.php';
 
                             <!-- Task Category -->
                             <div>
-                                <label class="form-label" for="task_category">Task Category</label>
+                                <label class="form-label" id="lbl_task_category" for="task_category"><?= htmlspecialchars($t['lbl_task_category'] ?? 'Task Category') ?></label>
                                 <div class="relative">
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <i data-lucide="tag" class="w-4 h-4 text-slate-400"></i>
                                     </div>
                                     <input type="text" id="task_category" name="task_category"
-                                           placeholder="e.g. Revenue, Health, Education, Infrastructure"
+                                           placeholder="<?= htmlspecialchars($t['placeholder_task_category'] ?? 'e.g. Revenue, Health, Education, Infrastructure') ?>"
                                            value="<?= htmlspecialchars($_POST['task_category'] ?? '') ?>"
                                            list="category_list"
                                            class="w-full pl-10 pr-3 py-2.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg
@@ -676,8 +951,8 @@ include 'include/sidebar.php';
                                 <i data-lucide="users-2" class="w-4 h-4 text-saffron-600 dark:text-orange-400"></i>
                             </div>
                             <div>
-                                <h2 class="text-sm font-semibold text-slate-800 dark:text-white">Task Allocation</h2>
-                                <p class="text-xs text-slate-500 dark:text-slate-400">Assign to an individual or a role/department</p>
+                                <h2 class="text-sm font-semibold text-slate-800 dark:text-white"><?= htmlspecialchars($t['section_task_alloc'] ?? 'Task Allocation') ?></h2>
+                                <p class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($t['section_task_alloc_desc'] ?? 'Assign to an individual or a role/department') ?></p>
                             </div>
                         </div>
                         <div class="p-6 space-y-5">
@@ -685,7 +960,7 @@ include 'include/sidebar.php';
                             <!-- Allocation Type Toggle -->
                             <div>
                                 <label class="form-label">
-                                    Allocation Type <span class="text-red-500">*</span>
+                                    <?= htmlspecialchars($t['lbl_alloc_type'] ?? 'Allocation Type') ?> <span class="text-red-500">*</span>
                                 </label>
                                 <div class="grid grid-cols-2 gap-3" id="allocationTypeGroup">
                                     <!-- By Name -->
@@ -698,8 +973,8 @@ include 'include/sidebar.php';
                                                 <i data-lucide="user" class="w-4 h-4 text-navy-600 dark:text-blue-400"></i>
                                             </div>
                                             <div>
-                                                <p class="text-sm font-semibold text-navy-700 dark:text-blue-300">By Name</p>
-                                                <p class="text-xs text-slate-500 dark:text-slate-400">Assign to specific employee</p>
+                                                <p class="text-sm font-semibold text-navy-700 dark:text-blue-300"><?= htmlspecialchars($t['lbl_by_name'] ?? 'By Name') ?></p>
+                                                <p class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($t['lbl_by_name_desc'] ?? 'Assign to specific employee') ?></p>
                                             </div>
                                         </div>
                                     </label>
@@ -713,8 +988,8 @@ include 'include/sidebar.php';
                                                 <i data-lucide="briefcase" class="w-4 h-4 text-slate-500 dark:text-slate-400"></i>
                                             </div>
                                             <div>
-                                                <p class="text-sm font-semibold text-slate-700 dark:text-white">By Role</p>
-                                                <p class="text-xs text-slate-500 dark:text-slate-400">Assign to a role/department</p>
+                                                <p class="text-sm font-semibold text-slate-700 dark:text-white"><?= htmlspecialchars($t['lbl_by_role'] ?? 'By Role') ?></p>
+                                                <p class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($t['lbl_by_role_desc'] ?? 'Assign to a role/department') ?></p>
                                             </div>
                                         </div>
                                     </label>
@@ -725,7 +1000,7 @@ include 'include/sidebar.php';
                             <div id="byNameSection" class="space-y-4 transition-all">
                                 <div>
                                     <label class="form-label" for="assigned_user_id">
-                                        Select Employee <span class="text-red-500">*</span>
+                                        <?= htmlspecialchars($t['lbl_select_employee'] ?? 'Select Employee') ?> <span class="text-red-500">*</span>
                                     </label>
                                     <div class="relative">
                                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -736,7 +1011,7 @@ include 'include/sidebar.php';
                                                        bg-white dark:bg-slate-800 text-slate-900 dark:text-white
                                                        focus:outline-none focus:ring-2 focus:ring-navy-500 focus:border-navy-500
                                                        transition-colors appearance-none">
-                                            <option value="">— Select an employee —</option>
+                                            <option value=""><?= htmlspecialchars($t['opt_select_employee'] ?? '— Select an employee —') ?></option>
                                             <?php
                                             if ($users_result && $users_result->num_rows > 0) {
                                                 $users_result->data_seek(0);
@@ -747,7 +1022,7 @@ include 'include/sidebar.php';
                                                 <?= htmlspecialchars($u['full_name']) ?><?= !empty($u['designation']) ? ' — ' . htmlspecialchars($u['designation']) : '' ?>
                                             </option>
                                             <?php endwhile; } else { ?>
-                                            <option value="" disabled>No active employees found in database</option>
+                                            <option value="" disabled><?= htmlspecialchars($t['opt_no_employees'] ?? 'No active employees found in database') ?></option>
                                             <?php } ?>
                                         </select>
                                         <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -762,7 +1037,7 @@ include 'include/sidebar.php';
                                 <!-- Role -->
                                 <div>
                                     <label class="form-label" for="assigned_role_id">
-                                        Select Role <span class="text-red-500">*</span>
+                                        <?= htmlspecialchars($t['lbl_select_role'] ?? 'Select Role') ?> <span class="text-red-500">*</span>
                                     </label>
                                     <div class="relative">
                                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -773,18 +1048,20 @@ include 'include/sidebar.php';
                                                        bg-white dark:bg-slate-800 text-slate-900 dark:text-white
                                                        focus:outline-none focus:ring-2 focus:ring-navy-500 focus:border-navy-500
                                                        transition-colors appearance-none">
-                                            <option value="">— Select a role —</option>
+                                            <option value=""><?= htmlspecialchars($t['opt_select_role'] ?? '— Select a role —') ?></option>
                                             <?php
                                             if ($roles_result && $roles_result->num_rows > 0) {
                                                 $roles_result->data_seek(0);
                                                 while ($r = $roles_result->fetch_assoc()):
                                                     $sel = (isset($_POST['assigned_role_id']) && $_POST['assigned_role_id'] == $r['role_id']) ? 'selected' : '';
+                                                    $role_key = 'role_' . strtolower(str_replace(' ', '_', trim($r['role_name'])));
+                                                    $role_name_display = $t[$role_key] ?? $r['role_name'];
                                             ?>
                                             <option value="<?= (int)$r['role_id'] ?>" data-level="<?= (int)($r['role_level'] ?? 0) ?>" <?= $sel ?>>
-                                                <?= htmlspecialchars($r['role_name']) ?>
+                                                <?= htmlspecialchars($role_name_display) ?>
                                             </option>
                                             <?php endwhile; } else { ?>
-                                            <option value="" disabled>No active roles found in database</option>
+                                            <option value="" disabled><?= htmlspecialchars($t['opt_no_roles'] ?? 'No active roles found in database') ?></option>
                                             <?php } ?>
                                         </select>
                                         <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -801,7 +1078,7 @@ include 'include/sidebar.php';
                                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
                                         </svg>
-                                        Fetching employees with this role…
+                                        <?= htmlspecialchars($t['msg_fetching_employees'] ?? 'Fetching employees with this role…') ?>
                                     </div>
 
                                     <!-- Count badge -->
@@ -809,19 +1086,25 @@ include 'include/sidebar.php';
                                         <div class="flex items-center gap-2">
                                             <i data-lucide="users" class="w-4 h-4 text-saffron-600 dark:text-orange-400"></i>
                                             <span class="text-sm font-medium text-saffron-700 dark:text-orange-300">
-                                                <span id="roleUserCount">0</span> employee(s) will receive this task
+                                                <?php
+                                                if ($lang === 'mr') {
+                                                    echo '<span id="roleUserCount">0</span> कर्मचाऱ्यांना हे कार्य प्राप्त होईल';
+                                                } else {
+                                                    echo '<span id="roleUserCount">0</span> employee(s) will receive this task';
+                                                }
+                                                ?>
                                             </span>
                                         </div>
                                         <button type="button" onclick="toggleRoleUsersList()" id="toggleUsersBtn"
                                                 class="text-xs font-medium text-saffron-600 dark:text-orange-400 hover:underline">
-                                            Show all
+                                            <?= htmlspecialchars($t['btn_show_all'] ?? 'Show all') ?>
                                         </button>
                                     </div>
 
                                     <!-- No users warning -->
                                     <div id="roleUsersNone" class="hidden flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-600 dark:text-red-400">
                                         <i data-lucide="alert-circle" class="w-4 h-4"></i>
-                                        No active employees found with this role.
+                                        <?= htmlspecialchars($t['msg_no_employees_role'] ?? 'No active employees found with this role.') ?>
                                     </div>
 
                                     <!-- Expandable user list -->
@@ -831,7 +1114,7 @@ include 'include/sidebar.php';
 
                                 <!-- Department -->
                                 <div>
-                                    <label class="form-label" for="department_id">Filter by Department <span class="text-xs font-normal text-slate-400">(optional)</span></label>
+                                    <label class="form-label" for="department_id"><?= htmlspecialchars($t['lbl_filter_department'] ?? 'Filter by Department') ?> <span class="text-xs font-normal text-slate-400"><?= htmlspecialchars($t['lbl_optional'] ?? '(optional)') ?></span></label>
                                     <div class="relative">
                                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                             <i data-lucide="building-2" class="w-4 h-4 text-slate-400"></i>
@@ -841,7 +1124,7 @@ include 'include/sidebar.php';
                                                        bg-white dark:bg-slate-800 text-slate-900 dark:text-white
                                                        focus:outline-none focus:ring-2 focus:ring-navy-500 focus:border-navy-500
                                                        transition-colors appearance-none">
-                                            <option value="">— All Departments —</option>
+                                            <option value=""><?= htmlspecialchars($t['opt_all_departments'] ?? '— All Departments —') ?></option>
                                             <?php
                                             if ($departments_result && $departments_result->num_rows > 0) {
                                                 $departments_result->data_seek(0);
@@ -870,8 +1153,8 @@ include 'include/sidebar.php';
                                 <i data-lucide="paperclip" class="w-4 h-4 text-purple-600 dark:text-purple-400"></i>
                             </div>
                             <div>
-                                <h2 class="text-sm font-semibold text-slate-800 dark:text-white">Attachment</h2>
-                                <p class="text-xs text-slate-500 dark:text-slate-400">PDF, Word, Images, Audio &amp; Video accepted</p>
+                                <h2 class="text-sm font-semibold text-slate-800 dark:text-white"><?= htmlspecialchars($t['section_attachment'] ?? 'Attachment') ?></h2>
+                                <p class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($t['section_attachment_desc'] ?? 'PDF, Word, Images, Audio & Video accepted') ?></p>
                             </div>
                         </div>
                         <div class="p-6">
@@ -883,9 +1166,9 @@ include 'include/sidebar.php';
                                     <i data-lucide="upload-cloud" class="w-7 h-7 text-slate-400"></i>
                                 </div>
                                 <p class="text-sm font-medium text-slate-700 dark:text-slate-300">
-                                    Drop your file here or <span class="text-navy-600 dark:text-blue-400 underline">browse</span>
+                                    <?= htmlspecialchars($t['drop_zone_text'] ?? 'Drop your file here or') ?> <span class="text-navy-600 dark:text-blue-400 underline"><?= htmlspecialchars($t['drop_zone_browse'] ?? 'browse') ?></span>
                                 </p>
-                                <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">PDF · Word · JPG · PNG · MP3 · MP4 · and more (max 20 MB)</p>
+                                <p class="text-xs text-slate-400 dark:text-slate-500 mt-1"><?= htmlspecialchars($t['drop_zone_types'] ?? 'PDF · Word · JPG · PNG · MP3 · MP4 · and more (max 20 MB)') ?></p>
                                 <input type="file" id="attachment" name="attachment"
                                        class="hidden"
                                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp,.mp3,.wav,.ogg,.mp4,.avi,.mov,.wmv">
@@ -921,8 +1204,8 @@ include 'include/sidebar.php';
                                 <i data-lucide="calendar-clock" class="w-4 h-4 text-govgreen-600 dark:text-green-400"></i>
                             </div>
                             <div>
-                                <h2 class="text-sm font-semibold text-slate-800 dark:text-white">Schedule</h2>
-                                <p class="text-xs text-slate-500 dark:text-slate-400">Deadlines &amp; targets</p>
+                                <h2 class="text-sm font-semibold text-slate-800 dark:text-white"><?= htmlspecialchars($t['section_schedule'] ?? 'Schedule') ?></h2>
+                                <p class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($t['section_schedule_desc'] ?? 'Deadlines & targets') ?></p>
                             </div>
                         </div>
                         <div class="p-6 space-y-5">
@@ -930,7 +1213,7 @@ include 'include/sidebar.php';
                             <!-- Due Date & Time -->
                             <div>
                                 <label class="form-label" for="due_date">
-                                    Due Date &amp; Time <span class="text-red-500">*</span>
+                                    <?= htmlspecialchars($t['lbl_due_date'] ?? 'Due Date & Time') ?> <span class="text-red-500">*</span>
                                </label> 
                                 <div class="relative">
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -944,19 +1227,19 @@ include 'include/sidebar.php';
                                                   transition-colors">
                                 </div>
                                 <p id="dueDateWarning" class="hidden mt-1 text-xs text-red-500 flex items-center gap-1">
-                                    <i data-lucide="alert-triangle" class="w-3 h-3"></i> Due date cannot be in the past.
+                                    <i data-lucide="alert-triangle" class="w-3 h-3"></i> <?= htmlspecialchars($t['msg_date_past'] ?? 'Due date cannot be in the past.') ?>
                                 </p>
                             </div>
 
                             <!-- Target / Milestone -->
                             <div>
-                                <label class="form-label" for="target">Target / Milestone</label>
+                                <label class="form-label" for="target"><?= htmlspecialchars($t['lbl_target'] ?? 'Target / Milestone') ?></label>
                                 <div class="relative">
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <i data-lucide="target" class="w-4 h-4 text-slate-400"></i>
                                     </div>
                                     <input type="text" id="target" name="target"
-                                           placeholder="e.g. Submit 50 survey forms"
+                                           placeholder="<?= htmlspecialchars($t['placeholder_target'] ?? 'e.g. Submit 50 survey forms') ?>"
                                            value="<?= htmlspecialchars($_POST['target'] ?? '') ?>"
                                            class="w-full pl-10 pr-3 py-2.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg
                                                   bg-white dark:bg-slate-800 text-slate-900 dark:text-white
@@ -976,18 +1259,18 @@ include 'include/sidebar.php';
                                 <i data-lucide="flag" class="w-4 h-4 text-red-500 dark:text-red-400"></i>
                             </div>
                             <div>
-                                <h2 class="text-sm font-semibold text-slate-800 dark:text-white">Priority Level</h2>
-                                <p class="text-xs text-slate-500 dark:text-slate-400">Set task urgency</p>
+                                <h2 class="text-sm font-semibold text-slate-800 dark:text-white"><?= htmlspecialchars($t['section_priority'] ?? 'Priority Level') ?></h2>
+                                <p class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($t['section_priority_desc'] ?? 'Set task urgency') ?></p>
                             </div>
                         </div>
                         <div class="p-6">
                             <div class="grid grid-cols-2 gap-3" id="priorityGroup">
                                 <?php
                                 $priorities = [
-                                    'Low'      => ['icon' => 'arrow-down', 'cls' => 'badge-low',      'ring' => 'border-green-400'],
-                                    'Medium'   => ['icon' => 'minus',      'cls' => 'badge-medium',    'ring' => 'border-yellow-400'],
-                                    'High'     => ['icon' => 'arrow-up',   'cls' => 'badge-high',      'ring' => 'border-red-400'],
-                                    'Critical' => ['icon' => 'zap',        'cls' => 'badge-critical',  'ring' => 'border-purple-400'],
+                                    'Low'      => ['icon' => 'arrow-down', 'cls' => 'badge-low',      'ring' => 'border-green-400', 'lbl' => $t['priority_low'] ?? 'Low'],
+                                    'Medium'   => ['icon' => 'minus',      'cls' => 'badge-medium',    'ring' => 'border-yellow-400', 'lbl' => $t['priority_medium'] ?? 'Medium'],
+                                    'High'     => ['icon' => 'arrow-up',   'cls' => 'badge-high',      'ring' => 'border-red-400', 'lbl' => $t['priority_high'] ?? 'High'],
+                                    'Critical' => ['icon' => 'zap',        'cls' => 'badge-critical',  'ring' => 'border-purple-400', 'lbl' => $t['priority_critical'] ?? 'Critical'],
                                 ];
                                 $sel_priority = $_POST['priority'] ?? 'Medium';
                                 foreach ($priorities as $pname => $pdata):
@@ -998,7 +1281,7 @@ include 'include/sidebar.php';
                                     <input type="radio" name="priority" value="<?= $pname ?>" <?= $checked ?> class="sr-only priority-radio">
                                     <div class="<?= $pdata['cls'] ?> <?= $active ?> p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5 text-center priority-box" data-priority="<?= $pname ?>">
                                         <i data-lucide="<?= $pdata['icon'] ?>" class="w-4 h-4"></i>
-                                        <span class="text-xs font-semibold"><?= $pname ?></span>
+                                        <span class="text-xs font-semibold"><?= htmlspecialchars($pdata['lbl']) ?></span>
                                     </div>
                                 </label>
                                 <?php endforeach; ?>
@@ -1013,33 +1296,33 @@ include 'include/sidebar.php';
                         <div class="px-6 py-4 border-b border-white/10">
                             <h2 class="text-sm font-semibold text-white flex items-center gap-2">
                                 <i data-lucide="eye" class="w-4 h-4 opacity-70"></i>
-                                Live Preview
+                                <?= htmlspecialchars($t['section_preview'] ?? 'Live Preview') ?>
                             </h2>
                         </div>
                         <div class="p-6 space-y-3 text-sm">
                             <div class="flex justify-between">
-                                <span class="text-white/60">Task ID</span>
+                                <span class="text-white/60"><?= htmlspecialchars($t['lbl_task_id'] ?? 'Task ID') ?></span>
                                 <span class="text-white font-mono font-bold" id="prevTaskId"><?= htmlspecialchars($task_id_preview) ?></span>
                             </div>
                             <div class="flex justify-between">
-                                <span class="text-white/60">Title</span>
+                                <span class="text-white/60"><?= htmlspecialchars($t['lbl_title'] ?? 'Title') ?></span>
                                 <span class="text-white font-medium truncate max-w-[130px] text-right" id="prevTitle">—</span>
                             </div>
                             <div class="flex justify-between">
-                                <span class="text-white/60">Priority</span>
-                                <span id="prevPriority" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">Medium</span>
+                                <span class="text-white/60"><?= htmlspecialchars($t['lbl_priority'] ?? 'Priority') ?></span>
+                                <span id="prevPriority" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800"><?= htmlspecialchars($t['priority_medium'] ?? 'Medium') ?></span>
                             </div>
                             <div class="flex justify-between">
-                                <span class="text-white/60">Allocation</span>
-                                <span class="text-white" id="prevAllocation">By Name</span>
+                                <span class="text-white/60"><?= htmlspecialchars($t['lbl_allocation'] ?? 'Allocation') ?></span>
+                                <span class="text-white" id="prevAllocation"><?= htmlspecialchars($t['lbl_by_name'] ?? 'By Name') ?></span>
                             </div>
                             <div class="flex justify-between">
-                                <span class="text-white/60">Due Date</span>
+                                <span class="text-white/60"><?= htmlspecialchars($t['lbl_due_date'] ?? 'Due Date & Time') ?></span>
                                 <span class="text-white" id="prevDue">—</span>
                             </div>
                             <div class="flex justify-between">
-                                <span class="text-white/60">Attachment</span>
-                                <span class="text-white/70" id="prevAttachment">None</span>
+                                <span class="text-white/60"><?= htmlspecialchars($t['lbl_attachment'] ?? 'Attachment') ?></span>
+                                <span class="text-white/70" id="prevAttachment"><?= htmlspecialchars($t['lbl_none'] ?? 'None') ?></span>
                             </div>
                         </div>
                     </div>
@@ -1053,7 +1336,7 @@ include 'include/sidebar.php';
                                        focus:outline-none focus:ring-2 focus:ring-navy-500 focus:ring-offset-2
                                        transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]">
                             <i data-lucide="send" class="w-4 h-4"></i>
-                            <span id="submitBtnText">Create &amp; Allocate Task</span>
+                            <span id="submitBtnText"><?= htmlspecialchars($t['btn_submit'] ?? 'Create & Allocate Task') ?></span>
                         </button>
                         <button type="reset" onclick="resetForm()"
                                 class="w-full flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl
@@ -1062,7 +1345,7 @@ include 'include/sidebar.php';
                                        text-slate-700 dark:text-slate-200 text-sm font-medium
                                        focus:outline-none transition-colors">
                             <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
-                            Reset Form
+                            <?= htmlspecialchars($t['btn_reset'] ?? 'Reset Form') ?>
                         </button>
                     </div>
 
@@ -1096,14 +1379,7 @@ include 'include/sidebar.php';
     // ── Lucide Icons ─────────────────────────────────────────────
     lucide.createIcons();
 
-    // ── Dark Mode ────────────────────────────────────────────────
-    const themeToggle  = document.getElementById('themeToggle');
-    const htmlEl       = document.documentElement;
 
-    themeToggle.addEventListener('click', () => {
-        htmlEl.classList.toggle('dark');
-        lucide.createIcons();
-    });
 
     // ── Sidebar Toggle ───────────────────────────────────────────
     const sidebar       = document.getElementById('sidebar');
@@ -1133,19 +1409,40 @@ include 'include/sidebar.php';
     const roleCountEl    = document.getElementById('roleUserCount');
     let roleUsersListVisible = false;
 
+    // Dynamic translations for JS
+    const langCode = '<?= $lang ?>';
+    const jsTranslations = {
+        ByName: '<?= addslashes($t['lbl_by_name'] ?? 'By Name') ?>',
+        ByRole: '<?= addslashes($t['lbl_by_role'] ?? 'By Role') ?>',
+        ByRoleUsers: '<?= addslashes($t['lbl_by_role'] ?? 'By Role') ?> (%count%)',
+        Low: '<?= addslashes($t['priority_low'] ?? 'Low') ?>',
+        Medium: '<?= addslashes($t['priority_medium'] ?? 'Medium') ?>',
+        High: '<?= addslashes($t['priority_high'] ?? 'High') ?>',
+        Critical: '<?= addslashes($t['priority_critical'] ?? 'Critical') ?>',
+        none: '<?= addslashes($t['lbl_none'] ?? 'None') ?>',
+        toast_title_req: '<?= addslashes($t['toast_title_req'] ?? 'Task title is required.') ?>',
+        toast_due_req: '<?= addslashes($t['toast_due_req'] ?? 'Please select a due date & time.') ?>',
+        toast_employee_req: '<?= addslashes($t['toast_employee_req'] ?? 'Please select an employee to assign.') ?>',
+        toast_role_req: '<?= addslashes($t['toast_role_req'] ?? 'Please select a role to assign.') ?>',
+        btn_submitting: '<?= addslashes($t['btn_submitting'] ?? 'Creating Task…') ?>',
+        btn_show_all: '<?= addslashes($t['btn_show_all'] ?? 'Show all') ?>',
+        btn_hide: '<?= addslashes($t['btn_hide'] ?? 'Hide') ?>',
+        msg_fetching_employees: '<?= addslashes($t['msg_fetching_employees'] ?? 'Fetching employees with this role…') ?>'
+    };
+
     function setAllocationUI(type) {
         if (type === 'by_name') {
             byNameSection.classList.remove('hidden');
             byRoleSection.classList.add('hidden');
             boxByName.className = 'flex items-center gap-3 p-4 rounded-xl border-2 border-navy-500 bg-navy-50 dark:bg-navy-900/20 transition-all';
             boxByRole.className = 'flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 transition-all';
-            prevAllocation.textContent = 'By Name';
+            prevAllocation.textContent = jsTranslations.ByName;
         } else {
             byRoleSection.classList.remove('hidden');
             byNameSection.classList.add('hidden');
             boxByRole.className = 'flex items-center gap-3 p-4 rounded-xl border-2 border-saffron-500 bg-saffron-50 dark:bg-orange-900/20 transition-all';
             boxByName.className = 'flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 transition-all';
-            prevAllocation.textContent = 'By Role';
+            prevAllocation.textContent = jsTranslations.ByRole;
             // Trigger fetch if a role is already selected
             if (roleSelect.value) fetchRoleUsers(roleSelect.value);
         }
@@ -1166,7 +1463,7 @@ include 'include/sidebar.php';
         roleList.classList.add('hidden');
         roleList.innerHTML = '';
         roleUsersListVisible = false;
-        document.getElementById('toggleUsersBtn') && (document.getElementById('toggleUsersBtn').textContent = 'Show all');
+        document.getElementById('toggleUsersBtn') && (document.getElementById('toggleUsersBtn').textContent = jsTranslations.btn_show_all);
 
         fetch(`create_task.php?ajax=role_users&role_id=${roleId}`)
             .then(r => r.json())
@@ -1196,7 +1493,7 @@ include 'include/sidebar.php';
                     lucide.createIcons();
                 }
                 // Update preview
-                document.getElementById('prevAllocation').textContent = `By Role (${data.count} users)`;
+                document.getElementById('prevAllocation').textContent = jsTranslations.ByRoleUsers.replace('%count%', data.count);
             })
             .catch(() => {
                 roleLoading.classList.add('hidden');
@@ -1207,7 +1504,7 @@ include 'include/sidebar.php';
     function toggleRoleUsersList() {
         roleUsersListVisible = !roleUsersListVisible;
         roleList.classList.toggle('hidden', !roleUsersListVisible);
-        document.getElementById('toggleUsersBtn').textContent = roleUsersListVisible ? 'Hide' : 'Show all';
+        document.getElementById('toggleUsersBtn').textContent = roleUsersListVisible ? jsTranslations.btn_hide : jsTranslations.btn_show_all;
     }
 
     roleSelect.addEventListener('change', () => fetchRoleUsers(roleSelect.value));
@@ -1244,7 +1541,7 @@ include 'include/sidebar.php';
             }
         });
         priorityValue.value = value;
-        prevPriority.textContent = value;
+        prevPriority.textContent = jsTranslations[value];
         prevPriority.className = 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ' + priorityConfig[value].cls;
     }
 
@@ -1260,7 +1557,8 @@ include 'include/sidebar.php';
     const titleCounter = document.getElementById('titleCounter');
     titleInput.addEventListener('input', () => {
         const len = titleInput.value.length;
-        titleCounter.textContent = `${len} / 255 characters`;
+        const charTemplate = '<?= $t['char_counter'] ?? "%d / 255 characters" ?>';
+        titleCounter.textContent = charTemplate.replace('%d', len);
         titleCounter.className = 'mt-1 text-xs ' + (len > 240 ? 'text-red-500' : 'text-slate-400 dark:text-slate-500');
         document.getElementById('prevTitle').textContent = titleInput.value || '—';
     });
@@ -1279,7 +1577,8 @@ include 'include/sidebar.php';
         }
         if (dueDateInput.value) {
             const opts = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-            prevDue.textContent = val.toLocaleDateString('en-IN', opts);
+            const localeCode = langCode === 'mr' ? 'mr-IN' : 'en-IN';
+            prevDue.textContent = val.toLocaleDateString(localeCode, opts);
         } else {
             prevDue.textContent = '—';
         }
@@ -1350,7 +1649,7 @@ include 'include/sidebar.php';
     function clearFile() {
         fileInput.value = '';
         filePreview.classList.add('hidden');
-        prevAttach.textContent = 'None';
+        prevAttach.textContent = jsTranslations.none;
     }
 
     // ── Form Submission Loading State ────────────────────────────
@@ -1360,21 +1659,21 @@ include 'include/sidebar.php';
         const due   = dueDateInput.value;
         const alloc = document.querySelector('input[name="allocation_type"]:checked')?.value;
 
-        if (!title) { showToast('Task title is required.', 'warning'); e.preventDefault(); return; }
-        if (!due)   { showToast('Please select a due date & time.', 'warning'); e.preventDefault(); return; }
+        if (!title) { showToast(jsTranslations.toast_title_req, 'warning'); e.preventDefault(); return; }
+        if (!due)   { showToast(jsTranslations.toast_due_req, 'warning'); e.preventDefault(); return; }
 
         if (alloc === 'by_name' && !document.getElementById('assigned_user_id').value) {
-            showToast('Please select an employee to assign.', 'warning'); e.preventDefault(); return;
+            showToast(jsTranslations.toast_employee_req, 'warning'); e.preventDefault(); return;
         }
         if (alloc === 'by_role' && !document.getElementById('assigned_role_id').value) {
-            showToast('Please select a role to assign.', 'warning'); e.preventDefault(); return;
+            showToast(jsTranslations.toast_role_req, 'warning'); e.preventDefault(); return;
         }
 
         const btn  = document.getElementById('submitBtn');
         const text = document.getElementById('submitBtnText');
         btn.disabled  = true;
         btn.classList.add('opacity-75', 'cursor-not-allowed');
-        text.textContent = 'Creating Task…';
+        text.textContent = jsTranslations.btn_submitting;
     });
 
     // ── Toast Notification ───────────────────────────────────────
@@ -1401,7 +1700,8 @@ include 'include/sidebar.php';
         setAllocationUI('by_name');
         document.getElementById('prevTitle').textContent  = '—';
         document.getElementById('prevDue').textContent    = '—';
-        titleCounter.textContent = '0 / 255 characters';
+        const charTemplate = '<?= $t['char_counter'] ?? "%d / 255 characters" ?>';
+        titleCounter.textContent = charTemplate.replace('%d', 0);
         dueDateWarning.classList.add('hidden');
         lucide.createIcons();
     }
