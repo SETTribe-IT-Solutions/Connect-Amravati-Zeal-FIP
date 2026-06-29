@@ -649,6 +649,16 @@ $currentKpis = match($activeTab) {
     default => $kpiAssigned,
 };
 
+$all_users = [];
+if ($db_connected) {
+    $res = $conn->query("SELECT user_id, full_name, employee_code FROM users WHERE status = 'Active' ORDER BY full_name ASC");
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $all_users[] = $row;
+        }
+    }
+}
+
 /* User Badge configurations */
 $parts    = array_filter(explode(' ', trim($sName)));
 $initials = strtoupper(substr($parts[0] ?? 'U', 0, 1) . substr($parts[1] ?? '', 0, 1));
@@ -806,7 +816,7 @@ include 'include/sidebar.php';
     <!-- GLOBAL HEADER -->
     <header class="h-16 glass-panel border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 z-10 sticky top-0 no-print">
         <div class="flex items-center flex-1">
-            <button class="mr-4 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 focus:outline-none hidden md:block" id="sidebarToggle">
+            <button class="mr-4 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 focus:outline-none block lg:hidden" id="sidebarToggle">
                 <i data-lucide="menu" class="w-6 h-6"></i>
             </button>
             
@@ -818,7 +828,7 @@ include 'include/sidebar.php';
             </nav>
         </div>
 
-        <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-2 sm:space-x-4">
             <!-- Language Toggle -->
             <?php
             $queryParams = $_GET;
@@ -827,10 +837,10 @@ include 'include/sidebar.php';
             ?>
             <a href="<?php echo htmlspecialchars($lang_switch_url); ?>" 
                class="flex items-center text-sm font-medium text-slate-700 dark:text-slate-300
-                      hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-1.5 rounded-md
+                      hover:bg-slate-100 dark:hover:bg-slate-800 px-2 sm:px-3 py-1.5 rounded-md
                       transition-colors border border-slate-200 dark:border-slate-700" style="text-decoration: none;">
-                <i data-lucide="languages" class="w-4 h-4 mr-2 text-slate-500"></i>
-                <?php echo $lang === 'en' ? 'मराठी (MR)' : 'English (EN)'; ?>
+                <i data-lucide="languages" class="w-4 h-4 sm:mr-2 text-slate-500"></i>
+                <span class="hidden sm:inline"><?php echo $lang === 'en' ? 'मराठी (MR)' : 'English (EN)'; ?></span>
             </a>
 
             <!-- Theme Switcher -->
@@ -941,26 +951,26 @@ include 'include/sidebar.php';
 
         <!-- KPI Cards -->
         <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6 no-print">
-            <div class="kpi-card bg-gradient-to-br from-blue-50 to-white dark:from-slate-800 dark:to-slate-900 p-5 rounded-xl border-l-4 border-blue-500 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200">
+            <a href="reports.php?lang=<?= $lang ?>&tab=<?= $activeTab ?>&status=All" class="block kpi-card bg-gradient-to-br from-blue-50 to-white dark:from-slate-800 dark:to-slate-900 p-5 rounded-xl border-l-4 border-blue-500 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200 cursor-pointer">
                 <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_total']) ?></p>
                 <p id="kpi-total" class="text-2xl font-bold mt-2 text-slate-800 dark:text-white"><?= $currentKpis['total'] ?></p>
-            </div>
-            <div class="kpi-card bg-gradient-to-br from-yellow-50 to-white dark:from-slate-800 dark:to-slate-900 p-5 rounded-xl border-l-4 border-yellow-500 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200">
+            </a>
+            <a href="reports.php?lang=<?= $lang ?>&tab=<?= $activeTab ?>&status=Pending" class="block kpi-card bg-gradient-to-br from-yellow-50 to-white dark:from-slate-800 dark:to-slate-900 p-5 rounded-xl border-l-4 border-yellow-500 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200 cursor-pointer">
                 <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_pending']) ?></p>
                 <p id="kpi-pending" class="text-2xl font-bold mt-2 text-yellow-600 dark:text-yellow-400"><?= $currentKpis['pending'] ?></p>
-            </div>
-            <div class="kpi-card bg-gradient-to-br from-indigo-50 to-white dark:from-slate-800 dark:to-slate-900 p-5 rounded-xl border-l-4 border-indigo-500 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200">
+            </a>
+            <a href="reports.php?lang=<?= $lang ?>&tab=<?= $activeTab ?>&status=In+Progress" class="block kpi-card bg-gradient-to-br from-indigo-50 to-white dark:from-slate-800 dark:to-slate-900 p-5 rounded-xl border-l-4 border-indigo-500 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200 cursor-pointer">
                 <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_in_progress']) ?></p>
                 <p id="kpi-in-progress" class="text-2xl font-bold mt-2 text-blue-600 dark:text-blue-400"><?= $currentKpis['in_progress'] ?></p>
-            </div>
-            <div class="kpi-card bg-gradient-to-br from-green-50 to-white dark:from-slate-800 dark:to-slate-900 p-5 rounded-xl border-l-4 border-govgreen-500 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200">
+            </a>
+            <a href="reports.php?lang=<?= $lang ?>&tab=<?= $activeTab ?>&status=Completed" class="block kpi-card bg-gradient-to-br from-green-50 to-white dark:from-slate-800 dark:to-slate-900 p-5 rounded-xl border-l-4 border-govgreen-500 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200 cursor-pointer">
                 <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_completed']) ?></p>
                 <p id="kpi-completed" class="text-2xl font-bold mt-2 text-govgreen-600 dark:text-govgreen-450"><?= $currentKpis['completed'] ?></p>
-            </div>
-            <div class="kpi-card bg-gradient-to-br from-red-50 to-white dark:from-slate-800 dark:to-slate-900 p-5 rounded-xl border-l-4 border-red-500 shadow-sm col-span-2 lg:col-span-1 hover:shadow-md hover:scale-[1.02] transition-all duration-200">
+            </a>
+            <a href="reports.php?lang=<?= $lang ?>&tab=<?= $activeTab ?>&status=Overdue" class="block kpi-card bg-gradient-to-br from-red-50 to-white dark:from-slate-800 dark:to-slate-900 p-5 rounded-xl border-l-4 border-red-500 shadow-sm col-span-2 lg:col-span-1 hover:shadow-md hover:scale-[1.02] transition-all duration-200 cursor-pointer">
                 <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_overdue']) ?></p>
                 <p id="kpi-overdue" class="text-2xl font-bold mt-2 text-red-600 dark:text-red-400"><?= $currentKpis['overdue'] ?></p>
-            </div>
+            </a>
         </div>
 
         <!-- Filter Panel -->
@@ -1041,18 +1051,27 @@ include 'include/sidebar.php';
                 <table id="tasks-table" class="w-full min-w-[1000px] divide-y divide-slate-200 dark:divide-slate-700 table-fixed">
                     <thead class="bg-slate-50 dark:bg-slate-900/50">
                         <tr>
-                            <th class="w-[8%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_task_no']) ?></th>
-                            <th class="w-[24%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_title']) ?></th>
-                            <?php if ($activeTab === 'allocated'): ?>
-                            <th class="w-[13%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_worker']) ?></th>
+                            <?php if ($filterStatus === 'Overdue'): ?>
+                                <th class="w-[20%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Candidate Name & Role</th>
+                                <th class="w-[10%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Task ID</th>
+                                <th class="w-[25%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Task Name</th>
+                                <th class="w-[12%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Assigned Date</th>
+                                <th class="w-[12%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Due Date</th>
+                                <th class="w-[21%] px-6 py-3.5 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider no-print"><?= htmlspecialchars($t['col_actions']) ?></th>
                             <?php else: ?>
-                            <th class="w-[13%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_creator']) ?></th>
+                                <th class="w-[8%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_task_no']) ?></th>
+                                <th class="w-[24%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_title']) ?></th>
+                                <?php if ($activeTab === 'allocated'): ?>
+                                <th class="w-[13%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_worker']) ?></th>
+                                <?php else: ?>
+                                <th class="w-[13%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_creator']) ?></th>
+                                <?php endif; ?>
+                                <th class="w-[8%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_priority']) ?></th>
+                                <th class="w-[11%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_status']) ?></th>
+                                <th class="w-[10%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_due']) ?></th>
+                                <th class="w-[10%] px-6 py-3.5 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tracking</th>
+                                <th class="w-[16%] px-6 py-3.5 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider no-print"><?= htmlspecialchars($t['col_actions']) ?></th>
                             <?php endif; ?>
-                            <th class="w-[8%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_priority']) ?></th>
-                            <th class="w-[11%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_status']) ?></th>
-                            <th class="w-[10%] px-6 py-3.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_due']) ?></th>
-                            <th class="w-[10%] px-6 py-3.5 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tracking</th>
-                            <th class="w-[16%] px-6 py-3.5 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider no-print"><?= htmlspecialchars($t['col_actions']) ?></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-800">
@@ -1084,63 +1103,107 @@ include 'include/sidebar.php';
                                 $dueColor = $isOverdue ? 'text-red-650 font-bold dark:text-red-400' : 'text-slate-650 dark:text-slate-300';
                         ?>
                         <tr id="task-row-<?= $taskId ?>" class="hover:bg-slate-50/50 dark:hover:bg-slate-750/30 transition-colors">
-                            <!-- Task No -->
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-mono font-semibold text-slate-900 dark:text-white">
-                                <?= htmlspecialchars($row['task_no']) ?>
-                            </td>
-                            <!-- Title & Description -->
-                            <td class="px-6 py-4">
-                                <div class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($row['task_title']) ?></div>
-                                <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm line-clamp-2 leading-relaxed whitespace-normal break-words"><?= htmlspecialchars($row['task_description']) ?></div>
-                                <?php if (!empty($row['task_category'])): ?>
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 mt-1">
-                                    <?= htmlspecialchars($row['task_category']) ?>
-                                </span>
-                                <?php endif; ?>
-                            </td>
-                            <!-- Creator / Assignee -->
-                            <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                <?php if ($activeTab === 'allocated'): ?>
-                                    <div class="text-slate-900 dark:text-white font-medium"><?= htmlspecialchars($row['assignee_name'] ?: 'N/A') ?></div>
-                                    <div class="text-xs text-slate-400 dark:text-slate-500"><?= htmlspecialchars($row['assigned_role_name'] ?: 'Role Assigned') ?></div>
-                                <?php elseif ($activeTab === 'tracking'): ?>
-                                    <div class="text-slate-900 dark:text-white font-medium">To: <?= htmlspecialchars($row['assigned_to_name'] ?: 'Unassigned') ?></div>
-                                    <div class="text-xs text-slate-400 dark:text-slate-500">By: <?= htmlspecialchars($row['creator_name'] ?: 'N/A') ?></div>
-                                <?php else: ?>
-                                    <div class="text-slate-900 dark:text-white font-medium"><?= htmlspecialchars($row['creator_name'] ?: 'N/A') ?></div>
-                                <?php endif; ?>
-                            </td>
-                            <!-- Priority -->
-                            <td class="px-6 py-4 whitespace-nowrap text-sm <?= $priorityCss ?>">
-                                <?= htmlspecialchars($t['priority_' . strtolower($row['priority'])]) ?>
-                            </td>
-                            <!-- Status -->
-                            <td class="px-6 py-4 whitespace-nowrap text-sm status-cell">
-                                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold border <?= $statusBadge ?>">
-                                    <?php 
-                                    $statusKey = 'status_' . str_replace(' ', '_', strtolower($displayStatus));
-                                    $statusText = isset($t[$statusKey]) ? $t[$statusKey] : $displayStatus;
-                                    ?>
-                                    <?= htmlspecialchars($statusText) ?>
-                                </span>
-                            </td>
-                            <!-- Due Date -->
-                            <td class="px-6 py-4 whitespace-nowrap text-sm due-cell <?= $dueColor ?>">
-                                <?= $dueFormatted ?>
-                            </td>
-                            <!-- Tracking -->
-                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                <button type="button" onclick="openDetails(<?= $taskId ?>)" class="inline-flex items-center justify-center px-2 py-1.5 text-navy-600 bg-navy-50 hover:bg-navy-100 dark:text-blue-400 dark:bg-navy-900/40 dark:hover:bg-navy-800 rounded-lg transition-colors border border-transparent hover:border-navy-200 dark:hover:border-navy-700" title="Track Journey">
-                                    <i data-lucide="route" class="w-4 h-4"></i>
-                                    <span class="ml-1.5 font-semibold text-[11px] uppercase tracking-wider">Track</span>
-                                </button>
-                            </td>
-                            <!-- Actions (no-print) -->
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium no-print">
-                                <div class="flex flex-wrap justify-end gap-1.5">
-                                    <button onclick="openDetails(<?= $taskId ?>)" class="px-2.5 py-1 bg-slate-105 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-750 dark:text-slate-250 rounded-md transition-colors inline-flex items-center gap-1 shadow-sm font-semibold text-xs" title="View Details">
-                                        <i data-lucide="eye" class="w-3.5 h-3.5"></i> <?= htmlspecialchars($t['btn_view']) ?>
+                            <?php if ($filterStatus === 'Overdue'): ?>
+                                <!-- Name & Role -->
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <?php if ($activeTab === 'allocated'): ?>
+                                        <div class="text-slate-900 dark:text-white font-medium"><?= htmlspecialchars($row['assignee_name'] ?: 'N/A') ?></div>
+                                        <div class="text-xs text-slate-400 dark:text-slate-500"><?= htmlspecialchars($row['assigned_role_name'] ?: 'Role Assigned') ?></div>
+                                    <?php elseif ($activeTab === 'tracking'): ?>
+                                        <div class="text-slate-900 dark:text-white font-medium">To: <?= htmlspecialchars($row['assigned_to_name'] ?: 'Unassigned') ?></div>
+                                        <div class="text-xs text-slate-400 dark:text-slate-500">By: <?= htmlspecialchars($row['creator_name'] ?: 'N/A') ?></div>
+                                    <?php else: ?>
+                                        <div class="text-slate-900 dark:text-white font-medium"><?= htmlspecialchars($row['creator_name'] ?: 'N/A') ?></div>
+                                    <?php endif; ?>
+                                </td>
+                                <!-- Task ID -->
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-mono font-semibold text-slate-900 dark:text-white">
+                                    <?= htmlspecialchars($row['task_no']) ?>
+                                </td>
+                                <!-- Task Name -->
+                                <td class="px-6 py-4">
+                                    <div class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($row['task_title']) ?></div>
+                                </td>
+                                <!-- Assigned Date -->
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-650 dark:text-slate-300">
+                                    <?= !empty($row['created_at']) ? date('M d, Y', strtotime($row['created_at'])) : 'N/A' ?>
+                                </td>
+                                <!-- Due Date -->
+                                <td class="px-6 py-4 whitespace-nowrap text-sm due-cell <?= $dueColor ?>">
+                                    <?= $dueFormatted ?>
+                                </td>
+                                <!-- Actions -->
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium no-print">
+                                    <div class="flex flex-wrap justify-end gap-1.5">
+                                        <button onclick="takeAction(<?= $taskId ?>, this)" class="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors inline-flex items-center gap-1 shadow-sm font-semibold text-xs">
+                                            <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> Action Taken
+                                        </button>
+                                        <button onclick="openReassignModal(<?= $taskId ?>)" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors inline-flex items-center gap-1 shadow-sm font-semibold text-xs">
+                                            <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> Reassign
+                                        </button>
+                                        <button onclick="openDetails(<?= $taskId ?>)" class="px-2.5 py-1 bg-slate-105 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-750 dark:text-slate-250 rounded-md transition-colors inline-flex items-center gap-1 shadow-sm font-semibold text-xs" title="View Details">
+                                            <i data-lucide="eye" class="w-3.5 h-3.5"></i> <?= htmlspecialchars($t['btn_view']) ?>
+                                        </button>
+                                    </div>
+                                </td>
+                            <?php else: ?>
+                                <!-- Task No -->
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-mono font-semibold text-slate-900 dark:text-white">
+                                    <?= htmlspecialchars($row['task_no']) ?>
+                                </td>
+                                <!-- Title & Description -->
+                                <td class="px-6 py-4">
+                                    <div class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($row['task_title']) ?></div>
+                                    <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm line-clamp-2 leading-relaxed whitespace-normal break-words"><?= htmlspecialchars($row['task_description']) ?></div>
+                                    <?php if (!empty($row['task_category'])): ?>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 mt-1">
+                                        <?= htmlspecialchars($row['task_category']) ?>
+                                    </span>
+                                    <?php endif; ?>
+                                </td>
+                                <!-- Creator / Assignee -->
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <?php if ($activeTab === 'allocated'): ?>
+                                        <div class="text-slate-900 dark:text-white font-medium"><?= htmlspecialchars($row['assignee_name'] ?: 'N/A') ?></div>
+                                        <div class="text-xs text-slate-400 dark:text-slate-500"><?= htmlspecialchars($row['assigned_role_name'] ?: 'Role Assigned') ?></div>
+                                    <?php elseif ($activeTab === 'tracking'): ?>
+                                        <div class="text-slate-900 dark:text-white font-medium">To: <?= htmlspecialchars($row['assigned_to_name'] ?: 'Unassigned') ?></div>
+                                        <div class="text-xs text-slate-400 dark:text-slate-500">By: <?= htmlspecialchars($row['creator_name'] ?: 'N/A') ?></div>
+                                    <?php else: ?>
+                                        <div class="text-slate-900 dark:text-white font-medium"><?= htmlspecialchars($row['creator_name'] ?: 'N/A') ?></div>
+                                    <?php endif; ?>
+                                </td>
+                                <!-- Priority -->
+                                <td class="px-6 py-4 whitespace-nowrap text-sm <?= $priorityCss ?>">
+                                    <?= htmlspecialchars($t['priority_' . strtolower($row['priority'])]) ?>
+                                </td>
+                                <!-- Status -->
+                                <td class="px-6 py-4 whitespace-nowrap text-sm status-cell">
+                                    <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold border <?= $statusBadge ?>">
+                                        <?php 
+                                        $statusKey = 'status_' . str_replace(' ', '_', strtolower($displayStatus));
+                                        $statusText = isset($t[$statusKey]) ? $t[$statusKey] : $displayStatus;
+                                        ?>
+                                        <?= htmlspecialchars($statusText) ?>
+                                    </span>
+                                </td>
+                                <!-- Due Date -->
+                                <td class="px-6 py-4 whitespace-nowrap text-sm due-cell <?= $dueColor ?>">
+                                    <?= $dueFormatted ?>
+                                </td>
+                                <!-- Tracking -->
+                                <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                                    <button type="button" onclick="openDetails(<?= $taskId ?>)" class="inline-flex items-center justify-center px-2 py-1.5 text-navy-600 bg-navy-50 hover:bg-navy-100 dark:text-blue-400 dark:bg-navy-900/40 dark:hover:bg-navy-800 rounded-lg transition-colors border border-transparent hover:border-navy-200 dark:hover:border-navy-700" title="Track Journey">
+                                        <i data-lucide="route" class="w-4 h-4"></i>
+                                        <span class="ml-1.5 font-semibold text-[11px] uppercase tracking-wider">Track</span>
                                     </button>
+                                </td>
+                                <!-- Actions (no-print) -->
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium no-print">
+                                    <div class="flex flex-wrap justify-end gap-1.5">
+                                        <button onclick="openDetails(<?= $taskId ?>)" class="px-2.5 py-1 bg-slate-105 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-750 dark:text-slate-250 rounded-md transition-colors inline-flex items-center gap-1 shadow-sm font-semibold text-xs" title="View Details">
+                                            <i data-lucide="eye" class="w-3.5 h-3.5"></i> <?= htmlspecialchars($t['btn_view']) ?>
+                                        </button>
 
                                     <?php if ($activeTab === 'assigned'): ?>
                                         <?php if ($row['status'] === 'Pending' || $row['status'] === 'Reassigned'): ?>
@@ -1177,6 +1240,7 @@ include 'include/sidebar.php';
                                     <?php endif; ?>
                                 </div>
                             </td>
+                            <?php endif; ?>
                         </tr>
                         <?php 
                             endforeach; 
@@ -1192,6 +1256,34 @@ include 'include/sidebar.php';
 <!-- ═══════════════════════════════════════════════════════════════════
      MODALS FOR TASK WORKFLOW ACTIONS
 ════════════════════════════════════════════════════════════════════ -->
+<div id="reassignTaskModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white dark:bg-slate-800 w-full max-w-lg rounded-xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-700 m-4">
+        <div class="px-6 py-4 bg-blue-600 text-white flex justify-between items-center">
+            <h3 class="font-bold text-lg">Reassign Task</h3>
+            <button type="button" onclick="closeReassignModal()" class="text-white hover:opacity-80"><i data-lucide="x" class="w-6 h-6"></i></button>
+        </div>
+        <form id="reassignTaskForm" onsubmit="submitReassignment(event)" class="p-6 space-y-4">
+            <input type="hidden" id="reassignTaskId" name="task_id">
+            
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Select New Assignee *</label>
+                <select name="new_assignee_id" id="new_assignee_id" required class="block w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2.5 text-sm focus:ring-blue-500">
+                    <option value="">-- Select Candidate --</option>
+                    <?php if (isset($all_users) && is_array($all_users)): ?>
+                        <?php foreach ($all_users as $u): ?>
+                            <option value="<?= $u['user_id'] ?>"><?= htmlspecialchars($u['full_name'] . ' (' . $u['employee_code'] . ')') ?></option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </select>
+            </div>
+            
+            <div class="flex justify-end space-x-2 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <button type="button" onclick="closeReassignModal()" class="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-700">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors">Confirm Reassignment</button>
+            </div>
+        </form>
+    </div>
+</div>
 <div id="rejectTaskModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
     <div class="bg-white dark:bg-slate-800 w-full max-w-lg rounded-xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-700 m-4">
         <div class="px-6 py-4 bg-red-600 text-white flex justify-between items-center">
@@ -1654,6 +1746,81 @@ include 'include/sidebar.php';
                 closeReviewRejectionModal();
                 window.location.reload();
             }
+        });
+    }
+
+    function openReassignModal(taskId) {
+        document.getElementById('reassignTaskId').value = taskId;
+        document.getElementById('reassignTaskModal').classList.remove('hidden');
+    }
+
+    function closeReassignModal() {
+        document.getElementById('reassignTaskModal').classList.add('hidden');
+        document.getElementById('new_assignee_id').value = '';
+    }
+
+    function submitReassignment(e) {
+        e.preventDefault();
+        const taskId = document.getElementById('reassignTaskId').value;
+        const newAssigneeId = document.getElementById('new_assignee_id').value;
+
+        if (!newAssigneeId) {
+            alert('Please select a new assignee.');
+            return;
+        }
+
+        const fd = new FormData();
+        fd.append('action', 'reassign_task');
+        fd.append('task_id', taskId);
+        fd.append('new_assignee_id', newAssigneeId);
+
+        fetch('api/task_notification_actions.php', {
+            method: 'POST',
+            body: fd
+        })
+        .then(r => r.json())
+        .then(res => {
+            alert(res.message);
+            if (res.status === 'success') {
+                closeReassignModal();
+                window.location.reload();
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('An error occurred while reassigning the task.');
+        });
+    }
+
+    function takeAction(taskId, btn) {
+        if (!confirm('Are you sure you want to take action and notify the candidate?')) return;
+        
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i> Processing...';
+        btn.disabled = true;
+
+        fetch('api/task_notification_actions.php?action=take_action', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'task_id=' + taskId
+        })
+        .then(res => res.json())
+        .then(data => {
+            alert(data.message);
+            if (data.status === 'success') {
+                window.location.reload();
+            } else {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                lucide.createIcons();
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('An error occurred.');
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            lucide.createIcons();
         });
     }
 

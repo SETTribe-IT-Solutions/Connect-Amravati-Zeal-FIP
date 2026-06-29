@@ -21,18 +21,26 @@
                 });
             }
 
-            // Sidebar Toggle Logic (if a button exists with id 'sidebarToggle')
+            // Sidebar Toggle Logic
             const sidebar = document.getElementById('sidebar');
-            const sidebarToggle = document.getElementById('sidebarToggle');
-            if (sidebar && sidebarToggle) {
-                sidebarToggle.addEventListener('click', () => {
-                    if (sidebar.style.display === 'none') {
-                        sidebar.style.display = 'flex';
-                    } else {
-                        sidebar.style.display = 'none';
-                    }
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            
+            window.toggleSidebar = function() {
+                if (sidebar) {
+                    sidebar.classList.toggle('-translate-x-full');
+                }
+                if (sidebarOverlay) {
+                    sidebarOverlay.classList.toggle('hidden');
+                }
+            };
+
+            const sidebarToggleBtns = document.querySelectorAll('#sidebarToggle');
+            sidebarToggleBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleSidebar();
                 });
-            }
+            });
             // Dropdown Toggle Logic
             const profileDropdownBtn = document.getElementById('profileDropdownBtn');
             const profileDropdownMenu = document.getElementById('profileDropdownMenu');

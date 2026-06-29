@@ -1025,30 +1025,30 @@ include 'include/sidebar.php';
         <div class="flex items-center flex-1">
             <button id="sidebarToggle"
                     class="mr-4 text-slate-500 hover:text-slate-700 dark:text-slate-400
-                           dark:hover:text-slate-200 focus:outline-none hidden md:block">
+                           dark:hover:text-slate-200 focus:outline-none block lg:hidden">
                 <i data-lucide="menu" class="w-6 h-6"></i>
             </button>
             <!-- Search -->
-            <div class="max-w-md w-full relative">
+            <div class="w-32 sm:max-w-md sm:w-full relative">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <i data-lucide="search" class="h-4 w-4 text-slate-400"></i>
                 </div>
                 <input id="globalSearch" type="text"
                        placeholder="<?= htmlspecialchars($t['search_placeholder']) ?>"
-                       class="block w-full pl-10 pr-3 py-2 border border-slate-300
+                       class="block w-full pl-8 sm:pl-10 pr-3 py-2 border border-slate-300
                               dark:border-slate-700 rounded-md leading-5
                               bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100
                               placeholder-slate-500 focus:outline-none
                               focus:ring-1 focus:ring-navy-500 focus:border-navy-500
-                              sm:text-sm transition-colors">
-                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                              text-xs sm:text-sm transition-colors">
+                <div class="hidden sm:flex absolute inset-y-0 right-0 pr-3 items-center pointer-events-none">
                     <span class="text-slate-400 text-xs border border-slate-300
                                  dark:border-slate-700 rounded px-1.5 py-0.5">⌘K</span>
                 </div>
             </div>
         </div>
 
-        <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-2 sm:space-x-4">
             <!-- Language -->
             <?php
             $queryParams = $_GET;
@@ -1057,10 +1057,10 @@ include 'include/sidebar.php';
             ?>
             <a href="<?php echo htmlspecialchars($lang_switch_url); ?>" 
                class="flex items-center text-sm font-medium text-slate-700 dark:text-slate-300
-                      hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-1.5 rounded-md
+                      hover:bg-slate-100 dark:hover:bg-slate-800 px-2 sm:px-3 py-1.5 rounded-md
                       transition-colors border border-slate-200 dark:border-slate-700" style="text-decoration: none;">
-                <i data-lucide="languages" class="w-4 h-4 mr-2 text-slate-500"></i>
-                <?php echo $lang === 'en' ? 'मराठी (MR)' : 'English (EN)'; ?>
+                <i data-lucide="languages" class="w-4 h-4 sm:mr-2 text-slate-500"></i>
+                <span class="hidden sm:inline"><?php echo $lang === 'en' ? 'मराठी (MR)' : 'English (EN)'; ?></span>
             </a>
             <!-- Theme -->
             <button id="themeToggle"
