@@ -2044,7 +2044,7 @@ window.addEventListener('load', function() {
     tryBuild(20);
 });
 
-btn.addEventListener('click', () => applyTheme(!html.classList.contains('dark')));
+
 
 /* ── Sidebar Toggle ─────────────────────────────────────────── */
 const sidebar = document.getElementById('sidebar');
@@ -2513,7 +2513,19 @@ function fetchNotifications() {
                             </div>
                         `;
                         item.onclick = () => {
-                            if (isUnread) markAsRead(n.id);
+                            const currentLang = new URLSearchParams(window.location.search).get('lang') || 'en';
+                            const targetUrl = 'notifications.php?lang=' + currentLang;
+                            if (isUnread) {
+                                fetch('api/mark_notification_read.php', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ notification_id: n.id })
+                                }).then(() => {
+                                    window.location.href = targetUrl;
+                                });
+                            } else {
+                                window.location.href = targetUrl;
+                            }
                         };
                         notificationList.appendChild(item);
                     });

@@ -867,15 +867,7 @@ function toggleTimeline(taskId) {
     }
 }
 
-// Toggle Theme (Light / Dark)
-const themeToggleBtn = document.getElementById('themeToggle');
-themeToggleBtn.addEventListener('click', () => {
-    const isDark = document.documentElement.classList.toggle('dark');
-    localStorage.setItem('acTheme', isDark ? 'dark' : 'light');
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    destroyAll();
-    buildAllCharts(isDark);
-});
+
 
 // Sidebar collapse toggle
 const sidebarToggle = document.getElementById('sidebarToggle');

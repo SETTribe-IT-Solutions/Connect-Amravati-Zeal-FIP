@@ -16,8 +16,23 @@
 
             if (themeToggle) {
                 themeToggle.addEventListener('click', () => {
-                    htmlEl.classList.toggle('dark');
-                    // Re-render icons if needed or adjust charts
+                    const isDark = htmlEl.classList.toggle('dark');
+                    localStorage.setItem('acTheme', isDark ? 'dark' : 'light');
+                    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                    if (isDark) {
+                        htmlEl.classList.remove('light');
+                    } else {
+                        htmlEl.classList.add('light');
+                    }
+                    if (typeof destroyAll === 'function') {
+                        destroyAll();
+                    }
+                    if (typeof buildAllCharts === 'function') {
+                        buildAllCharts(isDark);
+                    }
+                    if (typeof lucide !== 'undefined') {
+                        lucide.createIcons();
+                    }
                 });
             }
 
