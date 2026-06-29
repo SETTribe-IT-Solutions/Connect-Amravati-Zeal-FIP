@@ -65,13 +65,7 @@ if (!isset($lang)) {
 
     if (!notifBtn || !notifDropdown) return;
 
-    notifBtn.addEventListener('click', () => notifDropdown.classList.toggle('hidden'));
 
-    document.addEventListener('click', (e) => {
-        if (!notifBtn.contains(e.target) && !notifDropdown.contains(e.target)) {
-            notifDropdown.classList.add('hidden');
-        }
-    });
 
     let lastUnreadCount = 0;
 
@@ -165,7 +159,19 @@ if (!isset($lang)) {
                                 </div>
                             `;
                             item.onclick = () => {
-                                if (isUnread) markAsRead(n.id);
+                                const currentLang = new URLSearchParams(window.location.search).get('lang') || 'en';
+                                const targetUrl = 'notifications.php?lang=' + currentLang;
+                                if (isUnread) {
+                                    fetch('api/mark_notification_read.php', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ notification_id: n.id })
+                                    }).then(() => {
+                                        window.location.href = targetUrl;
+                                    });
+                                } else {
+                                    window.location.href = targetUrl;
+                                }
                             };
                             notifList.appendChild(item);
                         });
