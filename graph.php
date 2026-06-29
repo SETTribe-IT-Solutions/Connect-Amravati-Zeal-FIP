@@ -42,7 +42,7 @@ include 'include/sidebar.php';
         <!-- GLOBAL HEADER -->
         <header class="h-16 glass-panel border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 z-10 sticky top-0">
             <div class="flex items-center flex-1">
-                <button class="mr-4 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 focus:outline-none hidden md:block" id="sidebarToggle">
+                <button class="mr-4 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 focus:outline-none block lg:hidden" id="sidebarToggle">
                     <i data-lucide="menu" class="w-6 h-6"></i>
                 </button>
                 

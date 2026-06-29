@@ -649,6 +649,16 @@ $currentKpis = match($activeTab) {
     default => $kpiAssigned,
 };
 
+$all_users = [];
+if ($db_connected) {
+    $res = $conn->query("SELECT user_id, full_name, employee_code FROM users WHERE status = 'Active' ORDER BY full_name ASC");
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $all_users[] = $row;
+        }
+    }
+}
+
 /* User Badge configurations */
 $parts    = array_filter(explode(' ', trim($sName)));
 $initials = strtoupper(substr($parts[0] ?? 'U', 0, 1) . substr($parts[1] ?? '', 0, 1));
@@ -806,7 +816,7 @@ include 'include/sidebar.php';
     <!-- GLOBAL HEADER -->
     <header class="h-16 glass-panel border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 z-10 sticky top-0 no-print">
         <div class="flex items-center flex-1">
-            <button class="mr-4 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 focus:outline-none hidden md:block" id="sidebarToggle">
+            <button class="mr-4 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 focus:outline-none block lg:hidden" id="sidebarToggle">
                 <i data-lucide="menu" class="w-6 h-6"></i>
             </button>
             
@@ -818,7 +828,7 @@ include 'include/sidebar.php';
             </nav>
         </div>
 
-        <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-2 sm:space-x-4">
             <!-- Language Toggle -->
             <?php
             $queryParams = $_GET;
@@ -827,10 +837,10 @@ include 'include/sidebar.php';
             ?>
             <a href="<?php echo htmlspecialchars($lang_switch_url); ?>" 
                class="flex items-center text-sm font-medium text-slate-700 dark:text-slate-300
-                      hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-1.5 rounded-md
+                      hover:bg-slate-100 dark:hover:bg-slate-800 px-2 sm:px-3 py-1.5 rounded-md
                       transition-colors border border-slate-200 dark:border-slate-700" style="text-decoration: none;">
-                <i data-lucide="languages" class="w-4 h-4 mr-2 text-slate-500"></i>
-                <?php echo $lang === 'en' ? 'मराठी (MR)' : 'English (EN)'; ?>
+                <i data-lucide="languages" class="w-4 h-4 sm:mr-2 text-slate-500"></i>
+                <span class="hidden sm:inline"><?php echo $lang === 'en' ? 'मराठी (MR)' : 'English (EN)'; ?></span>
             </a>
 
             <!-- Theme Switcher -->
@@ -1128,6 +1138,9 @@ include 'include/sidebar.php';
                                         <button onclick="takeAction(<?= $taskId ?>, this)" class="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors inline-flex items-center gap-1 shadow-sm font-semibold text-xs">
                                             <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> Action Taken
                                         </button>
+                                        <button onclick="openReassignModal(<?= $taskId ?>)" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors inline-flex items-center gap-1 shadow-sm font-semibold text-xs">
+                                            <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> Reassign
+                                        </button>
                                         <button onclick="openDetails(<?= $taskId ?>)" class="px-2.5 py-1 bg-slate-105 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-750 dark:text-slate-250 rounded-md transition-colors inline-flex items-center gap-1 shadow-sm font-semibold text-xs" title="View Details">
                                             <i data-lucide="eye" class="w-3.5 h-3.5"></i> <?= htmlspecialchars($t['btn_view']) ?>
                                         </button>
@@ -1243,6 +1256,34 @@ include 'include/sidebar.php';
 <!-- ═══════════════════════════════════════════════════════════════════
      MODALS FOR TASK WORKFLOW ACTIONS
 ════════════════════════════════════════════════════════════════════ -->
+<div id="reassignTaskModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white dark:bg-slate-800 w-full max-w-lg rounded-xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-700 m-4">
+        <div class="px-6 py-4 bg-blue-600 text-white flex justify-between items-center">
+            <h3 class="font-bold text-lg">Reassign Task</h3>
+            <button type="button" onclick="closeReassignModal()" class="text-white hover:opacity-80"><i data-lucide="x" class="w-6 h-6"></i></button>
+        </div>
+        <form id="reassignTaskForm" onsubmit="submitReassignment(event)" class="p-6 space-y-4">
+            <input type="hidden" id="reassignTaskId" name="task_id">
+            
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Select New Assignee *</label>
+                <select name="new_assignee_id" id="new_assignee_id" required class="block w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2.5 text-sm focus:ring-blue-500">
+                    <option value="">-- Select Candidate --</option>
+                    <?php if (isset($all_users) && is_array($all_users)): ?>
+                        <?php foreach ($all_users as $u): ?>
+                            <option value="<?= $u['user_id'] ?>"><?= htmlspecialchars($u['full_name'] . ' (' . $u['employee_code'] . ')') ?></option>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </select>
+            </div>
+            
+            <div class="flex justify-end space-x-2 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <button type="button" onclick="closeReassignModal()" class="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-700">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors">Confirm Reassignment</button>
+            </div>
+        </form>
+    </div>
+</div>
 <div id="rejectTaskModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
     <div class="bg-white dark:bg-slate-800 w-full max-w-lg rounded-xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-700 m-4">
         <div class="px-6 py-4 bg-red-600 text-white flex justify-between items-center">
@@ -1705,6 +1746,49 @@ include 'include/sidebar.php';
                 closeReviewRejectionModal();
                 window.location.reload();
             }
+        });
+    }
+
+    function openReassignModal(taskId) {
+        document.getElementById('reassignTaskId').value = taskId;
+        document.getElementById('reassignTaskModal').classList.remove('hidden');
+    }
+
+    function closeReassignModal() {
+        document.getElementById('reassignTaskModal').classList.add('hidden');
+        document.getElementById('new_assignee_id').value = '';
+    }
+
+    function submitReassignment(e) {
+        e.preventDefault();
+        const taskId = document.getElementById('reassignTaskId').value;
+        const newAssigneeId = document.getElementById('new_assignee_id').value;
+
+        if (!newAssigneeId) {
+            alert('Please select a new assignee.');
+            return;
+        }
+
+        const fd = new FormData();
+        fd.append('action', 'reassign_task');
+        fd.append('task_id', taskId);
+        fd.append('new_assignee_id', newAssigneeId);
+
+        fetch('api/task_notification_actions.php', {
+            method: 'POST',
+            body: fd
+        })
+        .then(r => r.json())
+        .then(res => {
+            alert(res.message);
+            if (res.status === 'success') {
+                closeReassignModal();
+                window.location.reload();
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('An error occurred while reassigning the task.');
         });
     }
 

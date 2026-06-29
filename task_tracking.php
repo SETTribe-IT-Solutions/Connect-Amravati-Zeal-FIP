@@ -921,7 +921,7 @@ include 'include/sidebar.php';
     <!-- TOPBAR -->
     <header class="h-16 glass-panel border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 z-10 sticky top-0">
         <div class="flex items-center flex-1 gap-4">
-            <button id="sidebarToggle" class="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+            <button id="sidebarToggle" class="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors block lg:hidden">
                 <i data-lucide="menu" class="w-5 h-5"></i>
             </button>
             <nav class="flex items-center text-sm gap-1.5">

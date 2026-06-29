@@ -9,9 +9,13 @@ $activePage = $activePage ?? 'dashboard';
 $brand_name = $t['brand_name'] ?? 'AMRAVATI CONNECT';
 $menu_main = $t['menu_main_modules'] ?? 'Main Modules';
 ?>
+<!-- Mobile Overlay -->
+<div id="sidebarOverlay" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
 <aside id="sidebar"
        class="w-64 glass-panel border-r border-slate-200 dark:border-slate-800
-              flex flex-col transition-all duration-300 z-20 flex-shrink-0 relative shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
+              flex flex-col transition-transform duration-300 z-40 flex-shrink-0 
+              fixed inset-y-0 left-0 transform -translate-x-full lg:relative lg:translate-x-0 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
               
     <!-- Background Gradient Accent for Sidebar -->
     <div class="absolute inset-0 bg-gradient-to-b from-navy-50/50 to-transparent dark:from-navy-900/20 pointer-events-none z-[-1]"></div>
