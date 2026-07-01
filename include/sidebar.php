@@ -72,16 +72,19 @@ $menu_main = $t['menu_main_modules'] ?? 'Main Modules';
             </a>
 
             <!-- Previously Hidden / Missing Links -->
-            <a href="#" onclick="Swal.fire({icon: 'info', title: 'Coming Soon', text: 'Appreciation is currently under development.', confirmButtonColor: '#0069cd'}); return false;" class="nav-item">
-                <i data-lucide="award" class="w-5 h-5 mr-3 text-slate-400 dark:text-slate-500"></i>
+            <a href="appreciations.php?lang=<?= $lang ?>" 
+               class="nav-item <?= $activePage === 'appreciations' ? 'nav-active' : '' ?>">
+                <i data-lucide="award" class="w-5 h-5 mr-3 <?= $activePage === 'appreciations' ? '' : 'text-slate-400 dark:text-slate-500' ?>"></i>
                 <?= htmlspecialchars($t['menu_appreciation'] ?? 'Appreciation') ?>
             </a>
-            <a href="#" onclick="Swal.fire({icon: 'info', title: 'Coming Soon', text: 'GIS Map View is currently under development.', confirmButtonColor: '#0069cd'}); return false;" class="nav-item">
-                <i data-lucide="map" class="w-5 h-5 mr-3 text-slate-400 dark:text-slate-500"></i>
-                <?= htmlspecialchars($t['menu_gis'] ?? 'GIS Map View') ?>
+            <a href="graph.php?lang=<?= $lang ?>"
+               class="nav-item <?= $activePage === 'graph' ? 'nav-active' : '' ?>">
+                <i data-lucide="bar-chart-2" class="w-5 h-5 mr-3 <?= $activePage === 'graph' ? '' : 'text-slate-400 dark:text-slate-500' ?>"></i>
+                <?= htmlspecialchars($t['menu_gis'] ?? 'Performance Report') ?>
             </a>
-            <a href="#" onclick="Swal.fire({icon: 'info', title: 'Under Maintenance', text: 'Document Management is currently under maintenance.', confirmButtonColor: '#0069cd'}); return false;" class="nav-item">
-                <i data-lucide="file-text" class="w-5 h-5 mr-3 text-slate-400 dark:text-slate-500"></i>
+            <a href="documents.php?lang=<?= $lang ?>" 
+               class="nav-item <?= $activePage === 'documents' ? 'nav-active' : '' ?>">
+                <i data-lucide="file-text" class="w-5 h-5 mr-3 <?= $activePage === 'documents' ? '' : 'text-slate-400 dark:text-slate-500' ?>"></i>
                 <?= htmlspecialchars($t['menu_docs'] ?? 'Document Management') ?>
             </a>
 
@@ -96,12 +99,14 @@ $menu_main = $t['menu_main_modules'] ?? 'Main Modules';
                 <?= htmlspecialchars($t['menu_users'] ?? 'User Management') ?>
             </a>
 
-            <a href="#" onclick="Swal.fire({icon: 'info', title: 'Coming Soon', text: 'Location Hierarchy feature is coming soon.', confirmButtonColor: '#0069cd'}); return false;" class="nav-item">
-                <i data-lucide="network" class="w-5 h-5 mr-3 text-slate-400 dark:text-slate-500"></i>
+            <a href="location_hierarchy.php?lang=<?= $lang ?>" 
+               class="nav-item <?= $activePage === 'hierarchy' ? 'nav-active' : '' ?>">
+                <i data-lucide="network" class="w-5 h-5 mr-3 <?= $activePage === 'hierarchy' ? '' : 'text-slate-400 dark:text-slate-500' ?>"></i>
                 <?= htmlspecialchars($t['menu_hierarchy'] ?? 'Location Hierarchy') ?>
             </a>
-            <a href="#" onclick="Swal.fire({icon: 'info', title: 'Under Maintenance', text: 'Audit Logs are temporarily unavailable for maintenance.', confirmButtonColor: '#0069cd'}); return false;" class="nav-item">
-                <i data-lucide="clipboard-list" class="w-5 h-5 mr-3 text-slate-400 dark:text-slate-500"></i>
+            <a href="audit_logs.php?lang=<?= $lang ?>" 
+               class="nav-item <?= $activePage === 'audit' ? 'nav-active' : '' ?>">
+                <i data-lucide="clipboard-list" class="w-5 h-5 mr-3 <?= $activePage === 'audit' ? '' : 'text-slate-400 dark:text-slate-500' ?>"></i>
                 <?= htmlspecialchars($t['menu_audit'] ?? 'Audit Logs') ?>
             </a>
             

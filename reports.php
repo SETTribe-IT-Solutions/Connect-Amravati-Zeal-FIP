@@ -31,7 +31,7 @@ $translations = [
         'menu_appreciation' => 'Appreciation',
         'menu_analytics' => 'Analytics & Data',
         'menu_reports' => 'Reports & Analytics',
-        'menu_gis' => 'GIS Map View',
+        'menu_gis' => 'Performance Report',
         'menu_docs' => 'Document Management',
         'menu_admin' => 'Administration',
         'menu_users' => 'User Management',
@@ -1224,6 +1224,23 @@ include 'include/sidebar.php';
                                             <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> <?= htmlspecialchars($t['btn_complete']) ?>
                                         </button>
                                         <?php endif; ?>
+
+                                        <!-- Hold/Resume/Transfer for Assignee -->
+                                        <?php if (in_array($row['status'], ['In Progress', 'Accepted', 'Reassigned'])): ?>
+                                        <button onclick="toggleHoldTask(<?= $taskId ?>, 'hold', this)" class="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-md transition-colors inline-flex items-center gap-1 shadow-sm font-semibold text-xs">
+                                            <i data-lucide="pause-circle" class="w-3.5 h-3.5"></i> Put On Hold
+                                        </button>
+                                        <?php endif; ?>
+                                        <?php if ($row['status'] === 'On Hold'): ?>
+                                        <button onclick="toggleHoldTask(<?= $taskId ?>, 'resume', this)" class="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-md transition-colors inline-flex items-center gap-1 shadow-sm font-semibold text-xs">
+                                            <i data-lucide="play-circle" class="w-3.5 h-3.5"></i> Resume
+                                        </button>
+                                        <?php endif; ?>
+                                        <?php if (in_array($row['status'], ['Pending', 'Reassigned', 'Accepted', 'In Progress', 'On Hold'])): ?>
+                                        <button onclick="openReassignModal(<?= $taskId ?>)" class="px-2.5 py-1 bg-indigo-500 hover:bg-indigo-600 text-white rounded-md transition-colors inline-flex items-center gap-1 shadow-sm font-semibold text-xs">
+                                            <i data-lucide="share-2" class="w-3.5 h-3.5"></i> Transfer
+                                        </button>
+                                        <?php endif; ?>
                                     <?php endif; ?>
 
                                     <?php if ($activeTab === 'allocated'): ?>
@@ -1238,6 +1255,23 @@ include 'include/sidebar.php';
                                         <?php if ($row['status'] === 'Pending Verification' && $isL1): ?>
                                         <button onclick="openReviewRejectionModal(<?= $taskId ?>)" class="px-2.5 py-1 bg-navy-500 hover:bg-navy-600 text-white rounded-md transition-colors inline-flex items-center gap-1 shadow-sm font-semibold text-xs">
                                             <i data-lucide="clipboard-list" class="w-3.5 h-3.5"></i> Verify Rejection
+                                        </button>
+                                        <?php endif; ?>
+
+                                        <!-- Hold/Resume/Transfer for Creator -->
+                                        <?php if (in_array($row['status'], ['In Progress', 'Accepted', 'Reassigned', 'Pending'])): ?>
+                                        <button onclick="toggleHoldTask(<?= $taskId ?>, 'hold', this)" class="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-md transition-colors inline-flex items-center gap-1 shadow-sm font-semibold text-xs">
+                                            <i data-lucide="pause-circle" class="w-3.5 h-3.5"></i> Put On Hold
+                                        </button>
+                                        <?php endif; ?>
+                                        <?php if ($row['status'] === 'On Hold'): ?>
+                                        <button onclick="toggleHoldTask(<?= $taskId ?>, 'resume', this)" class="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-md transition-colors inline-flex items-center gap-1 shadow-sm font-semibold text-xs">
+                                            <i data-lucide="play-circle" class="w-3.5 h-3.5"></i> Resume
+                                        </button>
+                                        <?php endif; ?>
+                                        <?php if (in_array($row['status'], ['Pending', 'Reassigned', 'Accepted', 'In Progress', 'On Hold'])): ?>
+                                        <button onclick="openReassignModal(<?= $taskId ?>)" class="px-2.5 py-1 bg-indigo-500 hover:bg-indigo-600 text-white rounded-md transition-colors inline-flex items-center gap-1 shadow-sm font-semibold text-xs">
+                                            <i data-lucide="share-2" class="w-3.5 h-3.5"></i> Transfer
                                         </button>
                                         <?php endif; ?>
                                     <?php endif; ?>
@@ -1272,8 +1306,8 @@ include 'include/sidebar.php';
                 <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Select New Assignee *</label>
                 <select name="new_assignee_id" id="new_assignee_id" required class="block w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2.5 text-sm focus:ring-blue-500">
                     <option value="">-- Select Candidate --</option>
-                    <?php if (isset($all_users) && is_array($all_users)): ?>
-                        <?php foreach ($all_users as $u): ?>
+                    <?php if (isset($usersList) && is_array($usersList)): ?>
+                        <?php foreach ($usersList as $u): ?>
                             <option value="<?= $u['user_id'] ?>"><?= htmlspecialchars($u['full_name'] . ' (' . $u['employee_code'] . ')') ?></option>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -1793,6 +1827,35 @@ include 'include/sidebar.php';
             console.error(err);
             alert('An error occurred while reassigning the task.');
         });
+    }
+
+    function toggleHoldTask(taskId, type, btn) {
+        const actionName = type === 'hold' ? 'hold_task' : 'resume_task';
+        const confirmMsg = type === 'hold' ? 'Are you sure you want to put this task on hold?' : 'Are you sure you want to resume this task?';
+        if (!confirm(confirmMsg)) return;
+
+        btn.disabled = true;
+        btn.innerHTML = `<i class="w-3.5 h-3.5 animate-spin"></i> Processing...`;
+
+        fetch(`api/task_notification_actions.php?action=${actionName}&task_id=${taskId}`)
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message);
+                if (data.status === 'success') {
+                    window.location.reload();
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = type === 'hold' ? '<i data-lucide="pause-circle" class="w-3.5 h-3.5"></i> Put On Hold' : '<i data-lucide="play-circle" class="w-3.5 h-3.5"></i> Resume';
+                    lucide.createIcons();
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Connection failed.');
+                btn.disabled = false;
+                btn.innerHTML = type === 'hold' ? '<i data-lucide="pause-circle" class="w-3.5 h-3.5"></i> Put On Hold' : '<i data-lucide="play-circle" class="w-3.5 h-3.5"></i> Resume';
+                lucide.createIcons();
+            });
     }
 
     function takeAction(taskId, btn) {

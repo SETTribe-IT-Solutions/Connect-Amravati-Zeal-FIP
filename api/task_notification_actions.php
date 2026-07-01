@@ -497,8 +497,9 @@ elseif ($action === 'take_action') {
     exit;
 }
 elseif ($action === 'reassign_task') {
-    if (!$isL1) {
-        echo json_encode(['status' => 'error', 'message' => 'Permission denied']);
+    // Check authorization: is creator, current assignee, or L1 admin
+    if ($assignedUserId !== $userId && $creatorId !== $userId && !$isL1) {
+        echo json_encode(['status' => 'error', 'message' => 'Permission denied. Only the task creator, assignee, or administrator can transfer this task.']);
         exit;
     }
     
@@ -522,7 +523,7 @@ elseif ($action === 'reassign_task') {
         $conn->query("UPDATE task_assignments SET assigned_to_user = $newAssigneeId, status = 'Reassigned' WHERE task_id = $taskId");
         
         // Add to task_status_history
-        $stmtHist = $conn->prepare("INSERT INTO task_status_history (task_id, old_status, new_status, changed_by, change_date, remarks) VALUES (?, ?, 'Reassigned', ?, NOW(), 'Task reassigned to new member by administrator.')");
+        $stmtHist = $conn->prepare("INSERT INTO task_status_history (task_id, old_status, new_status, changed_by, change_date, remarks) VALUES (?, ?, 'Reassigned', ?, NOW(), 'Task transferred to new member.')");
         if ($stmtHist) {
             $stmtHist->bind_param("isi", $taskId, $oldStatus, $userId);
             $stmtHist->execute();
@@ -535,10 +536,56 @@ elseif ($action === 'reassign_task') {
         // Audit Log
         logAuditAction($conn, $userId, $taskId, 'Task Reassigned', "Task reassigned to user ID $newAssigneeId");
 
-        echo json_encode(['status' => 'success', 'message' => 'Task reassigned successfully.']);
+        echo json_encode(['status' => 'success', 'message' => 'Task transferred successfully.']);
     } else {
         echo json_encode(['status' => 'error', 'message' => 'Task not found.']);
     }
+    exit;
+}
+elseif ($action === 'hold_task') {
+    if ($assignedUserId !== $userId && $creatorId !== $userId && !$isL1) {
+        echo json_encode(['status' => 'error', 'message' => 'Permission denied.']);
+        exit;
+    }
+    
+    $conn->query("UPDATE tasks SET status = 'On Hold' WHERE task_id = $taskId");
+    $conn->query("UPDATE task_assignments SET status = 'On Hold' WHERE task_id = $taskId");
+    
+    $stmtHist = $conn->prepare("INSERT INTO task_status_history (task_id, old_status, new_status, changed_by, change_date, remarks) VALUES (?, ?, 'On Hold', ?, NOW(), 'Task put on hold.')");
+    if ($stmtHist) {
+        $stmtHist->bind_param("isi", $taskId, $oldStatus, $userId);
+        $stmtHist->execute();
+        $stmtHist->close();
+    }
+    
+    $receiverId = ($userId === $assignedUserId) ? $creatorId : $assignedUserId;
+    createTaskNotification($conn, 'Task', 'Task Put On Hold', "The task '$taskTitle' has been put on hold.", $taskId, $userId, $receiverId);
+    logAuditAction($conn, $userId, $taskId, 'Task Put On Hold', "Task put on hold by user ID $userId");
+    
+    echo json_encode(['status' => 'success', 'message' => 'Task put on hold successfully.']);
+    exit;
+}
+elseif ($action === 'resume_task') {
+    if ($assignedUserId !== $userId && $creatorId !== $userId && !$isL1) {
+        echo json_encode(['status' => 'error', 'message' => 'Permission denied.']);
+        exit;
+    }
+    
+    $conn->query("UPDATE tasks SET status = 'In Progress' WHERE task_id = $taskId");
+    $conn->query("UPDATE task_assignments SET status = 'In Progress' WHERE task_id = $taskId");
+    
+    $stmtHist = $conn->prepare("INSERT INTO task_status_history (task_id, old_status, new_status, changed_by, change_date, remarks) VALUES (?, ?, 'In Progress', ?, NOW(), 'Task resumed.')");
+    if ($stmtHist) {
+        $stmtHist->bind_param("isi", $taskId, $oldStatus, $userId);
+        $stmtHist->execute();
+        $stmtHist->close();
+    }
+    
+    $receiverId = ($userId === $assignedUserId) ? $creatorId : $assignedUserId;
+    createTaskNotification($conn, 'Task', 'Task Resumed', "The task '$taskTitle' has been resumed.", $taskId, $userId, $receiverId);
+    logAuditAction($conn, $userId, $taskId, 'Task Resumed', "Task resumed by user ID $userId");
+    
+    echo json_encode(['status' => 'success', 'message' => 'Task resumed successfully.']);
     exit;
 }
 else {
