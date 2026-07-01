@@ -557,8 +557,14 @@ include 'include/sidebar.php';
                             <!-- Full Name -->
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"><?= htmlspecialchars($t['label_full_name']) ?></label>
-                                <input type="text" name="full_name" required value="<?= $editData ? htmlspecialchars($editData['full_name']) : '' ?>"
+                                <input type="text" name="full_name" id="full_name" required
+                                    value="<?= $editData ? htmlspecialchars($editData['full_name']) : '' ?>"
+                                    pattern="[A-Za-z\s]+"
+                                    title="Full name must contain letters and spaces only"
+                                    oninput="this.value = this.value.replace(/[^A-Za-z\s]/g, '')"
+                                    placeholder="Enter full name (letters only)"
                                     class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-1 focus:ring-navy-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
+                                <p class="text-[11px] text-slate-400 mt-1">Only letters and spaces allowed.</p>
                             </div>
 
                             <!-- Email -->
@@ -571,8 +577,16 @@ include 'include/sidebar.php';
                             <!-- Mobile -->
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"><?= htmlspecialchars($t['label_mobile']) ?></label>
-                                <input type="text" name="mobile" required value="<?= $editData ? htmlspecialchars($editData['mobile']) : '' ?>"
+                                <input type="tel" name="mobile" id="mobile" required
+                                    value="<?= $editData ? htmlspecialchars($editData['mobile']) : '' ?>"
+                                    inputmode="numeric"
+                                    maxlength="10"
+                                    pattern="[0-9]{10}"
+                                    title="Mobile must be exactly 10 digits"
+                                    oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)"
+                                    placeholder="10-digit mobile number"
                                     class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-1 focus:ring-navy-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
+                                <p class="text-[11px] text-slate-400 mt-1">Digits only, exactly 10 numbers.</p>
                             </div>
 
                             <!-- Department -->
@@ -711,23 +725,11 @@ include 'include/sidebar.php';
                                             <div class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($row['mobile']) ?></div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm text-slate-900 dark:text-white"><?= htmlspecialchars($row['department_name'] ?: 'N/A') ?></div>
-                                            <div class="text-xs text-slate-500 dark:text-slate-400">
-                                                <?php
-                                                $dbRoleKey = match($row['role_name']) {
-                                                    'Administrator', 'System Administrator' => 'role_administrator',
-                                                    'Collector' => 'role_collector',
-                                                    'Additional Collector' => 'role_additional_collector',
-                                                    'Deputy Collector' => 'role_deputy_collector',
-                                                    'SDO' => 'role_sdo',
-                                                    'Tehsildar' => 'role_tehsildar',
-                                                    'BDO' => 'role_bdo',
-                                                    'Talathi' => 'role_talathi',
-                                                    'Gramsevak' => 'role_gramsevak',
-                                                    default => '',
-                                                };
-                                                echo htmlspecialchars($dbRoleKey ? $t[$dbRoleKey] : $row['role_name']);
-                                                ?>
+                                            <div class="text-sm font-medium text-slate-900 dark:text-white"><?= htmlspecialchars($row['department_name'] ?: 'N/A') ?></div>
+                                            <div class="mt-1">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-900/30">
+                                                    <?= htmlspecialchars($row['role_name'] ?: 'No Role') ?>
+                                                </span>
                                             </div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">

@@ -142,6 +142,17 @@ if (!isset($lang)) {
 
                             const item = document.createElement('div');
                             item.className = `relative px-4 py-3 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition-all duration-200 ${readBgClass}`;
+                            
+                            let attachmentHtml = '';
+                            if (n.attachment_path) {
+                                attachmentHtml = `
+                                    <div class="mt-1.5 flex items-center gap-1 text-[11px] text-navy-600 dark:text-blue-400 hover:underline" onclick="event.stopPropagation();">
+                                        <i data-lucide="paperclip" class="w-3.5 h-3.5 text-slate-400"></i>
+                                        <a href="${n.attachment_path}" target="_blank">View Attachment</a>
+                                    </div>
+                                `;
+                            }
+
                             item.innerHTML = `
                                 ${dotIndicator}
                                 <div class="flex items-start">
@@ -151,6 +162,7 @@ if (!isset($lang)) {
                                     <div class="ml-3 flex-1 pr-6">
                                         <p class="text-sm ${titleWeight}">${n.title}</p>
                                         <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">${n.message}</p>
+                                        ${attachmentHtml}
                                         ${actionsHtml}
                                         <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-1.5 font-medium flex items-center">
                                             <i data-lucide="clock" class="w-3 h-3 mr-1 opacity-70"></i> ${n.time_elapsed}

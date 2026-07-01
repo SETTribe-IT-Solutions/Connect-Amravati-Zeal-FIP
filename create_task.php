@@ -27,7 +27,7 @@ $translations = [
         'menu_appreciation' => 'Appreciation',
         'menu_analytics' => 'Analytics & Data',
         'menu_reports' => 'Reports & Analytics',
-        'menu_gis' => 'GIS Map View',
+        'menu_gis' => 'Performance Report',
         'menu_docs' => 'Document Management',
         'menu_admin' => 'Administration',
         'menu_users' => 'User Management',
@@ -327,6 +327,48 @@ $sName      = $_SESSION['user_name'];
 $sTalukaId  = (int) ($_SESSION['user_taluka_id']  ?? 1);
 $sVillageId = (int) ($_SESSION['user_village_id'] ?? 1);
 
+// Get user role level and redirect Level 3 users back to dashboard
+$userLevel = $_SESSION['user_level'] ?? null;
+if ($userLevel === null && !empty($sRole)) {
+    if (isset($conn) && $conn instanceof mysqli) {
+        try {
+            $stmt = $conn->prepare("SELECT role_level FROM roles WHERE role_name = ? LIMIT 1");
+            if ($stmt) {
+                $stmt->bind_param('s', $sRole);
+                $stmt->execute();
+                $res = $stmt->get_result();
+                if ($row = $res->fetch_assoc()) {
+                    $userLevel = (int)$row['role_level'];
+                }
+                $stmt->close();
+            }
+        } catch (Exception $e) {
+            error_log('create_task role level lookup error: ' . $e->getMessage());
+        }
+    }
+    if ($userLevel === null) {
+        $roleMap = [
+            'Administrator'        => 1,
+            'System Administrator' => 1,
+            'Collector'            => 1,
+            'Additional Collector' => 1,
+            'Deputy Collector'     => 1,
+            'SDO'                  => 2,
+            'Tehsildar'            => 2,
+            'BDO'                  => 2,
+            'Talathi'              => 3,
+            'Gramsevak'            => 3,
+        ];
+        $userLevel = $roleMap[$sRole] ?? 3;
+    }
+}
+
+if ($userLevel === 3) {
+    header("Location: dashboard.php?lang=" . $lang);
+    exit();
+}
+
+$user_level = $userLevel;
 // Avatar initials
 $parts    = array_filter(explode(' ', trim($sName)));
 $initials = strtoupper(substr($parts[0] ?? 'U', 0, 1) . substr($parts[1] ?? '', 0, 1));
@@ -429,10 +471,11 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'role_users' && isset($_GET['role_
     }
     $role_id = (int)$_GET['role_id'];
     $res = $conn->query(
-        "SELECT user_id, full_name, designation, department_id
-           FROM users
-          WHERE role_id = $role_id AND status = 'Active'
-          ORDER BY full_name"
+        "SELECT u.user_id, u.full_name, u.designation, u.department_id
+           FROM users u
+           JOIN roles r ON u.role_id = r.role_id
+          WHERE u.role_id = $role_id AND u.status = 'Active' AND r.role_level >= $user_level
+          ORDER BY u.full_name"
     );
     $users_list = [];
     if ($res) {
@@ -448,32 +491,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'role_users' && isset($_GET['role_
     exit;
 }
 
-if (isset($_GET['ajax']) && $_GET['ajax'] === 'taluka_villages' && isset($_GET['taluka_id'])) {
-    header('Content-Type: application/json');
-    if (!$conn) {
-        echo json_encode(['villages' => [], 'error' => 'Database connection unavailable']);
-        exit;
-    }
-    $taluka_id = (int)$_GET['taluka_id'];
-    $res = $conn->query(
-        "SELECT village_id, village_name
-           FROM villages
-          WHERE taluka_id = $taluka_id
-          ORDER BY village_name"
-    );
-    $villages_list = [];
-    if ($res) {
-        while ($row = $res->fetch_assoc()) {
-            $villages_list[] = [
-                'id'   => (int)$row['village_id'],
-                'name' => $row['village_name'],
-            ];
-        }
-    }
-    echo json_encode(['villages' => $villages_list]);
-    exit;
-}
-
 if (isset($_GET['ajax']) && $_GET['ajax'] === 'village_users' && isset($_GET['village_id'])) {
     header('Content-Type: application/json');
     if (!$conn) {
@@ -482,68 +499,50 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'village_users' && isset($_GET['vi
     }
     $village_id = (int)$_GET['village_id'];
     $res = $conn->query(
-        "SELECT u.user_id, u.full_name, u.designation, u.role_id, r.role_name, d.department_name
+        "SELECT u.user_id, u.full_name, u.designation, u.department_id
            FROM users u
-           LEFT JOIN roles r ON u.role_id = r.role_id
-           LEFT JOIN departments d ON u.department_id = d.department_id
-          WHERE u.village_id = $village_id AND u.status = 'Active'
-          ORDER BY u.role_id DESC, u.full_name"
+           JOIN roles r ON u.role_id = r.role_id
+          WHERE u.village_id = $village_id AND u.status = 'Active' AND r.role_level >= $user_level
+          ORDER BY u.full_name"
     );
     $users_list = [];
-    $responsible_user = null;
     if ($res) {
         while ($row = $res->fetch_assoc()) {
-            $role_name_display = $row['role_name'] ?? '';
-            $u_data = [
-                'id'              => (int)$row['user_id'],
-                'full_name'       => $row['full_name'],
-                'designation'     => $row['designation'] ?? '',
-                'role_id'         => $row['role_id'] ? (int)$row['role_id'] : null,
-                'role_name'       => $role_name_display,
-                'department_name' => $row['department_name'] ?? '',
+            $users_list[] = [
+                'id'          => (int)$row['user_id'],
+                'full_name'   => $row['full_name'],
+                'designation' => $row['designation'] ?? '',
             ];
-            $users_list[] = $u_data;
         }
     }
-
-    if (!empty($users_list)) {
-        // Priority 1: Talathi (7) or Gramsevak (8)
-        foreach ($users_list as $u) {
-            if (in_array((int)$u['role_id'], [7, 8])) {
-                $responsible_user = $u;
-                break;
-            }
-        }
-        // Priority 2: Fallback to the first active user
-        if (!$responsible_user) {
-            $responsible_user = $users_list[0];
-        }
-    }
-
-    echo json_encode([
-        'users'            => $users_list,
-        'count'            => count($users_list),
-        'responsible_user' => $responsible_user
-    ]);
+    echo json_encode(['users' => $users_list, 'count' => count($users_list)]);
     exit;
 }
 
 // ─── Fetch dropdown data ─────────────────────────────────────────────
 // users table: primary key = user_id, name column = full_name
 $users_result = $conn ? $conn->query(
-    "SELECT user_id, full_name, designation FROM users WHERE status = 'Active' ORDER BY full_name"
+    "SELECT u.user_id, u.full_name, u.designation 
+       FROM users u
+       JOIN roles r ON u.role_id = r.role_id
+      WHERE u.status = 'Active' AND r.role_level >= $user_level
+      ORDER BY u.full_name"
 ) : false;
 // roles table: primary key = role_id, name column = role_name
 $roles_result = $conn ? $conn->query(
-    "SELECT role_id, role_name, role_level FROM roles WHERE status = 'Active' ORDER BY role_level, role_name"
+    "SELECT role_id, role_name, role_level FROM roles WHERE status = 'Active' AND role_level >= $user_level ORDER BY role_level, role_name"
 ) : false;
 // departments table
 $departments_result = $conn ? $conn->query(
     "SELECT department_id, department_name FROM departments ORDER BY department_name"
 ) : false;
-// talukas table
+
+// talukas and villages (for By Village allocation)
 $talukas_result = $conn ? $conn->query(
     "SELECT taluka_id, taluka_name FROM talukas ORDER BY taluka_name"
+) : false;
+$villages_result = $conn ? $conn->query(
+    "SELECT village_id, village_name, taluka_id FROM villages ORDER BY village_name"
 ) : false;
 
 // ─── Handle Form Submission ───────────────────────────────────────────
@@ -715,9 +714,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($conn->query($sql)) {
             $new_task_id = $conn->insert_id;
-            $task_id_str = 'TASK_' . str_pad($new_task_id, 3, '0', STR_PAD_LEFT);
+            // Use actual row count for sequential task_no (no gaps from failed inserts)
+            $seq_result  = $conn->query("SELECT COUNT(*) AS cnt FROM tasks WHERE task_id <= $new_task_id");
+            $seq_row     = $seq_result ? $seq_result->fetch_assoc() : null;
+            $seq_num     = (int)($seq_row['cnt'] ?? $new_task_id);
+            $task_id_str = 'TASK_' . str_pad($seq_num, 3, '0', STR_PAD_LEFT);
 
-            // Update task_no with the real auto-incremented ID
+            // Update task_no with the sequential number
             $conn->query("UPDATE tasks SET task_no = '" . $conn->real_escape_string($task_id_str) . "' WHERE task_id = $new_task_id");
 
             // ── task_activity_logs ─────────────────────────────────
@@ -777,35 +780,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     "INSERT INTO task_assignments (task_id, assigned_from_user, assigned_to_user, assigned_to_role, assigned_date, status)
                      VALUES ($new_task_id, $created_by, $assigned_user_id, $role_to_assign, NOW(), 'Pending')"
                 );
-                $assigned_count = 1;
+                $assigned_count = $conn->affected_rows > 0 ? 1 : 0;
 
                 // ── Notification for single assigned user ──────────
-                createTaskNotification(
-                    $conn,
-                    $new_task_id,
-                    $task_title,
-                    $due_date,
-                    (int)$assigned_user_id,
-                    $created_by
-                );
-            } elseif ($allocation_type === 'by_village' && $task_village_id && $assigned_user_id) {
-                // Single user assignment (responsible person identified for this village)
-                $role_to_assign = $assigned_role_id ? (int)$assigned_role_id : 'NULL';
-                $conn->query(
-                    "INSERT INTO task_assignments (task_id, assigned_from_user, assigned_to_user, assigned_to_role, assigned_date, status)
-                     VALUES ($new_task_id, $created_by, $assigned_user_id, $role_to_assign, NOW(), 'Pending')"
-                );
-                $assigned_count = 1;
-
-                // ── Notification for village assigned user ──────────
-                createTaskNotification(
-                    $conn,
-                    $new_task_id,
-                    $task_title,
-                    $due_date,
-                    (int)$assigned_user_id,
-                    $created_by
-                );
+                if ($assigned_count > 0) {
+                    createTaskNotification(
+                        $conn,
+                        $new_task_id,
+                        $task_title,
+                        $due_date,
+                        (int)$assigned_user_id,
+                        $created_by
+                    );
+                }
+            } elseif ($allocation_type === 'by_village') {
+                // Village-wise: assign to all eligible employees in the selected village
+                $assigned_village_id = !empty($_POST['assigned_village_id']) ? (int)$_POST['assigned_village_id'] : 0;
+                if ($assigned_village_id > 0) {
+                    $village_users = $conn->query(
+                        "SELECT u.user_id, u.department_id, u.district_id, u.taluka_id, u.village_id
+                           FROM users u
+                           JOIN roles r ON u.role_id = r.role_id
+                          WHERE u.village_id = $assigned_village_id AND u.status = 'Active' AND r.role_level >= $user_level"
+                    );
+                    if ($village_users && $village_users->num_rows > 0) {
+                        while ($vu = $village_users->fetch_assoc()) {
+                            $vuid = (int)$vu['user_id'];
+                            $conn->query(
+                                "INSERT INTO task_assignments
+                                     (task_id, assigned_from_user, assigned_to_user, assigned_to_role, assigned_date, status)
+                                 VALUES ($new_task_id, $created_by, $vuid, NULL, NOW(), 'Pending')"
+                            );
+                            if ($conn->affected_rows > 0) {
+                                $assigned_count++;
+                                createTaskNotification(
+                                    $conn,
+                                    $new_task_id,
+                                    $task_title,
+                                    $due_date,
+                                    $vuid,
+                                    $created_by
+                                );
+                            }
+                        }
+                        // Store village on the task row
+                        $conn->query("UPDATE tasks SET village_id = $assigned_village_id WHERE task_id = $new_task_id");
+                    }
+                }
             }
 
             $count_label = $assigned_count > 0
@@ -813,9 +834,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ? " <strong>$assigned_count</strong> कर्मचाऱ्यास नियुक्त केले."
                     : " Assigned to <strong>$assigned_count</strong> employee" . ($assigned_count > 1 ? 's' : '') . '.')
                 : '';
-            $success_msg = $lang === 'mr'
-                ? "कार्य <strong>$task_id_str</strong> यशस्वीरित्या तयार केले!$count_label"
-                : "Task <strong>$task_id_str</strong> created successfully!$count_label";
+            // POST-REDIRECT-GET: redirect with success params to auto-refresh the form
+            $redir_lang = urlencode($lang);
+            $redir_msg  = urlencode(strip_tags($task_id_str) . '|' . $assigned_count);
+            header("Location: create_task.php?lang={$redir_lang}&task_success=1&task_info={$redir_msg}");
+            exit;
         } else {
             $error_msg = ($lang === 'mr' ? 'डेटाबेस त्रुटी: ' : 'Database error: ') . $conn->error;
         }
@@ -823,8 +846,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } // End of if(!$conn) check
 }
 
-// ─── Auto-generate Task No preview ─────────────────────────────────
-$result  = $conn ? $conn->query("SELECT AUTO_INCREMENT AS next_id FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tasks'") : false;
+// ── Handle success redirect ────────────────────────────────────────────
+$success_msg = '';
+if (!empty($_GET['task_success']) && !empty($_GET['task_info'])) {
+    $info_parts = explode('|', urldecode($_GET['task_info']));
+    $s_task_id  = htmlspecialchars($info_parts[0] ?? '');
+    $s_count    = (int)($info_parts[1] ?? 0);
+    $count_label = $s_count > 0
+        ? ($lang === 'mr'
+            ? " <strong>$s_count</strong> कर्मचाऱ्यास नियुक्त केले."
+            : " Assigned to <strong>$s_count</strong> employee" . ($s_count > 1 ? 's' : '') . '.')
+        : '';
+    $success_msg = $lang === 'mr'
+        ? "कार्य <strong>$s_task_id</strong> यशस्वीरित्या तयार केले!$count_label"
+        : "Task <strong>$s_task_id</strong> created successfully!$count_label";
+}
+
+// ─── Auto-generate Task No preview (use actual MAX to avoid AUTO_INCREMENT gaps) ─
+$result  = $conn ? $conn->query("SELECT COALESCE(MAX(task_id), 0) + 1 AS next_id FROM tasks") : false;
 $row     = $result ? $result->fetch_assoc() : null;
 $next_id = (int)($row['next_id'] ?? 1);
 $task_id_preview = 'TASK_' . str_pad($next_id, 3, '0', STR_PAD_LEFT);
@@ -1019,7 +1058,30 @@ include 'include/sidebar.php';
         </div>
 
         <!-- ── Form Card ── -->
+        <?php if ($success_msg): ?>
+        <div class="mb-6 flex items-start gap-3 p-4 rounded-2xl bg-green-50 dark:bg-green-900/20 border border-green-300 dark:border-green-700 text-green-800 dark:text-green-200 animate-in">
+            <div class="w-8 h-8 rounded-full bg-green-100 dark:bg-green-800 flex items-center justify-center flex-shrink-0">
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-green-600 dark:text-green-300"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold"><?= $lang === 'mr' ? 'यशस्वी!' : 'Task Created Successfully!' ?></p>
+                <p class="text-sm mt-0.5"><?= $success_msg ?></p>
+            </div>
+        </div>
+        <?php endif; ?>
+        <?php if ($error_msg): ?>
+        <div class="mb-6 flex items-start gap-3 p-4 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700 text-red-800 dark:text-red-200 animate-in">
+            <div class="w-8 h-8 rounded-full bg-red-100 dark:bg-red-800 flex items-center justify-center flex-shrink-0">
+                <i data-lucide="alert-circle" class="w-4 h-4 text-red-600 dark:text-red-300"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold"><?= $lang === 'mr' ? 'त्रुटी!' : 'Error!' ?></p>
+                <p class="text-sm mt-0.5"><?= $error_msg ?></p>
+            </div>
+        </div>
+        <?php endif; ?>
         <form method="POST" enctype="multipart/form-data" id="createTaskForm" novalidate>
+
 
             <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
 
@@ -1178,13 +1240,13 @@ include 'include/sidebar.php';
                                         <input type="radio" name="allocation_type" value="by_village"
                                                id="alloc_by_village" class="sr-only"
                                                <?= (($_POST['allocation_type'] ?? '') === 'by_village') ? 'checked' : '' ?>>
-                                        <div class="flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 hover:border-emerald-400 bg-white dark:bg-slate-800 transition-all" id="box-byvillage">
+                                        <div class="flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 hover:border-govgreen-400 bg-white dark:bg-slate-800 transition-all" id="box-byvillage">
                                             <div class="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
                                                 <i data-lucide="map-pin" class="w-4 h-4 text-slate-500 dark:text-slate-400"></i>
                                             </div>
                                             <div>
-                                                <p class="text-sm font-semibold text-slate-700 dark:text-white"><?= htmlspecialchars($t['lbl_by_village'] ?? 'By Village') ?></p>
-                                                <p class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($t['lbl_by_village_desc'] ?? 'Assign to a specific village') ?></p>
+                                                <p class="text-sm font-semibold text-slate-700 dark:text-white">By Village</p>
+                                                <p class="text-xs text-slate-500 dark:text-slate-400">Assign all in a village</p>
                                             </div>
                                         </div>
                                     </label>
@@ -1223,6 +1285,91 @@ include 'include/sidebar.php';
                                         <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                             <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- By Village: Taluka → Village cascade -->
+                            <div id="byVillageSection" class="space-y-4 hidden transition-all">
+                                <!-- Taluka -->
+                                <div>
+                                    <label class="form-label" for="filter_taluka_id">Select Taluka <span class="text-red-500">*</span></label>
+                                    <div class="relative">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <i data-lucide="map" class="w-4 h-4 text-slate-400"></i>
+                                        </div>
+                                        <select id="filter_taluka_id" name="filter_taluka_id"
+                                                class="w-full pl-10 pr-10 py-2.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg
+                                                       bg-white dark:bg-slate-800 text-slate-900 dark:text-white
+                                                       focus:outline-none focus:ring-2 focus:ring-govgreen-500 focus:border-govgreen-500
+                                                       transition-colors appearance-none">
+                                            <option value="">— Select Taluka —</option>
+                                            <?php
+                                            if ($talukas_result && $talukas_result->num_rows > 0) {
+                                                $talukas_result->data_seek(0);
+                                                while ($tk = $talukas_result->fetch_assoc()):
+                                                    $sel = (isset($_POST['filter_taluka_id']) && $_POST['filter_taluka_id'] == $tk['taluka_id']) ? 'selected' : '';
+                                            ?>
+                                            <option value="<?= (int)$tk['taluka_id'] ?>" <?= $sel ?>>
+                                                <?= htmlspecialchars($tk['taluka_name']) ?>
+                                            </option>
+                                            <?php endwhile; } ?>
+                                        </select>
+                                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Village -->
+                                <div>
+                                    <label class="form-label" for="assigned_village_id">Select Village <span class="text-red-500">*</span></label>
+                                    <div class="relative">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <i data-lucide="map-pin" class="w-4 h-4 text-slate-400"></i>
+                                        </div>
+                                        <select id="assigned_village_id" name="assigned_village_id"
+                                                class="w-full pl-10 pr-10 py-2.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg
+                                                       bg-white dark:bg-slate-800 text-slate-900 dark:text-white
+                                                       focus:outline-none focus:ring-2 focus:ring-govgreen-500 focus:border-govgreen-500
+                                                       transition-colors appearance-none">
+                                            <option value="">— Select Village —</option>
+                                            <?php
+                                            // Pre-populate villages for selected taluka
+                                            if ($villages_result && $villages_result->num_rows > 0) {
+                                                $villages_result->data_seek(0);
+                                                while ($vl = $villages_result->fetch_assoc()):
+                                                    $sel = (isset($_POST['assigned_village_id']) && $_POST['assigned_village_id'] == $vl['village_id']) ? 'selected' : '';
+                                                    $dat = 'data-taluka="' . (int)$vl['taluka_id'] . '"';
+                                            ?>
+                                            <option value="<?= (int)$vl['village_id'] ?>" <?= $dat ?> <?= $sel ?> class="village-opt">
+                                                <?= htmlspecialchars($vl['village_name']) ?>
+                                            </option>
+                                            <?php endwhile; } ?>
+                                        </select>
+                                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Village user preview panel -->
+                                <div id="villageUsersPanel" class="hidden space-y-3">
+                                    <div id="villageUsersLoading" class="hidden flex items-center gap-2 text-xs text-slate-500">
+                                        <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Fetching employees in this village…
+                                    </div>
+                                    <div id="villageUsersBadge" class="hidden flex items-center justify-between">
+                                        <span class="text-xs text-slate-600 dark:text-slate-400">
+                                            <span id="villageUserCount">0</span> employee(s) will receive this task
+                                        </span>
+                                        <button type="button" onclick="toggleVillageUsersList()" id="toggleVillageUsersBtn"
+                                                class="text-xs font-medium text-govgreen-600 dark:text-green-400 hover:underline">
+                                            Show all
+                                        </button>
+                                    </div>
+                                    <div id="villageUsersNone" class="hidden flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-600 dark:text-red-400">
+                                        <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                                        No eligible employees found in this village.
+                                    </div>
+                                    <div id="villageUsersList" class="hidden mt-2 max-h-48 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700">
                                     </div>
                                 </div>
                             </div>
@@ -1690,90 +1837,85 @@ include 'include/sidebar.php';
     });
 
     // ── Allocation Type Toggle ───────────────────────────────────
-    const byNameRadio    = document.getElementById('alloc_by_name');
-    const byRoleRadio    = document.getElementById('alloc_by_role');
-    const byVillageRadio = document.getElementById('alloc_by_village');
-    const byNameSection  = document.getElementById('byNameSection');
-    const byRoleSection  = document.getElementById('byRoleSection');
+    const byNameRadio      = document.getElementById('alloc_by_name');
+    const byRoleRadio      = document.getElementById('alloc_by_role');
+    const byVillageRadio   = document.getElementById('alloc_by_village');
+    const byNameSection    = document.getElementById('byNameSection');
+    const byRoleSection    = document.getElementById('byRoleSection');
     const byVillageSection = document.getElementById('byVillageSection');
-    const boxByName      = document.getElementById('box-byname');
-    const boxByRole      = document.getElementById('box-byrole');
-    const boxByVillage   = document.getElementById('box-byvillage');
-    const prevAllocation = document.getElementById('prevAllocation');
-    const roleSelect     = document.getElementById('assigned_role_id');
-    const rolePanel      = document.getElementById('roleUsersPanel');
-    const roleBadge      = document.getElementById('roleUsersBadge');
-    const roleNone       = document.getElementById('roleUsersNone');
-    const roleLoading    = document.getElementById('roleUsersLoading');
-    const roleList       = document.getElementById('roleUsersList');
-    const roleCountEl    = document.getElementById('roleUserCount');
-    const talukaSelect   = document.getElementById('task_taluka_id');
-    const villageSelect  = document.getElementById('task_village_id');
-    let roleUsersListVisible = false;
-
-    const villagePanel    = document.getElementById('villageUsersPanel');
-    const villageBadge    = document.getElementById('villageUsersBadge');
-    const villageNone     = document.getElementById('villageUsersNone');
-    const villageLoading  = document.getElementById('villageUsersLoading');
-    const responsibleEl   = document.getElementById('responsibleUserDetails');
+    const boxByName        = document.getElementById('box-byname');
+    const boxByRole        = document.getElementById('box-byrole');
+    const boxByVillage     = document.getElementById('box-byvillage');
+    const prevAllocation   = document.getElementById('prevAllocation');
+    const roleSelect       = document.getElementById('assigned_role_id');
+    const rolePanel        = document.getElementById('roleUsersPanel');
+    const roleBadge        = document.getElementById('roleUsersBadge');
+    const roleNone         = document.getElementById('roleUsersNone');
+    const roleLoading      = document.getElementById('roleUsersLoading');
+    const roleList         = document.getElementById('roleUsersList');
+    const roleCountEl      = document.getElementById('roleUserCount');
+    const villagePanel     = document.getElementById('villageUsersPanel');
+    const villageBadge     = document.getElementById('villageUsersBadge');
+    const villageNone      = document.getElementById('villageUsersNone');
+    const villageLoading   = document.getElementById('villageUsersLoading');
+    const villageList      = document.getElementById('villageUsersList');
+    const villageCountEl   = document.getElementById('villageUserCount');
+    const talukaSelect     = document.getElementById('filter_taluka_id');
+    const villageSelect    = document.getElementById('assigned_village_id');
+    let roleUsersListVisible    = false;
+    let villageUsersListVisible = false;
 
     // Dynamic translations for JS
     const langCode = '<?= $lang ?>';
     const jsTranslations = {
-        ByName: '<?= addslashes($t['lbl_by_name'] ?? 'By Name') ?>',
-        ByRole: '<?= addslashes($t['lbl_by_role'] ?? 'By Role') ?>',
-        ByRoleUsers: '<?= addslashes($t['lbl_by_role'] ?? 'By Role') ?> (%count%)',
-        ByVillage: '<?= addslashes($t['lbl_by_village'] ?? 'By Village') ?>',
-        Low: '<?= addslashes($t['priority_low'] ?? 'Low') ?>',
-        Medium: '<?= addslashes($t['priority_medium'] ?? 'Medium') ?>',
-        High: '<?= addslashes($t['priority_high'] ?? 'High') ?>',
+        ByName:    '<?= addslashes($t['lbl_by_name'] ?? 'By Name') ?>',
+        ByRole:    '<?= addslashes($t['lbl_by_role'] ?? 'By Role') ?>',
+        ByVillage: 'By Village',
+        ByRoleUsers:    '<?= addslashes($t['lbl_by_role'] ?? 'By Role') ?> (%count%)',
+        ByVillageUsers: 'By Village (%count%)',
+        Low:      '<?= addslashes($t['priority_low'] ?? 'Low') ?>',
+        Medium:   '<?= addslashes($t['priority_medium'] ?? 'Medium') ?>',
+        High:     '<?= addslashes($t['priority_high'] ?? 'High') ?>',
         Critical: '<?= addslashes($t['priority_critical'] ?? 'Critical') ?>',
-        none: '<?= addslashes($t['lbl_none'] ?? 'None') ?>',
-        toast_title_req: '<?= addslashes($t['toast_title_req'] ?? 'Task title is required.') ?>',
-        toast_due_req: '<?= addslashes($t['toast_due_req'] ?? 'Please select a due date & time.') ?>',
+        none:     '<?= addslashes($t['lbl_none'] ?? 'None') ?>',
+        toast_title_req:    '<?= addslashes($t['toast_title_req'] ?? 'Task title is required.') ?>',
+        toast_due_req:      '<?= addslashes($t['toast_due_req'] ?? 'Please select a due date & time.') ?>',
         toast_employee_req: '<?= addslashes($t['toast_employee_req'] ?? 'Please select an employee to assign.') ?>',
-        toast_role_req: '<?= addslashes($t['toast_role_req'] ?? 'Please select a role to assign.') ?>',
-        toast_taluka_req: '<?= addslashes($t['toast_taluka_req'] ?? 'Please select a taluka.') ?>',
-        toast_village_req: '<?= addslashes($t['toast_village_req'] ?? 'Please select a village.') ?>',
-        opt_select_village: '<?= addslashes($t['opt_select_village'] ?? '— Select a village —') ?>',
+        toast_role_req:     '<?= addslashes($t['toast_role_req'] ?? 'Please select a role to assign.') ?>',
+        toast_village_req:  'Please select a village to assign.',
         btn_submitting: '<?= addslashes($t['btn_submitting'] ?? 'Creating Task…') ?>',
-        btn_show_all: '<?= addslashes($t['btn_show_all'] ?? 'Show all') ?>',
-        btn_hide: '<?= addslashes($t['btn_hide'] ?? 'Hide') ?>',
-        msg_fetching_employees: '<?= addslashes($t['msg_fetching_employees'] ?? 'Fetching employees with this role…') ?>',
-        msg_fetching_village_employees: '<?= addslashes($t['msg_fetching_village_employees'] ?? 'Fetching mapped employees for this village…') ?>',
-        msg_responsible_identified: '<?= addslashes($t['msg_responsible_identified'] ?? 'Responsible person identified:') ?>',
-        msg_no_employees_village: '<?= addslashes($t['msg_no_employees_village'] ?? 'No active employees mapped to this village.') ?>'
+        btn_show_all:   '<?= addslashes($t['btn_show_all'] ?? 'Show all') ?>',
+        btn_hide:       '<?= addslashes($t['btn_hide'] ?? 'Hide') ?>',
+        msg_fetching_employees: '<?= addslashes($t['msg_fetching_employees'] ?? 'Fetching employees with this role…') ?>'
     };
 
+    const clsActive   = 'flex items-center gap-3 p-4 rounded-xl border-2 transition-all';
+    const clsInactive = 'flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 transition-all';
+
     function setAllocationUI(type) {
+        // Hide all sections
+        byNameSection.classList.add('hidden');
+        byRoleSection.classList.add('hidden');
+        byVillageSection.classList.add('hidden');
+        // Reset all card borders
+        boxByName.className    = clsInactive;
+        boxByRole.className    = clsInactive;
+        boxByVillage.className = clsInactive;
+
         if (type === 'by_name') {
             byNameSection.classList.remove('hidden');
-            byRoleSection.classList.add('hidden');
-            byVillageSection.classList.add('hidden');
-            boxByName.className = 'flex items-center gap-3 p-4 rounded-xl border-2 border-navy-500 bg-navy-50 dark:bg-navy-900/20 transition-all';
-            boxByRole.className = 'flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 transition-all';
-            boxByVillage.className = 'flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 transition-all';
+            boxByName.className = clsActive + ' border-navy-500 bg-navy-50 dark:bg-navy-900/20';
             prevAllocation.textContent = jsTranslations.ByName;
         } else if (type === 'by_role') {
             byRoleSection.classList.remove('hidden');
-            byNameSection.classList.add('hidden');
-            byVillageSection.classList.add('hidden');
-            boxByRole.className = 'flex items-center gap-3 p-4 rounded-xl border-2 border-saffron-500 bg-saffron-50 dark:bg-orange-900/20 transition-all';
-            boxByName.className = 'flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 transition-all';
-            boxByVillage.className = 'flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 transition-all';
+            boxByRole.className = clsActive + ' border-saffron-500 bg-saffron-50 dark:bg-orange-900/20';
             prevAllocation.textContent = jsTranslations.ByRole;
-            // Trigger fetch if a role is already selected
             if (roleSelect.value) fetchRoleUsers(roleSelect.value);
         } else if (type === 'by_village') {
             byVillageSection.classList.remove('hidden');
-            byNameSection.classList.add('hidden');
-            byRoleSection.classList.add('hidden');
-            boxByVillage.className = 'flex items-center gap-3 p-4 rounded-xl border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20 transition-all';
-            boxByName.className = 'flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 transition-all';
-            boxByRole.className = 'flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 transition-all';
-            updateVillagePreview();
-            if (villageSelect.value) fetchVillageUsers(villageSelect.value);
-            else villagePanel.classList.add('hidden');
+            boxByVillage.className = clsActive + ' border-govgreen-500 bg-green-50 dark:bg-green-900/20';
+            prevAllocation.textContent = jsTranslations.ByVillage;
+            filterVillagesByTaluka(talukaSelect.value);
         }
         lucide.createIcons();
     }
@@ -1789,11 +1931,7 @@ include 'include/sidebar.php';
 
     // ── AJAX: fetch users for the selected role ──────────────────
     function fetchRoleUsers(roleId) {
-        if (!roleId) {
-            rolePanel.classList.add('hidden');
-            return;
-        }
-        // Show panel + loading
+        if (!roleId) { rolePanel.classList.add('hidden'); return; }
         rolePanel.classList.remove('hidden');
         roleLoading.classList.remove('hidden');
         roleBadge.classList.add('hidden');
@@ -1801,7 +1939,8 @@ include 'include/sidebar.php';
         roleList.classList.add('hidden');
         roleList.innerHTML = '';
         roleUsersListVisible = false;
-        document.getElementById('toggleUsersBtn') && (document.getElementById('toggleUsersBtn').textContent = jsTranslations.btn_show_all);
+        const btn = document.getElementById('toggleUsersBtn');
+        if (btn) btn.textContent = jsTranslations.btn_show_all;
 
         fetch(`create_task.php?ajax=role_users&role_id=${roleId}`)
             .then(r => r.json())
@@ -1809,34 +1948,15 @@ include 'include/sidebar.php';
                 roleLoading.classList.add('hidden');
                 if (data.count === 0) {
                     roleNone.classList.remove('hidden');
-                    roleBadge.classList.add('hidden');
                 } else {
-                    roleNone.classList.add('hidden');
                     roleBadge.classList.remove('hidden');
                     roleCountEl.textContent = data.count;
-
-                    // Build the user list HTML
-                    roleList.innerHTML = data.users.map(u => `
-                        <div class="flex items-center gap-3 px-4 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-                            <div class="w-8 h-8 rounded-full bg-navy-100 dark:bg-navy-800 flex items-center justify-center text-xs font-bold text-navy-700 dark:text-blue-300 flex-shrink-0">
-                                ${u.full_name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase()}
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-slate-800 dark:text-white truncate">${u.full_name}</p>
-                                ${u.designation ? `<p class="text-xs text-slate-500 dark:text-slate-400">${u.designation}</p>` : ''}
-                            </div>
-                            <i data-lucide="check" class="w-3.5 h-3.5 text-govgreen-500 flex-shrink-0"></i>
-                        </div>`
-                    ).join('');
+                    roleList.innerHTML = buildUserListHTML(data.users);
                     lucide.createIcons();
                 }
-                // Update preview
-                document.getElementById('prevAllocation').textContent = jsTranslations.ByRoleUsers.replace('%count%', data.count);
+                prevAllocation.textContent = jsTranslations.ByRoleUsers.replace('%count%', data.count);
             })
-            .catch(() => {
-                roleLoading.classList.add('hidden');
-                roleNone.classList.remove('hidden');
-            });
+            .catch(() => { roleLoading.classList.add('hidden'); roleNone.classList.remove('hidden'); });
     }
 
     function toggleRoleUsersList() {
@@ -1845,87 +1965,90 @@ include 'include/sidebar.php';
         document.getElementById('toggleUsersBtn').textContent = roleUsersListVisible ? jsTranslations.btn_hide : jsTranslations.btn_show_all;
     }
 
-    roleSelect.addEventListener('change', () => fetchRoleUsers(roleSelect.value));
+    // ── Taluka → Village cascade filter ────────────────────────
+    function filterVillagesByTaluka(talukaId) {
+        const opts = villageSelect.querySelectorAll('.village-opt');
+        let visible = 0;
+        opts.forEach(opt => {
+            if (!talukaId || opt.dataset.taluka === talukaId) {
+                opt.style.display = '';
+                visible++;
+            } else {
+                opt.style.display = 'none';
+            }
+        });
+        // Reset village selection
+        villageSelect.value = '';
+        villagePanel.classList.add('hidden');
+    }
 
-    byNameRadio.addEventListener('change', () => setAllocationUI('by_name'));
-    byRoleRadio.addEventListener('change', () => setAllocationUI('by_role'));
-    byVillageRadio.addEventListener('change', () => setAllocationUI('by_village'));
-
-    // Trigger village loading when taluka changes
     talukaSelect.addEventListener('change', () => {
-        const talukaId = talukaSelect.value;
-        villageSelect.innerHTML = `<option value="">${jsTranslations.opt_select_village || '— Select a village —'}</option>`;
-        updateVillagePreview();
-        if (!talukaId) return;
-
-        fetch(`create_task.php?ajax=taluka_villages&taluka_id=${talukaId}`)
-            .then(r => r.json())
-            .then(data => {
-                if (data.villages && data.villages.length > 0) {
-                    data.villages.forEach(v => {
-                        const opt = document.createElement('option');
-                        opt.value = v.id;
-                        opt.textContent = v.name;
-                        villageSelect.appendChild(opt);
-                    });
-                }
-                updateVillagePreview();
-            })
-            .catch(err => console.error("Error loading villages:", err));
+        filterVillagesByTaluka(talukaSelect.value);
     });
 
-    // ── AJAX: fetch users for the selected village ────────────────
+    // ── AJAX: fetch users for the selected village ───────────────
     function fetchVillageUsers(villageId) {
-        if (!villageId) {
-            villagePanel.classList.add('hidden');
-            return;
-        }
+        if (!villageId) { villagePanel.classList.add('hidden'); return; }
         villagePanel.classList.remove('hidden');
         villageLoading.classList.remove('hidden');
         villageBadge.classList.add('hidden');
         villageNone.classList.add('hidden');
-        responsibleEl.innerHTML = '';
+        villageList.classList.add('hidden');
+        villageList.innerHTML = '';
+        villageUsersListVisible = false;
+        const btn = document.getElementById('toggleVillageUsersBtn');
+        if (btn) btn.textContent = jsTranslations.btn_show_all;
 
         fetch(`create_task.php?ajax=village_users&village_id=${villageId}`)
             .then(r => r.json())
             .then(data => {
                 villageLoading.classList.add('hidden');
-                if (!data.responsible_user) {
+                if (data.count === 0) {
                     villageNone.classList.remove('hidden');
-                    villageBadge.classList.add('hidden');
                 } else {
-                    villageNone.classList.add('hidden');
                     villageBadge.classList.remove('hidden');
-                    const ru = data.responsible_user;
-                    let display = ru.full_name;
-                    if (ru.role_name) {
-                        display += ` (${ru.role_name})`;
-                    }
-                    if (ru.department_name) {
-                        display += ` — ${ru.department_name}`;
-                    }
-                    responsibleEl.textContent = display;
+                    villageCountEl.textContent = data.count;
+                    villageList.innerHTML = buildUserListHTML(data.users);
+                    lucide.createIcons();
                 }
+                prevAllocation.textContent = jsTranslations.ByVillageUsers.replace('%count%', data.count);
             })
-            .catch(() => {
-                villageLoading.classList.add('hidden');
-                villageNone.classList.remove('hidden');
-            });
+            .catch(() => { villageLoading.classList.add('hidden'); villageNone.classList.remove('hidden'); });
     }
 
-    villageSelect.addEventListener('change', () => {
-        updateVillagePreview();
-        fetchVillageUsers(villageSelect.value);
-    });
+    function toggleVillageUsersList() {
+        villageUsersListVisible = !villageUsersListVisible;
+        villageList.classList.toggle('hidden', !villageUsersListVisible);
+        document.getElementById('toggleVillageUsersBtn').textContent = villageUsersListVisible ? jsTranslations.btn_hide : jsTranslations.btn_show_all;
+    }
+
+    villageSelect.addEventListener('change', () => fetchVillageUsers(villageSelect.value));
+
+    // ── Shared: build user row HTML ──────────────────────────────
+    function buildUserListHTML(users) {
+        return users.map(u => `
+            <div class="flex items-center gap-3 px-4 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                <div class="w-8 h-8 rounded-full bg-navy-100 dark:bg-navy-800 flex items-center justify-center text-xs font-bold text-navy-700 dark:text-blue-300 flex-shrink-0">
+                    ${u.full_name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase()}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-slate-800 dark:text-white truncate">${u.full_name}</p>
+                    ${u.designation ? `<p class="text-xs text-slate-500 dark:text-slate-400">${u.designation}</p>` : ''}
+                </div>
+                <i data-lucide="check" class="w-3.5 h-3.5 text-govgreen-500 flex-shrink-0"></i>
+            </div>`
+        ).join('');
+    }
+
+    roleSelect.addEventListener('change', () => fetchRoleUsers(roleSelect.value));
+
+    byNameRadio.addEventListener('change',    () => setAllocationUI('by_name'));
+    byRoleRadio.addEventListener('change',    () => setAllocationUI('by_role'));
+    byVillageRadio.addEventListener('change', () => setAllocationUI('by_village'));
 
     // Initial state
-    if (byRoleRadio.checked) {
-        setAllocationUI('by_role');
-    } else if (byVillageRadio && byVillageRadio.checked) {
-        setAllocationUI('by_village');
-    } else {
-        setAllocationUI('by_name');
-    }
+    const initAlloc = document.querySelector('input[name="allocation_type"]:checked')?.value || 'by_name';
+    setAllocationUI(initAlloc);
 
     // ── Priority Selector ────────────────────────────────────────
     const priorityCards  = document.querySelectorAll('.priority-card');
@@ -2079,13 +2202,12 @@ include 'include/sidebar.php';
 
     // ── Form Submission Loading State ────────────────────────────
     document.getElementById('createTaskForm').addEventListener('submit', function (e) {
-        // Basic validation
         const title = titleInput.value.trim();
         const due   = dueDateInput.value;
         const alloc = document.querySelector('input[name="allocation_type"]:checked')?.value;
 
         if (!title) { showToast(jsTranslations.toast_title_req, 'warning'); e.preventDefault(); return; }
-        if (!due)   { showToast(jsTranslations.toast_due_req, 'warning'); e.preventDefault(); return; }
+        if (!due)   { showToast(jsTranslations.toast_due_req,   'warning'); e.preventDefault(); return; }
 
         if (alloc === 'by_name' && !document.getElementById('assigned_user_id').value) {
             showToast(jsTranslations.toast_employee_req, 'warning'); e.preventDefault(); return;
@@ -2093,13 +2215,8 @@ include 'include/sidebar.php';
         if (alloc === 'by_role' && !document.getElementById('assigned_role_id').value) {
             showToast(jsTranslations.toast_role_req, 'warning'); e.preventDefault(); return;
         }
-        if (alloc === 'by_village') {
-            if (!document.getElementById('task_taluka_id').value) {
-                showToast(jsTranslations.toast_taluka_req, 'warning'); e.preventDefault(); return;
-            }
-            if (!document.getElementById('task_village_id').value) {
-                showToast(jsTranslations.toast_village_req, 'warning'); e.preventDefault(); return;
-            }
+        if (alloc === 'by_village' && !document.getElementById('assigned_village_id').value) {
+            showToast(jsTranslations.toast_village_req, 'warning'); e.preventDefault(); return;
         }
 
         const btn  = document.getElementById('submitBtn');
@@ -2131,9 +2248,11 @@ include 'include/sidebar.php';
         clearFile();
         selectPriority('Medium');
         setAllocationUI('by_name');
-        if (talukaSelect) talukaSelect.value = '';
-        if (villageSelect) villageSelect.innerHTML = `<option value="">${jsTranslations.opt_select_village || '— Select a village —'}</option>`;
-        if (villagePanel) villagePanel.classList.add('hidden');
+        // Reset all selects in village section
+        if (talukaSelect)  talukaSelect.value  = '';
+        if (villageSelect) villageSelect.value = '';
+        if (villagePanel)  villagePanel.classList.add('hidden');
+        if (rolePanel)     rolePanel.classList.add('hidden');
         document.getElementById('prevTitle').textContent  = '—';
         document.getElementById('prevDue').textContent    = '—';
         const charTemplate = '<?= $t['char_counter'] ?? "%d / 255 characters" ?>';
@@ -2146,7 +2265,10 @@ include 'include/sidebar.php';
     lucide.createIcons();
 
     <?php if ($success_msg): ?>
-    showToast('<?= addslashes(strip_tags($success_msg)) ?> created!', 'success');
+    // Auto-show success toast on page load (after redirect)
+    window.addEventListener('load', () => {
+        showToast('<?= addslashes(strip_tags($success_msg)) ?>', 'success');
+    });
     <?php endif; ?>
 </script>
 

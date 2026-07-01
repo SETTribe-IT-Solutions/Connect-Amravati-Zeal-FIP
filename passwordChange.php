@@ -14,6 +14,7 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = (int)$_SESSION['user_id'];
 $message = "";
+$passwordChanged = false;
 
 /*
 |--------------------------------------------------------------------------
@@ -75,8 +76,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($update->execute()) {
 
+            $passwordChanged = true;
             $message = "<div class='success'>
-                            Password changed successfully.
+                            Password changed successfully. Redirecting to login...
                         </div>";
 
         } else {
@@ -99,6 +101,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Change Password</title>
+
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
 
@@ -235,6 +240,29 @@ button:hover{
     </div>
 
 </div>
+
+<?php if ($passwordChanged): ?>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    Swal.fire({
+        icon: 'success',
+        title: 'Password Changed!',
+        html: '<p style="color:#64748b;font-size:14px;">Your password has been updated successfully.</p><p style="color:#94a3b8;font-size:12px;margin-top:8px;">You will be redirected to the login page to sign in with your new password.</p>',
+        confirmButtonText: 'Go to Login',
+        confirmButtonColor: '#0054a4',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        timer: 4000,
+        timerProgressBar: true,
+        customClass: {
+            popup: 'rounded-xl shadow-2xl',
+        },
+    }).then(function() {
+        window.location.href = 'logout.php';
+    });
+});
+</script>
+<?php endif; ?>
 
 </body>
 </html>
