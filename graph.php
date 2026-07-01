@@ -1,413 +1,661 @@
 <?php
 session_start();
+require_once 'include/dbConfig.php';
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;
 }
-?>
-<?php
-$pageTitle = 'GIS Map View — Amravati Connect';
-$pageDesc = 'Visual representation of tasks and reports across Amravati district.';
-$extraHead = <<<'EOT'
-    <!-- ApexCharts -->
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-    <style>
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        .dark .glass-panel {
-            background: rgba(15, 23, 42, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-    </style>
 
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+$sName = $_SESSION['user_name'] ?? 'User';
+$sRole = $_SESSION['user_role'] ?? 'Officer';
+$userId = (int)$_SESSION['user_id'];
+$lang = isset($_GET['lang']) && $_GET['lang'] === 'mr' ? 'mr' : 'en';
+
+$level = match($sRole) {
+    'Administrator', 'System Administrator', 'Collector', 'Additional Collector', 'Deputy Collector' => 1,
+    'SDO', 'Tehsildar', 'BDO' => 2,
+    default => 3
+};
+
+// ── EMPLOYEE PERFORMANCE ──────────────────────────────────────────────────────
+$employees = [];
+$resEmp = $conn->query("
+    SELECT u.user_id, u.full_name, u.employee_code, r.role_name,
+           d.department_name,
+           COUNT(t.task_id)                                           AS total_tasks,
+           SUM(t.status = 'Completed')                               AS completed,
+           SUM(t.status = 'In Progress')                             AS in_progress,
+           SUM(t.status = 'Pending')                                 AS pending,
+           SUM(t.status = 'On Hold')                                 AS on_hold,
+           SUM(t.status = 'Rejected')                                AS rejected,
+           ROUND(SUM(t.status='Completed')/GREATEST(COUNT(t.task_id),1)*100,1) AS rate
+    FROM users u
+    LEFT JOIN roles r        ON u.role_id       = r.role_id
+    LEFT JOIN departments d  ON u.department_id = d.department_id
+    LEFT JOIN tasks t        ON t.assigned_user_id = u.user_id
+    WHERE u.status = 'Active'
+    GROUP BY u.user_id
+    ORDER BY rate DESC, total_tasks DESC
+");
+if ($resEmp) while ($row = $resEmp->fetch_assoc()) $employees[] = $row;
+
+// ── VILLAGE PERFORMANCE ───────────────────────────────────────────────────────
+$villages = [];
+$resVil = $conn->query("
+    SELECT v.village_id, v.village_name, tk.taluka_name,
+           COUNT(t.task_id)                                            AS total_tasks,
+           SUM(t.status='Completed')                                   AS completed,
+           SUM(t.status='In Progress')                                 AS in_progress,
+           SUM(t.status='Pending')                                     AS pending,
+           ROUND(SUM(t.status='Completed')/GREATEST(COUNT(t.task_id),1)*100,1) AS rate
+    FROM villages v
+    LEFT JOIN talukas tk ON v.taluka_id = tk.taluka_id
+    LEFT JOIN tasks t    ON t.village_id = v.village_id
+    GROUP BY v.village_id
+    ORDER BY rate DESC, total_tasks DESC
+");
+if ($resVil) while ($row = $resVil->fetch_assoc()) $villages[] = $row;
+
+// ── DISTRICT (TALUKA) PERFORMANCE ────────────────────────────────────────────
+$talukas = [];
+$resTal = $conn->query("
+    SELECT tk.taluka_id, tk.taluka_name,
+           COUNT(t.task_id)                                            AS total_tasks,
+           SUM(t.status='Completed')                                   AS completed,
+           SUM(t.status='In Progress')                                 AS in_progress,
+           SUM(t.status='Pending')                                     AS pending,
+           SUM(t.status='On Hold')                                     AS on_hold,
+           ROUND(SUM(t.status='Completed')/GREATEST(COUNT(t.task_id),1)*100,1) AS rate
+    FROM talukas tk
+    LEFT JOIN tasks t ON t.taluka_id = tk.taluka_id
+    GROUP BY tk.taluka_id
+    ORDER BY rate DESC
+");
+if ($resTal) while ($row = $resTal->fetch_assoc()) $talukas[] = $row;
+
+$pageTitle = 'Performance Analytics — Connect Amravati';
+$extraHead = <<<'EOT'
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <style>
-        #map { height: 100%; width: 100%; border-radius: 0.5rem; z-index: 1; }
+        .tab-btn { transition: all 0.2s; }
+        .tab-btn.active { background: linear-gradient(135deg,#4f46e5,#7c3aed); color:#fff; box-shadow:0 4px 12px rgba(79,70,229,.35); }
+        .tab-panel { display:none; }
+        .tab-panel.active { display:block; }
+        .perf-bar { transition: width 1s cubic-bezier(.4,0,.2,1); }
+        @keyframes fadeSlideUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+        .anim-row { animation: fadeSlideUp .35s ease both; }
+        .rate-ring { stroke-linecap:round; transition:stroke-dashoffset 1.2s ease; }
+        @media print {
+            body * { visibility:hidden; }
+            #printZone, #printZone * { visibility:visible; }
+            #printZone { position:fixed;top:0;left:0;width:100%;padding:32px; }
+        }
     </style>
 EOT;
+
 include 'include/header.php';
 $activePage = 'graph';
 include 'include/sidebar.php';
+
+// Helper: rate color
+function rateColor(float $r): string {
+    if ($r >= 80) return 'text-emerald-600 dark:text-emerald-400';
+    if ($r >= 50) return 'text-amber-600 dark:text-amber-400';
+    return 'text-red-600 dark:text-red-400';
+}
+function rateBg(float $r): string {
+    if ($r >= 80) return 'bg-emerald-500';
+    if ($r >= 50) return 'bg-amber-500';
+    return 'bg-red-500';
+}
+
+$totalEmpTasks = array_sum(array_column($employees, 'total_tasks'));
+$totalEmpDone  = array_sum(array_column($employees, 'completed'));
+$totalVilTasks = array_sum(array_column($villages,  'total_tasks'));
+$totalVilDone  = array_sum(array_column($villages,  'completed'));
+$totalTalTasks = array_sum(array_column($talukas,   'total_tasks'));
+$totalTalDone  = array_sum(array_column($talukas,   'completed'));
 ?>
 
-    <!-- MAIN WRAPPER -->
-    <div class="flex-1 flex flex-col overflow-hidden">
-        
-        <!-- GLOBAL HEADER -->
-        <header class="h-16 glass-panel border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 z-10 sticky top-0">
-            <div class="flex items-center flex-1">
-                <button class="mr-4 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 focus:outline-none block lg:hidden" id="sidebarToggle">
-                    <i data-lucide="menu" class="w-6 h-6"></i>
-                </button>
-                
-                <!-- Global Search -->
-                <div class="max-w-md w-full relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i data-lucide="search" class="h-4 w-4 text-slate-400"></i>
-                    </div>
-                    <input type="text" class="block w-full pl-10 pr-3 py-2 border border-slate-300 dark:border-slate-700 rounded-md leading-5 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-navy-500 focus:border-navy-500 sm:text-sm transition-colors" placeholder="Search tasks, officers, or circulars (Press '/')">
-                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                        <span class="text-slate-400 text-xs border border-slate-300 dark:border-slate-700 rounded px-1.5 py-0.5">⌘K</span>
-                    </div>
-                </div>
-            </div>
+<div class="flex-1 flex flex-col overflow-hidden">
 
-            <div class="flex items-center space-x-4">
-                <!-- Language Toggle -->
-                <button class="flex items-center text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 px-3 py-1.5 rounded-md transition-colors border border-slate-200 dark:border-slate-700">
-                    <i data-lucide="languages" class="w-4 h-4 mr-2 text-slate-500"></i>
-                    EN / MR
-                </button>
-
-                <!-- Theme Switcher -->
-                <button id="themeToggle" class="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                    <i data-lucide="moon" class="w-5 h-5 dark:hidden"></i>
-                    <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
-                </button>
-
-                <!-- Notifications -->
-                <div class="relative">
-                    <button id="notificationBtn" class="relative p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none">
-                        <i data-lucide="bell" class="w-5 h-5"></i>
-                        <span id="unreadCountBadge" style="display:none;" class="absolute top-0 right-0 flex items-center justify-center h-4 w-4 text-[10px] font-bold text-white rounded-full bg-saffron-500 ring-2 ring-white dark:ring-slate-900">0</span>
-                    </button>
-                    <!-- Dropdown -->
-                    <div id="notificationDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 z-50">
-                        <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-t-lg">
-                            <h3 class="text-sm font-semibold text-slate-900 dark:text-white">Notifications</h3>
-                            <button onclick="markAllAsRead()" class="text-xs text-navy-600 dark:text-blue-400 hover:text-navy-800 dark:hover:text-blue-300 font-medium">Mark all as read</button>
-                        </div>
-                        <div id="notificationList" class="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/50">
-                            <!-- Populated via AJAX -->
-                        </div>
-                        <div class="border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-b-lg">
-                            <a href="notifications.php" class="block w-full text-center px-4 py-3 text-xs font-medium text-slate-500 hover:text-navy-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors">
-                                View All Notifications
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Profile Dropdown -->
-                            <!-- Profile dropdown container -->
-            <div class="relative pl-4 border-l border-slate-200 dark:border-slate-700">
-                <button id="profileDropdownBtn" class="flex items-center space-x-3 cursor-pointer focus:outline-none">
-                    <div class="flex flex-col text-right hidden sm:block">
-                        <span class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($sName ?? 'User') ?></span>
-                        <span class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($sRole ?? $roleLabel ?? 'Officer') ?></span>
-                    </div>
-                    <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-sm">
-                        <?= htmlspecialchars($initials ?? 'U') ?>
-                    </div>
-                </button>
-                <div id="profileDropdownMenu" class="hidden absolute right-0 mt-2 w-48 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md z-50">
-                    <div class="py-1">
-                        <a href="profile_update.php?lang=<?= $lang ?? 'en' ?>" class="flex items-center px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
-                            <i data-lucide="user" class="w-4 h-4 mr-2 text-slate-400"></i><?= ($lang ?? 'en') === 'en' ? 'User Profile Update' : 'वापरकर्ता प्रोफाइल अपडेट' ?>
-                        </a>
-                        <a href="settings.php?lang=<?= $lang ?? 'en' ?>" class="flex items-center px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
-                            <i data-lucide="settings" class="w-4 h-4 mr-2 text-slate-400"></i><?= ($lang ?? 'en') === 'en' ? 'Settings' : 'सेटिंग्ज' ?>
-                        </a>
-                        <a href="passwordChange.php?lang=<?= $lang ?? 'en' ?>" class="flex items-center px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
-                            <i data-lucide="key" class="w-4 h-4 mr-2 text-slate-400"></i><?= ($lang ?? 'en') === 'en' ? 'Password Change' : 'पासवर्ड बदला' ?>
-                        </a>
-                        <a href="logout.php" class="flex items-center px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
-                            <i data-lucide="log-out" class="w-4 h-4 mr-2 text-red-500"></i><?= ($lang ?? 'en') === 'en' ? 'Logout' : 'लॉगआउट' ?>
-                        </a>
-                    </div>
-                </div>
-            </div></div>
-        </header>
-
-        <!-- MAIN CONTENT SCROLL AREA -->
-        <main class="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900 p-6 sm:p-8 flex flex-col">
-            <!-- Page Header -->
-            <div class="flex flex-col md:flex-row md:items-center justify-between mb-6">
-                <div>
-                    <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">GIS Map View</h1>
-                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Interactive geographical view of Amravati District operations.</p>
-                </div>
-                <div class="mt-4 md:mt-0 flex space-x-3">
-                    <button class="inline-flex items-center px-4 py-2 border border-slate-300 dark:border-slate-600 shadow-sm text-sm font-medium rounded-md text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none transition-colors">
-                        <i data-lucide="filter" class="w-4 h-4 mr-2"></i>
-                        Filter Layers
-                    </button>
-                </div>
-            </div>
-
-            <!-- Map Container -->
-            <div class="flex-1 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden relative min-h-[500px]">
-                <div id="map"></div>
-            </div>
-        </main>
+  <!-- HEADER -->
+  <header class="h-16 glass-panel border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 z-10 sticky top-0">
+    <div class="flex items-center flex-1">
+      <button id="sidebarToggle" class="mr-4 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 focus:outline-none block lg:hidden">
+        <i data-lucide="menu" class="w-6 h-6"></i>
+      </button>
     </div>
-
-    <!-- AI Chatbot Floating Widget -->
-    <div class="fixed bottom-6 right-6 z-50">
-        <button class="w-14 h-14 bg-gradient-to-r from-navy-600 to-navy-500 rounded-full shadow-lg flex items-center justify-center text-white hover:scale-105 transition-transform shadow-navy-500/30">
-            <i data-lucide="message-square-text" class="w-6 h-6"></i>
+    <div class="flex items-center space-x-4">
+      <button id="themeToggle" class="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+        <i data-lucide="moon" class="w-5 h-5 dark:hidden"></i>
+        <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
+      </button>
+      <?php include 'include/notification_widget.php'; ?>
+      <div class="relative pl-4 border-l border-slate-200 dark:border-slate-700">
+        <button id="profileDropdownBtn" class="flex items-center space-x-3 cursor-pointer focus:outline-none">
+          <div class="flex flex-col text-right hidden sm:block">
+            <span class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($sName) ?></span>
+            <span class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($sRole) ?></span>
+          </div>
+          <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-sm">
+            <?= strtoupper(substr($sName,0,1)) ?>
+          </div>
         </button>
+        <div id="profileDropdownMenu" class="hidden absolute right-0 mt-2 w-48 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 z-50">
+          <div class="py-1">
+            <a href="profile_update.php" class="flex items-center px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"><i data-lucide="user" class="w-4 h-4 mr-2 text-slate-400"></i>Update Profile</a>
+            <a href="logout.php" class="flex items-center px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10"><i data-lucide="log-out" class="w-4 h-4 mr-2 text-red-500"></i>Logout</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900 p-6 sm:p-8 space-y-8">
+
+    <!-- Page Title -->
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg">
+          <i data-lucide="bar-chart-2" class="w-6 h-6 text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Performance Analytics</h1>
+          <p class="text-sm text-slate-500 dark:text-slate-400">District · Taluka · Village · Employee performance reports</p>
+        </div>
+      </div>
+      <div class="text-xs text-slate-400">Report as of <?= date('d M Y, h:i A') ?></div>
     </div>
 
-    <!-- Initialize Icons & Charts & Dark Mode Logic -->
-    <script>
-        // Initialize Lucide Icons
-        lucide.createIcons();
+    <!-- Summary Stat Row -->
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div class="bg-gradient-to-br from-indigo-600 to-violet-700 text-white rounded-2xl p-5 shadow-md">
+        <div class="text-indigo-200 text-xs font-bold uppercase mb-2">Employees Tracked</div>
+        <div class="text-3xl font-black"><?= count($employees) ?></div>
+        <div class="text-indigo-200 text-xs mt-1"><?= $totalEmpDone ?> / <?= $totalEmpTasks ?> tasks done</div>
+      </div>
+      <div class="bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-2xl p-5 shadow-md">
+        <div class="text-emerald-100 text-xs font-bold uppercase mb-2">Villages Tracked</div>
+        <div class="text-3xl font-black"><?= count($villages) ?></div>
+        <div class="text-emerald-100 text-xs mt-1"><?= $totalVilDone ?> / <?= $totalVilTasks ?> tasks done</div>
+      </div>
+      <div class="col-span-2 md:col-span-1 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-2xl p-5 shadow-md">
+        <div class="text-amber-100 text-xs font-bold uppercase mb-2">Talukas (Districts)</div>
+        <div class="text-3xl font-black"><?= count($talukas) ?></div>
+        <div class="text-amber-100 text-xs mt-1"><?= $totalTalDone ?> / <?= $totalTalTasks ?> tasks done</div>
+      </div>
+    </div>
 
-        
-        // Initialize Map
-        const map = L.map('map').setView([20.9320, 77.7523], 10); // Amravati coordinates
-        
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap'
-        }).addTo(map);
+    <!-- TAB NAVIGATION -->
+    <div class="flex items-center gap-3 p-1.5 bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800 rounded-2xl w-fit shadow-sm">
+      <button class="tab-btn active px-5 py-2.5 rounded-xl text-sm font-bold" onclick="switchTab('emp')">
+        <i data-lucide="users" class="w-4 h-4 inline mr-1.5"></i>Employees
+      </button>
+      <button class="tab-btn px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800" onclick="switchTab('vil')">
+        <i data-lucide="map-pin" class="w-4 h-4 inline mr-1.5"></i>Villages
+      </button>
+      <button class="tab-btn px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800" onclick="switchTab('dist')">
+        <i data-lucide="landmark" class="w-4 h-4 inline mr-1.5"></i>District / Taluka
+      </button>
+    </div>
 
-        // Add some dummy markers for Amravati talukas
-        const locations = [
-            { name: "Amravati", lat: 20.9320, lng: 77.7523, tasks: 45, status: 'warning' },
-            { name: "Achalpur", lat: 21.2573, lng: 77.5086, tasks: 32, status: 'ok' },
-            { name: "Chandur Railway", lat: 20.8166, lng: 77.9833, tasks: 18, status: 'ok' },
-            { name: "Daryapur", lat: 20.9333, lng: 77.3167, tasks: 25, status: 'critical' }
-        ];
+    <!-- ============================= EMPLOYEE TAB ============================= -->
+    <div id="tab-emp" class="tab-panel active space-y-6">
 
-        locations.forEach(loc => {
-            let color = '#2e7d32'; // govgreen
-            if (loc.status === 'warning') color = '#f57c00'; // saffron
-            if (loc.status === 'critical') color = '#dc2626'; // red
+      <!-- Chart + Top Performers -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/60 dark:border-slate-800 p-6 shadow-sm">
+          <h3 class="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-4">Employee Completion Rate Chart</h3>
+          <canvas id="empChart" height="220"></canvas>
+        </div>
+        <div class="bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/60 dark:border-slate-800 p-6 shadow-sm">
+          <h3 class="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-4">🏆 Top 5 Performers</h3>
+          <div class="space-y-3">
+            <?php foreach(array_slice($employees,0,5) as $i => $emp): ?>
+            <div class="flex items-center gap-3">
+              <span class="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 text-xs font-black flex items-center justify-center"><?= $i+1 ?></span>
+              <div class="flex-1 min-w-0">
+                <div class="text-xs font-bold text-slate-900 dark:text-white truncate"><?= htmlspecialchars($emp['full_name']) ?></div>
+                <div class="text-[10px] text-slate-400"><?= htmlspecialchars($emp['role_name'] ?? '') ?></div>
+              </div>
+              <span class="text-sm font-black <?= rateColor((float)$emp['rate']) ?>"><?= $emp['rate'] ?>%</span>
+            </div>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      </div>
 
-            const circleMarker = L.circleMarker([loc.lat, loc.lng], {
-                color: color,
-                fillColor: color,
-                fillOpacity: 0.6,
-                radius: 12
-            }).addTo(map);
-            circleMarker.bindPopup(`<b>${loc.name}</b><br>Active Tasks: ${loc.tasks}`);
-        });
-        
-        // Handle Map resizing when sidebar toggles
-        const mySidebarToggle = document.getElementById('sidebarToggle');
-        if(mySidebarToggle) {
-            mySidebarToggle.addEventListener('click', () => {
-                setTimeout(() => {
-                    map.invalidateSize();
-                }, 350);
-            });
-        }
+      <!-- Employee Table -->
+      <div class="bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/60 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div class="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
+          <h3 class="font-bold text-slate-900 dark:text-white">All Employee Performance</h3>
+          <div class="relative">
+            <input type="text" id="empSearch" placeholder="Search employee..." oninput="filterTable('empSearch','empTbody')"
+              class="pl-8 pr-4 py-2 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white rounded-xl focus:ring-2 focus:ring-indigo-500">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none"></i>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full">
+            <thead class="bg-slate-50 dark:bg-slate-900/60">
+              <tr>
+                <th class="px-5 py-3 text-left text-xs font-bold text-slate-400 uppercase">#</th>
+                <th class="px-5 py-3 text-left text-xs font-bold text-slate-400 uppercase">Employee</th>
+                <th class="px-5 py-3 text-left text-xs font-bold text-slate-400 uppercase">Department</th>
+                <th class="px-5 py-3 text-center text-xs font-bold text-slate-400 uppercase">Total</th>
+                <th class="px-5 py-3 text-center text-xs font-bold text-slate-400 uppercase">Done</th>
+                <th class="px-5 py-3 text-center text-xs font-bold text-slate-400 uppercase">Pending</th>
+                <th class="px-5 py-3 text-left text-xs font-bold text-slate-400 uppercase w-36">Rate</th>
+                <th class="px-5 py-3 text-center text-xs font-bold text-slate-400 uppercase">Report</th>
+              </tr>
+            </thead>
+            <tbody id="empTbody" class="divide-y divide-slate-100 dark:divide-slate-800/60">
+              <?php foreach($employees as $i => $emp):
+                $rate = (float)$emp['rate'];
+                $initials = strtoupper(substr($emp['full_name'],0,1));
+              ?>
+              <tr class="anim-row hover:bg-slate-50/50 dark:hover:bg-slate-900/20 text-sm" style="animation-delay:<?= $i*30 ?>ms">
+                <td class="px-5 py-3.5 text-slate-400 text-xs"><?= $i+1 ?></td>
+                <td class="px-5 py-3.5">
+                  <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-950/40 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-black text-xs"><?= $initials ?></div>
+                    <div>
+                      <div class="font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($emp['full_name']) ?></div>
+                      <div class="text-[10px] text-slate-400"><?= htmlspecialchars($emp['employee_code'] ?: '') ?> · <?= htmlspecialchars($emp['role_name'] ?? '') ?></div>
+                    </div>
+                  </div>
+                </td>
+                <td class="px-5 py-3.5 text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($emp['department_name'] ?: '—') ?></td>
+                <td class="px-5 py-3.5 text-center font-bold text-slate-800 dark:text-white"><?= $emp['total_tasks'] ?></td>
+                <td class="px-5 py-3.5 text-center font-bold text-emerald-600 dark:text-emerald-400"><?= $emp['completed'] ?></td>
+                <td class="px-5 py-3.5 text-center font-bold text-amber-600 dark:text-amber-400"><?= $emp['pending'] ?></td>
+                <td class="px-5 py-3.5">
+                  <div class="flex items-center gap-2">
+                    <div class="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div class="h-full <?= rateBg($rate) ?> perf-bar rounded-full" style="width:<?= min($rate,100) ?>%"></div>
+                    </div>
+                    <span class="text-xs font-black <?= rateColor($rate) ?> w-10 text-right"><?= $rate ?>%</span>
+                  </div>
+                </td>
+                <td class="px-5 py-3.5 text-center">
+                  <button onclick="downloadEmpReport(<?= htmlspecialchars(json_encode($emp)) ?>)"
+                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-all shadow-sm">
+                    <i data-lucide="download" class="w-3 h-3"></i> PDF
+                  </button>
+                </td>
+              </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
 
-        // Dark Mode Toggle Logic
-        const themeToggle = document.getElementById('themeToggle');
-        const htmlElement = document.documentElement;
-        
-        function updateTheme(isDark) {
-            if (isDark) {
-                htmlElement.classList.add('dark');
-            } else {
-                htmlElement.classList.remove('dark');
+    <!-- ============================= VILLAGE TAB ============================= -->
+    <div id="tab-vil" class="tab-panel space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/60 dark:border-slate-800 p-6 shadow-sm">
+          <h3 class="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-4">Village Completion Rate Chart</h3>
+          <canvas id="vilChart" height="220"></canvas>
+        </div>
+        <div class="bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/60 dark:border-slate-800 p-6 shadow-sm">
+          <h3 class="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-4">🏅 Top 5 Villages</h3>
+          <div class="space-y-3">
+            <?php foreach(array_slice($villages,0,5) as $i => $vil): ?>
+            <div class="flex items-center gap-3">
+              <span class="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-xs font-black flex items-center justify-center"><?= $i+1 ?></span>
+              <div class="flex-1 min-w-0">
+                <div class="text-xs font-bold text-slate-900 dark:text-white truncate"><?= htmlspecialchars($vil['village_name']) ?></div>
+                <div class="text-[10px] text-slate-400"><?= htmlspecialchars($vil['taluka_name'] ?? '') ?></div>
+              </div>
+              <span class="text-sm font-black <?= rateColor((float)$vil['rate']) ?>"><?= $vil['rate'] ?>%</span>
+            </div>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/60 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div class="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
+          <h3 class="font-bold text-slate-900 dark:text-white">Village Performance Report</h3>
+          <div class="relative">
+            <input type="text" id="vilSearch" placeholder="Search village..." oninput="filterTable('vilSearch','vilTbody')"
+              class="pl-8 pr-4 py-2 text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white rounded-xl focus:ring-2 focus:ring-emerald-500">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none"></i>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full">
+            <thead class="bg-slate-50 dark:bg-slate-900/60">
+              <tr>
+                <th class="px-5 py-3 text-left text-xs font-bold text-slate-400 uppercase">#</th>
+                <th class="px-5 py-3 text-left text-xs font-bold text-slate-400 uppercase">Village</th>
+                <th class="px-5 py-3 text-left text-xs font-bold text-slate-400 uppercase">Taluka</th>
+                <th class="px-5 py-3 text-center text-xs font-bold text-slate-400 uppercase">Total</th>
+                <th class="px-5 py-3 text-center text-xs font-bold text-slate-400 uppercase">Done</th>
+                <th class="px-5 py-3 text-center text-xs font-bold text-slate-400 uppercase">In Progress</th>
+                <th class="px-5 py-3 text-left text-xs font-bold text-slate-400 uppercase w-36">Rate</th>
+                <th class="px-5 py-3 text-center text-xs font-bold text-slate-400 uppercase">Report</th>
+              </tr>
+            </thead>
+            <tbody id="vilTbody" class="divide-y divide-slate-100 dark:divide-slate-800/60">
+              <?php foreach($villages as $i => $vil):
+                $rate = (float)$vil['rate'];
+              ?>
+              <tr class="anim-row hover:bg-slate-50/50 dark:hover:bg-slate-900/20 text-sm" style="animation-delay:<?= $i*25 ?>ms">
+                <td class="px-5 py-3.5 text-slate-400 text-xs"><?= $i+1 ?></td>
+                <td class="px-5 py-3.5">
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="map-pin" class="w-4 h-4 text-emerald-500 flex-shrink-0"></i>
+                    <span class="font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($vil['village_name']) ?></span>
+                  </div>
+                </td>
+                <td class="px-5 py-3.5 text-xs text-slate-500"><?= htmlspecialchars($vil['taluka_name'] ?? '—') ?></td>
+                <td class="px-5 py-3.5 text-center font-bold text-slate-800 dark:text-white"><?= $vil['total_tasks'] ?></td>
+                <td class="px-5 py-3.5 text-center font-bold text-emerald-600 dark:text-emerald-400"><?= $vil['completed'] ?></td>
+                <td class="px-5 py-3.5 text-center font-bold text-blue-600 dark:text-blue-400"><?= $vil['in_progress'] ?></td>
+                <td class="px-5 py-3.5">
+                  <div class="flex items-center gap-2">
+                    <div class="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div class="h-full <?= rateBg($rate) ?> perf-bar rounded-full" style="width:<?= min($rate,100) ?>%"></div>
+                    </div>
+                    <span class="text-xs font-black <?= rateColor($rate) ?> w-10 text-right"><?= $rate ?>%</span>
+                  </div>
+                </td>
+                <td class="px-5 py-3.5 text-center">
+                  <button onclick="downloadVilReport(<?= htmlspecialchars(json_encode($vil)) ?>)"
+                    class="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-all shadow-sm">
+                    <i data-lucide="download" class="w-3 h-3"></i> PDF
+                  </button>
+                </td>
+              </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================= DISTRICT TAB ============================= -->
+    <div id="tab-dist" class="tab-panel space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/60 dark:border-slate-800 p-6 shadow-sm">
+          <h3 class="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-4">Taluka Completion Rate Chart</h3>
+          <canvas id="distChart" height="220"></canvas>
+        </div>
+        <div class="bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/60 dark:border-slate-800 p-6 shadow-sm">
+          <h3 class="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-4">📊 Task Status Overview</h3>
+          <canvas id="distDonut" height="200"></canvas>
+        </div>
+      </div>
+
+      <div class="bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/60 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div class="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800">
+          <h3 class="font-bold text-slate-900 dark:text-white">District / Taluka Performance</h3>
+          <button onclick="downloadDistReport()" class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition-all shadow-sm">
+            <i data-lucide="file-text" class="w-3.5 h-3.5"></i> Download Full District Report
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full">
+            <thead class="bg-slate-50 dark:bg-slate-900/60">
+              <tr>
+                <th class="px-5 py-3 text-left text-xs font-bold text-slate-400 uppercase">#</th>
+                <th class="px-5 py-3 text-left text-xs font-bold text-slate-400 uppercase">Taluka</th>
+                <th class="px-5 py-3 text-center text-xs font-bold text-slate-400 uppercase">Total</th>
+                <th class="px-5 py-3 text-center text-xs font-bold text-slate-400 uppercase">Done</th>
+                <th class="px-5 py-3 text-center text-xs font-bold text-slate-400 uppercase">In Progress</th>
+                <th class="px-5 py-3 text-center text-xs font-bold text-slate-400 uppercase">Pending</th>
+                <th class="px-5 py-3 text-center text-xs font-bold text-slate-400 uppercase">On Hold</th>
+                <th class="px-5 py-3 text-left text-xs font-bold text-slate-400 uppercase w-40">Completion Rate</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
+              <?php foreach($talukas as $i => $tal):
+                $rate = (float)$tal['rate'];
+              ?>
+              <tr class="anim-row hover:bg-slate-50/50 dark:hover:bg-slate-900/20 text-sm" style="animation-delay:<?= $i*30 ?>ms">
+                <td class="px-5 py-3.5 text-slate-400 text-xs"><?= $i+1 ?></td>
+                <td class="px-5 py-3.5">
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="compass" class="w-4 h-4 text-amber-500 flex-shrink-0"></i>
+                    <span class="font-bold text-slate-900 dark:text-white"><?= htmlspecialchars($tal['taluka_name']) ?></span>
+                  </div>
+                </td>
+                <td class="px-5 py-3.5 text-center font-bold text-slate-800 dark:text-white"><?= $tal['total_tasks'] ?></td>
+                <td class="px-5 py-3.5 text-center font-bold text-emerald-600 dark:text-emerald-400"><?= $tal['completed'] ?></td>
+                <td class="px-5 py-3.5 text-center font-bold text-blue-600 dark:text-blue-400"><?= $tal['in_progress'] ?></td>
+                <td class="px-5 py-3.5 text-center font-bold text-amber-600 dark:text-amber-400"><?= $tal['pending'] ?></td>
+                <td class="px-5 py-3.5 text-center font-bold text-slate-500"><?= $tal['on_hold'] ?></td>
+                <td class="px-5 py-3.5">
+                  <div class="flex items-center gap-2">
+                    <div class="flex-1 h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div class="h-full <?= rateBg($rate) ?> perf-bar rounded-full" style="width:<?= min($rate,100) ?>%"></div>
+                    </div>
+                    <span class="text-xs font-black <?= rateColor($rate) ?> w-12 text-right"><?= $rate ?>%</span>
+                  </div>
+                </td>
+              </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+/* ── DATA FROM PHP ────────────────────────────────────────────── */
+const empData  = <?= json_encode(array_map(fn($e) => ['name'=>$e['full_name'],'rate'=>(float)$e['rate'],'total'=>(int)$e['total_tasks'],'done'=>(int)$e['completed']], $employees)) ?>;
+const vilData  = <?= json_encode(array_map(fn($v) => ['name'=>$v['village_name'],'rate'=>(float)$v['rate'],'total'=>(int)$v['total_tasks'],'done'=>(int)$v['completed']], $villages)) ?>;
+const distData = <?= json_encode(array_map(fn($t) => ['name'=>$t['taluka_name'],'rate'=>(float)$t['rate'],'total'=>(int)$t['total_tasks'],'done'=>(int)$t['completed'],'pending'=>(int)$t['pending'],'hold'=>(int)$t['on_hold'],'prog'=>(int)$t['in_progress']], $talukas)) ?>;
+
+const totalDone = <?= $totalTalDone ?>;
+const totalPend = <?= array_sum(array_column($talukas,'pending')) ?>;
+const totalProg = <?= array_sum(array_column($talukas,'in_progress')) ?>;
+const totalHold = <?= array_sum(array_column($talukas,'on_hold')) ?>;
+const reportDate = '<?= date('d M Y') ?>';
+
+/* ── TABS ─────────────────────────────────────────────────────── */
+function switchTab(id) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.remove('active');
+        b.classList.add('text-slate-600','dark:text-slate-300');
+    });
+    document.getElementById('tab-' + id).classList.add('active');
+    event.currentTarget.classList.add('active');
+    event.currentTarget.classList.remove('text-slate-600','dark:text-slate-300');
+    lucide.createIcons();
+}
+
+/* ── CHART HELPERS ────────────────────────────────────────────── */
+function makeBarChart(id, labels, values, color) {
+    const ctx = document.getElementById(id);
+    if (!ctx) return;
+    if (ctx._chart) ctx._chart.destroy();
+    ctx._chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels.slice(0,15),
+            datasets: [{ label: 'Completion %', data: values.slice(0,15), backgroundColor: color, borderRadius: 6 }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: '#e2e8f0' } },
+                x: { ticks: { font: { size: 10 }, maxRotation: 30 }, grid: { display: false } }
             }
-            renderCharts(isDark);
         }
+    });
+}
 
-        themeToggle.addEventListener('click', () => {
-            const isDark = !htmlElement.classList.contains('dark');
-            updateTheme(isDark);
-        });
+function makeDonut(id, labels, values, colors) {
+    const ctx = document.getElementById(id);
+    if (!ctx) return;
+    if (ctx._chart) ctx._chart.destroy();
+    ctx._chart = new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 1 }] },
+        options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 10 } } } }
+    });
+}
 
-        // Sidebar Toggle
-        const sidebar = document.getElementById('sidebar');
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        
-        sidebarToggle.addEventListener('click', () => {
-            if (sidebar.classList.contains('-translate-x-full') || sidebar.style.display === 'none') {
-                sidebar.classList.remove('-translate-x-full');
-                sidebar.style.display = 'flex';
-            } else {
-                sidebar.classList.add('-translate-x-full');
-                setTimeout(() => sidebar.style.display = 'none', 300);
-            }
-        });
+// Render all charts
+makeBarChart('empChart',  empData.map(e=>e.name),  empData.map(e=>e.rate),  '#4f46e5');
+makeBarChart('vilChart',  vilData.map(v=>v.name),  vilData.map(v=>v.rate),  '#10b981');
+makeBarChart('distChart', distData.map(d=>d.name), distData.map(d=>d.rate), '#f59e0b');
+makeDonut('distDonut', ['Completed','In Progress','Pending','On Hold'], [totalDone, totalProg, totalPend, totalHold], ['#10b981','#3b82f6','#f59e0b','#94a3b8']);
 
-        // Chart Rendering Logic using ApexCharts
-        let trendChartInstance = null;
-        let talukaChartInstance = null;
+/* ── TABLE SEARCH ─────────────────────────────────────────────── */
+function filterTable(searchId, tbodyId) {
+    const q = document.getElementById(searchId).value.toLowerCase();
+    document.querySelectorAll('#' + tbodyId + ' tr').forEach(row => {
+        row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+}
 
-        function renderCharts(isDark) {
-            const textColor = isDark ? '#cbd5e1' : '#475569';
-            const gridColor = isDark ? '#334155' : '#e2e8f0';
+/* ── PDF DOWNLOAD ─────────────────────────────────────────────── */
+function downloadEmpReport(emp) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const date = reportDate;
 
-            // Trend Chart Options
-            const trendOptions = {
-                series: [{
-                    name: 'Assigned Tasks',
-                    data: [310, 400, 280, 510, 420, 609, 500]
-                }, {
-                    name: 'Completed Tasks',
-                    data: [250, 320, 240, 480, 390, 580, 490]
-                }],
-                chart: {
-                    height: 280,
-                    type: 'area',
-                    fontFamily: 'Inter, sans-serif',
-                    toolbar: { show: false },
-                    background: 'transparent'
-                },
-                colors: ['#1a365d', '#2e7d32'],
-                dataLabels: { enabled: false },
-                stroke: { curve: 'smooth', width: 2 },
-                xaxis: {
-                    categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                    labels: { style: { colors: textColor } },
-                    axisBorder: { show: false },
-                    axisTicks: { show: false }
-                },
-                yaxis: {
-                    labels: { style: { colors: textColor } }
-                },
-                grid: {
-                    borderColor: gridColor,
-                    strokeDashArray: 4,
-                },
-                theme: { mode: isDark ? 'dark' : 'light' },
-                legend: { position: 'top', horizontalAlign: 'right' }
-            };
+    // Header bar
+    doc.setFillColor(79,70,229);
+    doc.rect(0,0,220,32,'F');
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(16); doc.setFont('helvetica','bold');
+    doc.text('CONNECT AMRAVATI', 14, 14);
+    doc.setFontSize(10); doc.setFont('helvetica','normal');
+    doc.text('Individual Employee Performance Report', 14, 23);
+    doc.text(date, 170, 14);
 
-            // Taluka Performance Options
-            const talukaOptions = {
-                series: [{
-                    name: 'Completion Rate %',
-                    data: [92, 85, 78, 88, 72]
-                }],
-                chart: {
-                    height: 280,
-                    type: 'bar',
-                    fontFamily: 'Inter, sans-serif',
-                    toolbar: { show: false },
-                    background: 'transparent'
-                },
-                colors: ['#f57c00'],
-                plotOptions: {
-                    bar: { borderRadius: 4, horizontal: true, }
-                },
-                dataLabels: { enabled: false },
-                xaxis: {
-                    categories: ['Amravati', 'Achalpur', 'Chandur', 'Daryapur', 'Nandgaon'],
-                    labels: { style: { colors: textColor } }
-                },
-                yaxis: {
-                    labels: { style: { colors: textColor } }
-                },
-                grid: {
-                    borderColor: gridColor,
-                    strokeDashArray: 4,
-                },
-                theme: { mode: isDark ? 'dark' : 'light' }
-            };
+    // Name block
+    doc.setTextColor(30,30,30);
+    doc.setFontSize(18); doc.setFont('helvetica','bold');
+    doc.text(emp.full_name, 14, 50);
+    doc.setFontSize(10); doc.setFont('helvetica','normal');
+    doc.setTextColor(100,100,100);
+    doc.text((emp.employee_code || '') + '  ·  ' + (emp.role_name || '') + '  ·  ' + (emp.department_name || ''), 14, 58);
 
-            // Destroy existing instances if updating theme
-            if (trendChartInstance) trendChartInstance.destroy();
-            if (talukaChartInstance) talukaChartInstance.destroy();
+    // Stats boxes
+    const stats = [
+        { label: 'Total Tasks',  val: emp.total_tasks,  color: [79,70,229] },
+        { label: 'Completed',    val: emp.completed,    color: [16,185,129] },
+        { label: 'In Progress',  val: emp.in_progress,  color: [59,130,246] },
+        { label: 'Pending',      val: emp.pending,      color: [245,158,11] },
+        { label: 'On Hold',      val: emp.on_hold,      color: [148,163,184] },
+        { label: 'Completion %', val: emp.rate + '%',   color: [220,38,38]  },
+    ];
+    stats.forEach((s,i) => {
+        const x = 14 + (i%3)*65, y = 70 + Math.floor(i/3)*28;
+        doc.setFillColor(...s.color);
+        doc.roundedRect(x,y,60,22,3,3,'F');
+        doc.setTextColor(255,255,255);
+        doc.setFontSize(16); doc.setFont('helvetica','bold');
+        doc.text(String(s.val), x+8, y+13);
+        doc.setFontSize(8); doc.setFont('helvetica','normal');
+        doc.text(s.label, x+8, y+19);
+    });
 
-            trendChartInstance = new ApexCharts(document.querySelector("#trendChart"), trendOptions);
-            talukaChartInstance = new ApexCharts(document.querySelector("#talukaChart"), talukaOptions);
-            
-            trendChartInstance.render();
-            talukaChartInstance.render();
-        }
+    // Footer
+    doc.setFillColor(240,240,245);
+    doc.rect(0,278,220,20,'F');
+    doc.setTextColor(100,100,100);
+    doc.setFontSize(8);
+    doc.text('Amravati District Administration · Connect Amravati Portal · Confidential Report', 14, 288);
 
-        // Initial render
-        renderCharts(htmlElement.classList.contains('dark'));
+    doc.save('Employee_' + emp.full_name.replace(/\s+/g,'_') + '_Report.pdf');
+}
 
-        // Notification System
-        const notificationBtn = document.getElementById('notificationBtn');
-        const notificationDropdown = document.getElementById('notificationDropdown');
-        const unreadCountBadge = document.getElementById('unreadCountBadge');
-        const notificationList = document.getElementById('notificationList');
+function downloadVilReport(vil) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
 
-        notificationBtn.addEventListener('click', () => {
-            notificationDropdown.classList.toggle('hidden');
-        });
+    doc.setFillColor(16,185,129);
+    doc.rect(0,0,220,32,'F');
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(16); doc.setFont('helvetica','bold');
+    doc.text('CONNECT AMRAVATI', 14, 14);
+    doc.setFontSize(10); doc.setFont('helvetica','normal');
+    doc.text('Village Performance Report · ' + reportDate, 14, 23);
 
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!notificationBtn.contains(e.target) && !notificationDropdown.contains(e.target)) {
-                notificationDropdown.classList.add('hidden');
-            }
-        });
+    doc.setTextColor(30,30,30);
+    doc.setFontSize(18); doc.setFont('helvetica','bold');
+    doc.text(vil.village_name, 14, 50);
+    doc.setFontSize(10); doc.setFont('helvetica','normal');
+    doc.setTextColor(100,100,100);
+    doc.text('Taluka: ' + (vil.taluka_name || 'N/A'), 14, 58);
 
-        function fetchNotifications() {
-            fetch('api/get_notifications.php')
-                .then(res => res.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        // Update Badge
-                        if (data.unread_count > 0) {
-                            unreadCountBadge.style.display = 'flex';
-                            unreadCountBadge.innerText = data.unread_count > 99 ? '99+' : data.unread_count;
-                        } else {
-                            unreadCountBadge.style.display = 'none';
-                        }
+    const stats = [
+        { label: 'Total Tasks', val: vil.total_tasks, color: [16,185,129] },
+        { label: 'Completed',   val: vil.completed,   color: [79,70,229]  },
+        { label: 'In Progress', val: vil.in_progress, color: [59,130,246] },
+        { label: 'Pending',     val: vil.pending,     color: [245,158,11] },
+        { label: 'Completion %',val: vil.rate+'%',    color: [220,38,38]  },
+    ];
+    stats.forEach((s,i) => {
+        const x = 14 + (i%3)*65, y = 70 + Math.floor(i/3)*28;
+        doc.setFillColor(...s.color);
+        doc.roundedRect(x,y,60,22,3,3,'F');
+        doc.setTextColor(255,255,255);
+        doc.setFontSize(16); doc.setFont('helvetica','bold');
+        doc.text(String(s.val), x+8, y+13);
+        doc.setFontSize(8); doc.setFont('helvetica','normal');
+        doc.text(s.label, x+8, y+19);
+    });
 
-                        // Update List
-                        notificationList.innerHTML = '';
-                        if (data.notifications.length === 0) {
-                            notificationList.innerHTML = `
-                                <div class="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
-                                    No new notifications
-                                </div>
-                            `;
-                        } else {
-                            data.notifications.forEach(n => {
-                                const readClass = n.is_read == 0 ? 'bg-slate-50 dark:bg-slate-800' : 'opacity-70';
-                                const item = document.createElement('div');
-                                item.className = `px-4 py-3 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition-colors ${readClass}`;
-                                item.innerHTML = `
-                                    <div class="flex items-start">
-                                        <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center mt-0.5 ${n.badge_color}">
-                                            <i data-lucide="bell" class="w-4 h-4"></i>
-                                        </div>
-                                        <div class="ml-3 flex-1">
-                                            <p class="text-sm font-medium text-slate-900 dark:text-white">${n.title}</p>
-                                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">${n.message}</p>
-                                            <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-1">${n.time_elapsed}</p>
-                                        </div>
-                                    </div>
-                                `;
-                                item.onclick = () => markAsRead(n.id);
-                                notificationList.appendChild(item);
-                            });
-                            lucide.createIcons();
-                        }
-                    }
-                })
-                .catch(err => console.error('Error fetching notifications:', err));
-        }
+    doc.setFillColor(240,240,245);
+    doc.rect(0,278,220,20,'F');
+    doc.setTextColor(100,100,100);
+    doc.setFontSize(8);
+    doc.text('Amravati District Administration · Connect Amravati Portal', 14, 288);
 
-        function markAsRead(id) {
-            fetch('api/mark_notification_read.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ notification_id: id })
-            }).then(() => fetchNotifications());
-        }
+    doc.save('Village_' + vil.village_name.replace(/\s+/g,'_') + '_Report.pdf');
+}
 
-        function markAllAsRead() {
-            fetch('api/mark_notification_read.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mark_all: true })
-            }).then(() => fetchNotifications());
-        }
+function downloadDistReport() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation:'landscape' });
 
-        // Poll every 30 seconds
-        setInterval(fetchNotifications, 30000);
-        // Initial fetch
-        fetchNotifications();
+    doc.setFillColor(245,158,11);
+    doc.rect(0,0,300,30,'F');
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(16); doc.setFont('helvetica','bold');
+    doc.text('CONNECT AMRAVATI — District Performance Report', 14, 14);
+    doc.setFontSize(9); doc.setFont('helvetica','normal');
+    doc.text('Amravati District · ' + reportDate + ' · All Talukas', 14, 22);
 
-    </script>
+    doc.autoTable({
+        startY: 38,
+        head: [['#','Taluka','Total Tasks','Completed','In Progress','Pending','On Hold','Rate %']],
+        body: distData.map((d,i) => [i+1, d.name, d.total, d.done, d.prog, d.pending, d.hold, d.rate+'%']),
+        theme: 'grid',
+        headStyles: { fillColor: [245,158,11], textColor:255, fontStyle:'bold', fontSize:9 },
+        bodyStyles: { fontSize: 9 },
+        alternateRowStyles: { fillColor: [255,253,245] },
+    });
+
+    doc.setFontSize(8); doc.setTextColor(120,120,120);
+    doc.text('Confidential · Amravati District Administration · Connect Amravati Portal', 14, doc.lastAutoTable.finalY + 12);
+    doc.save('District_Full_Performance_Report.pdf');
+}
+
+/* ── LUCIDE + PROFILE ─────────────────────────────────────────── */
+lucide.createIcons();
+const profileBtn  = document.getElementById('profileDropdownBtn');
+const profileMenu = document.getElementById('profileDropdownMenu');
+if (profileBtn && profileMenu) {
+    profileBtn.addEventListener('click', e => { e.stopPropagation(); profileMenu.classList.toggle('hidden'); });
+    document.addEventListener('click', () => profileMenu.classList.add('hidden'));
+}
+</script>
+
 <?php include 'include/footer.php'; ?>
