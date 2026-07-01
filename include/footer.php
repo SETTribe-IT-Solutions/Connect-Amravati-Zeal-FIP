@@ -10,11 +10,12 @@
                 lucide.createIcons();
             }
 
-            // Dark Mode Toggle Logic (if a button exists with id 'themeToggle')
+            // Dark Mode Toggle Logic
             const themeToggle = document.getElementById('themeToggle');
             const htmlEl = document.documentElement;
 
-            if (themeToggle) {
+            if (themeToggle && !themeToggle.dataset.initialized) {
+                themeToggle.dataset.initialized = 'true';
                 themeToggle.addEventListener('click', () => {
                     const isDark = htmlEl.classList.toggle('dark');
                     localStorage.setItem('acTheme', isDark ? 'dark' : 'light');
@@ -71,9 +72,11 @@
                 });
             }
 
+            // Notification dropdown toggle
             const notificationBtn = document.getElementById('notificationBtn');
             const notificationDropdown = document.getElementById('notificationDropdown');
-            if(notificationBtn && notificationDropdown) {
+            if (notificationBtn && notificationDropdown && !notificationBtn.dataset.initialized) {
+                notificationBtn.dataset.initialized = 'true';
                 notificationBtn.addEventListener('click', (e) => {
                     notificationDropdown.classList.toggle('hidden');
                     e.stopPropagation();

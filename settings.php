@@ -160,17 +160,23 @@ include 'include/sidebar.php';
                 <i data-lucide="languages" class="w-4 h-4 mr-2"></i>
                 <?= $lang === 'en' ? 'मराठी (MR)' : 'English (EN)' ?>
             </a>
-            <button id="themeToggle" class="p-2 text-slate-500 hover:text-slate-700 rounded-full hover:bg-slate-100">
+            <button id="themeToggle" class="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <i data-lucide="moon" class="w-5 h-5 dark:hidden"></i>
                 <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
             </button>
+            
+            <!-- Notifications -->
+            <?php include 'include/notification_widget.php'; ?>
             
             <!-- Profile dropdown container -->
             <div class="relative pl-4 border-l border-slate-200 dark:border-slate-700">
                 <button id="profileDropdownBtn" class="flex items-center space-x-3 cursor-pointer">
                     <div class="flex flex-col text-right hidden sm:block">
                         <span class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($sName) ?></span>
-                        <span class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($sRole) ?></span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">
+                            <?= htmlspecialchars($sRole) ?>
+                            <?= ' (' . htmlspecialchars($headerLocationDisplay) . ')' ?>
+                        </span>
                     </div>
                     <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-sm">
                         <?= htmlspecialchars($initials) ?>

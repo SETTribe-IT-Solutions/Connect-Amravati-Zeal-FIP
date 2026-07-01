@@ -5,6 +5,74 @@
 $lang = $lang ?? 'en';
 $pageTitle = $pageTitle ?? 'Amravati Connect | Government Portal';
 $pageDesc = $pageDesc ?? 'Official District Administration Portal';
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+$headerDistrictName = 'Amravati';
+$headerTalukaName = '';
+$headerVillageName = '';
+
+if (isset($_SESSION['user_id'])) {
+    $distId = $_SESSION['district_id'] ?? 1;
+    $talId = $_SESSION['taluka_id'] ?? null;
+    $vilId = $_SESSION['village_id'] ?? null;
+    
+    if (isset($conn) && $conn instanceof mysqli) {
+        $_SESSION['header_district_name'] = 'Amravati';
+        
+        if ($talId && empty($_SESSION['header_taluka_name'])) {
+            $stmtTal = $conn->prepare("SELECT taluka_name FROM talukas WHERE taluka_id = ?");
+            if ($stmtTal) {
+                $stmtTal->bind_param("i", $talId);
+                if ($stmtTal->execute()) {
+                    $res = $stmtTal->get_result();
+                    if ($row = $res->fetch_assoc()) {
+                        $_SESSION['header_taluka_name'] = $row['taluka_name'];
+                    }
+                }
+                $stmtTal->close();
+            }
+        }
+        
+        if ($vilId && empty($_SESSION['header_village_name'])) {
+            $stmtVil = $conn->prepare("SELECT village_name FROM villages WHERE village_id = ?");
+            if ($stmtVil) {
+                $stmtVil->bind_param("i", $vilId);
+                if ($stmtVil->execute()) {
+                    $res = $stmtVil->get_result();
+                    if ($row = $res->fetch_assoc()) {
+                        $_SESSION['header_village_name'] = $row['village_name'];
+                    }
+                }
+                $stmtVil->close();
+            }
+        }
+    }
+    
+    $headerDistrictName = $_SESSION['header_district_name'] ?? 'Amravati';
+    $headerTalukaName = $_SESSION['header_taluka_name'] ?? '';
+    $headerVillageName = $_SESSION['header_village_name'] ?? '';
+
+    $userRole = $_SESSION['user_role'] ?? '';
+
+    if (in_array($userRole, ['System Administrator', 'District Collector', 'Collector', 'Additional Collector', 'Deputy Collector', 'Administrator'])) {
+        // Collector, Deputy, Admin: show only default district name Amravati
+        $headerLocationDisplay = $headerDistrictName;
+    } elseif (in_array($userRole, ['SDO', 'Tehsildar', 'BDO'])) {
+        // BDO, SDO, Tehsildar: show Taluka
+        $headerLocationDisplay = !empty($headerTalukaName) ? $headerTalukaName : $headerDistrictName;
+    } elseif (in_array($userRole, ['Talathi', 'Gramsevak'])) {
+        // Gramsevak, Talathi: show Village
+        $headerLocationDisplay = !empty($headerVillageName) ? $headerVillageName : (!empty($headerTalukaName) ? $headerTalukaName : $headerDistrictName);
+    } else {
+        // Fallback
+        $headerLocationDisplay = $headerDistrictName;
+    }
+} else {
+    $headerLocationDisplay = 'Amravati';
+}
 ?>
 <!DOCTYPE html>
 <html lang="<?= htmlspecialchars($lang) ?>" class="light" id="htmlRoot">
