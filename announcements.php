@@ -41,7 +41,7 @@ $translations = [
         'menu_settings' => 'Settings',
         'menu_logout' => 'Logout',
         'btn_ask_ai' => 'Ask Amravati AI',
-        'page_title' => 'Announcement & Communication Center',
+        'page_title' => 'Announcement Center',
         'page_subtitle' => 'Advanced broadcast, meeting scheduler, messaging and confidential document management.',
         'badge_level' => 'Level',
         
@@ -288,7 +288,7 @@ if ($db_connected) {
         'meeting_password' => '123456'
     ];
 }
-close_db_connection();
+// close_db_connection(); // Handled automatically at shutdown
 
 $pageTitle = $t['title'];
 $pageDesc = $t['page_subtitle'] ?? 'View latest official announcements.';
@@ -443,7 +443,10 @@ include 'include/sidebar.php';
                 <button id="profileDropdownBtn" class="flex items-center space-x-3 cursor-pointer focus:outline-none">
                     <div class="flex flex-col text-right hidden sm:block">
                         <span class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($sName ?? 'User') ?></span>
-                        <span class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($sRole ?? $roleLabel ?? 'Officer') ?></span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">
+                            <?= htmlspecialchars($sRole ?? $roleLabel ?? 'Officer') ?>
+                            <?= ' (' . htmlspecialchars($headerLocationDisplay) . ')' ?>
+                        </span>
                     </div>
                     <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-sm">
                         <?= htmlspecialchars($initials ?? 'U') ?>
@@ -1305,14 +1308,21 @@ include 'include/sidebar.php';
             localStorage.setItem('acTheme', dark ? 'dark' : 'light');
         }
 
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
         const stored = localStorage.getItem('acTheme');
         const prefersDark = stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
         applyTheme(prefersDark);
 
-        const themeBtn = document.getElementById('themeToggle');
-        if (themeBtn) {
-            themeBtn.addEventListener('click', () => applyTheme(!document.documentElement.classList.contains('dark')));
-        }
+        // Theme toggle listener removed (handled by include/footer.php globally)
 
         // System Constants
         const USER_ID = <?= $userId ?>;
@@ -1343,19 +1353,6 @@ include 'include/sidebar.php';
             loadSharedMessages();
             renderCalendarGrid();
             
-            // Notification Bell Logic
-            const notificationBtn = document.getElementById('notificationBtn');
-            const notificationDropdown = document.getElementById('notificationDropdown');
-            if (notificationBtn) {
-                notificationBtn.addEventListener('click', () => {
-                    notificationDropdown.classList.toggle('hidden');
-                });
-            }
-            document.addEventListener('click', (e) => {
-                if (notificationBtn && notificationDropdown && !notificationBtn.contains(e.target) && !notificationDropdown.contains(e.target)) {
-                    notificationDropdown.classList.add('hidden');
-                }
-            });
             fetchNotifications();
         });
 
@@ -1537,13 +1534,19 @@ include 'include/sidebar.php';
             .then(r => r.json())
             .catch(() => { return { status: 'success', message: 'Announcement created successfully (Local Simulation)' }; })
             .then(res => {
-                alert(res.message);
-                if (res.status === 'success') {
-                    form.reset();
-                    document.getElementById('customAudienceSection').classList.add('hidden');
-                    switchTab('all_annc');
-                    loadAnnouncementsList();
-                }
+                Swal.fire({
+                    icon: res.status === 'success' ? 'success' : 'error',
+                    title: res.status === 'success' ? 'Success' : 'Error',
+                    text: res.message,
+                    confirmButtonColor: '#0054a4'
+                }).then(() => {
+                    if (res.status === 'success') {
+                        form.reset();
+                        document.getElementById('customAudienceSection').classList.add('hidden');
+                        switchTab('all_annc');
+                        loadAnnouncementsList();
+                    }
+                });
             });
         }
 

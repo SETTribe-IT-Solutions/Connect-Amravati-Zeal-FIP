@@ -247,7 +247,10 @@ include 'include/sidebar.php';
                 <button id="profileDropdownBtn" class="flex items-center space-x-3 cursor-pointer focus:outline-none">
                     <div class="flex flex-col text-right hidden sm:block">
                         <span class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($sName ?? 'User') ?></span>
-                        <span class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($sRole ?? $roleLabel ?? 'Officer') ?></span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">
+                            <?= htmlspecialchars($sRole ?? $roleLabel ?? 'Officer') ?>
+                            <?= ' (' . htmlspecialchars($headerLocationDisplay) . ')' ?>
+                        </span>
                     </div>
                     <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-sm">
                         <?= htmlspecialchars($initials ?? 'U') ?>
@@ -468,30 +471,6 @@ include 'include/sidebar.php';
         // Document Load
         window.addEventListener('DOMContentLoaded', () => {
             loadCenterNotifications();
-            fetchNotifications(); // load header bell
-        });
-
-        // Theme Switcher Logic
-        const themeToggle = document.getElementById('themeToggle');
-        const htmlElement = document.documentElement;
-        
-        function applyTheme(dark) {
-            if (dark) {
-                htmlElement.classList.add('dark');
-                htmlElement.classList.remove('light');
-            } else {
-                htmlElement.classList.remove('dark');
-                htmlElement.classList.add('light');
-            }
-            localStorage.setItem('acTheme', dark ? 'dark' : 'light');
-        }
-
-        const stored = localStorage.getItem('acTheme');
-        const prefersDark = stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
-        applyTheme(prefersDark);
-
-        themeToggle.addEventListener('click', () => {
-            applyTheme(!htmlElement.classList.contains('dark'));
         });
 
         // Sidebar Toggle
@@ -508,105 +487,6 @@ include 'include/sidebar.php';
                     setTimeout(() => sidebar.style.display = 'none', 300);
                 }
             });
-        }
-
-        // Dropdown toggle
-        const notificationBtn = document.getElementById('notificationBtn');
-        const notificationDropdown = document.getElementById('notificationDropdown');
-        const unreadCountBadge = document.getElementById('unreadCountBadge');
-        const notificationList = document.getElementById('notificationList');
-
-        notificationBtn.addEventListener('click', () => {
-            notificationDropdown.classList.toggle('hidden');
-        });
-
-        document.addEventListener('click', (e) => {
-            if (!notificationBtn.contains(e.target) && !notificationDropdown.contains(e.target)) {
-                notificationDropdown.classList.add('hidden');
-            }
-        });
-
-        // HTML5 Audio chime alert (no assets needed)
-        function playChime() {
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.frequency.value = 587.33; // D5 tone
-                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-                osc.start();
-                setTimeout(() => {
-                    osc.frequency.value = 880; // A5 tone
-                    setTimeout(() => {
-                        osc.stop();
-                        audioCtx.close();
-                    }, 100);
-                }, 120);
-            } catch (e) {
-                console.error('AudioContext error:', e);
-            }
-        }
-
-        // Header Bell Fetch Notifications
-        function fetchNotifications() {
-            fetch('api/get_notifications.php')
-                .then(res => res.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        // Play chime if unread count increases
-                        if (data.unread_count > lastUnreadCount) {
-                            playChime();
-                        }
-                        lastUnreadCount = data.unread_count;
-
-                        if (data.unread_count > 0) {
-                            unreadCountBadge.style.display = 'flex';
-                            unreadCountBadge.innerText = data.unread_count > 99 ? '99+' : data.unread_count;
-                        } else {
-                            unreadCountBadge.style.display = 'none';
-                        }
-                        
-                        notificationList.innerHTML = '';
-                        if (data.notifications.length === 0) {
-                            notificationList.innerHTML = `<div class="px-4 py-6 text-center text-sm text-slate-500">No new notifications</div>`;
-                        } else {
-                            data.notifications.forEach(n => {
-                                const isUnread = n.is_read == 0;
-                                const readBgClass = isUnread ? 'bg-blue-50/30 dark:bg-slate-800/80 border-l-4 border-blue-500 font-medium' : 'bg-transparent border-l-4 border-transparent opacity-75 hover:opacity-100';
-                                const titleWeight = isUnread ? 'font-bold text-slate-900 dark:text-white' : 'font-medium text-slate-700 dark:text-slate-300';
-                                const dotIndicator = isUnread ? `<span class="absolute top-4 right-4 w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_5px_rgba(59,130,246,0.6)]"></span>` : '';
-                                
-                                const item = document.createElement('div');
-                                item.className = `relative px-4 py-3 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition-all duration-200 ${readBgClass}`;
-                                item.innerHTML = `
-                                    ${dotIndicator}
-                                    <div class="flex items-start">
-                                        <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center mt-0.5 shadow-sm ${n.badge_color}">
-                                            <i data-lucide="bell" class="w-4 h-4"></i>
-                                        </div>
-                                        <div class="ml-3 flex-1 pr-6">
-                                            <p class="text-sm ${titleWeight}">${n.title}</p>
-                                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">${n.message}</p>
-                                            <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-1.5 font-medium flex items-center">
-                                                <i data-lucide="clock" class="w-3 h-3 mr-1 opacity-70"></i> ${n.time_elapsed}
-                                            </p>
-                                        </div>
-                                    </div>
-                                `;
-                                item.onclick = () => {
-                                    if (isUnread) {
-                                        markAsRead(n.id);
-                                    }
-                                };
-                                notificationList.appendChild(item);
-                            });
-                            lucide.createIcons();
-                        }
-                    }
-                })
-                .catch(err => console.error('Error fetching notifications:', err));
         }
 
         function markAsRead(id) {

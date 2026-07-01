@@ -22,9 +22,9 @@ if (!defined('SMTP_ENABLED')) {
  * Avoids the need for external libraries like PHPMailer if simple sending is required.
  */
 if (!function_exists('send_smtp_email')) {
-    function send_smtp_email($to, $subject, $message_html, $from_email, $from_name, $smtp_host, $smtp_port, $smtp_user, $smtp_pass, $smtp_secure = 'ssl') {
+    // BUG FIX: Added $timeout param (default 5s). Was hardcoded 15s, blocking login page.
+    function send_smtp_email($to, $subject, $message_html, $from_email, $from_name, $smtp_host, $smtp_port, $smtp_user, $smtp_pass, $smtp_secure = 'ssl', $timeout = 5) {
         $newline = "\r\n";
-        $timeout = 15;
         
         $host_prefix = '';
         if (strtolower($smtp_secure) === 'ssl' || $smtp_port == 465) {

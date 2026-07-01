@@ -40,7 +40,7 @@ $translations = [
         'menu_settings' => 'Settings',
         'menu_logout' => 'Logout',
         'btn_ask_ai' => 'Ask Amravati AI',
-        'page_title' => 'Task Reports & Analytics',
+        'page_title' => 'Reports & Analytics',
         'page_subtitle' => 'Monitor and execute task assignments, rejections, completions, and performance reports.',
         'btn_print' => 'Print Report',
         'btn_pdf' => 'Export PDF',
@@ -856,7 +856,10 @@ include 'include/sidebar.php';
                 <button id="profileDropdownBtn" class="flex items-center space-x-3 cursor-pointer focus:outline-none">
                     <div class="flex flex-col text-right hidden sm:block">
                         <span class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($sName ?? 'User') ?></span>
-                        <span class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($sRole ?? $roleLabel ?? 'Officer') ?></span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">
+                            <?= htmlspecialchars($sRole ?? $roleLabel ?? 'Officer') ?>
+                            <?= ' (' . htmlspecialchars($headerLocationDisplay) . ')' ?>
+                        </span>
                     </div>
                     <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-sm">
                         <?= htmlspecialchars($initials ?? 'U') ?>
@@ -1105,7 +1108,7 @@ include 'include/sidebar.php';
                         <tr id="task-row-<?= $taskId ?>" class="hover:bg-slate-50/50 dark:hover:bg-slate-750/30 transition-colors">
                             <?php if ($filterStatus === 'Overdue'): ?>
                                 <!-- Name & Role -->
-                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <td class="px-6 py-4 text-sm">
                                     <?php if ($activeTab === 'allocated'): ?>
                                         <div class="text-slate-900 dark:text-white font-medium"><?= htmlspecialchars($row['assignee_name'] ?: 'N/A') ?></div>
                                         <div class="text-xs text-slate-400 dark:text-slate-500"><?= htmlspecialchars($row['assigned_role_name'] ?: 'Role Assigned') ?></div>
@@ -1162,7 +1165,7 @@ include 'include/sidebar.php';
                                     <?php endif; ?>
                                 </td>
                                 <!-- Creator / Assignee -->
-                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <td class="px-6 py-4 text-sm">
                                     <?php if ($activeTab === 'allocated'): ?>
                                         <div class="text-slate-900 dark:text-white font-medium"><?= htmlspecialchars($row['assignee_name'] ?: 'N/A') ?></div>
                                         <div class="text-xs text-slate-400 dark:text-slate-500"><?= htmlspecialchars($row['assigned_role_name'] ?: 'Role Assigned') ?></div>

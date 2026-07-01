@@ -43,8 +43,47 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
 $isCollector = ($sRole === 'Collector' || $sRole === 'Administrator' || $sRole === 'System Administrator');
 $isL1 = ($isCollector || $sRole === 'Additional Collector' || $sRole === 'Deputy Collector');
 
-if (!$isL1) {
-    echo json_encode(['status' => 'error', 'message' => 'Insufficient permissions']);
+// Allow 'list' action for all logged-in users, but restrict other write actions to L1 only
+if ($action !== 'list') {
+    if (!$isL1) {
+        echo json_encode(['status' => 'error', 'message' => 'Insufficient permissions']);
+        exit;
+    }
+}
+
+if ($action === 'list') {
+    $announcements = [];
+    // If not L1, only fetch announcements that are Published and match their role level/audience
+    if (!$isL1) {
+        $level = match($sRole) {
+            'SDO', 'Tehsildar', 'BDO' => 'L2',
+            'Talathi', 'Gramsevak' => 'L3',
+            default => 'L3'
+        };
+        // Show announcements matching audience 'All', their level, or if specifically targeted in announcement_recipients
+        $query = "SELECT DISTINCT a.* FROM announcements a 
+                  LEFT JOIN announcement_recipients ar ON a.announcement_id = ar.announcement_id 
+                  WHERE a.status = 'Published' AND (a.audience_type = 'All' OR a.audience_type = ? OR ar.user_id = ?)";
+        $stmt = $conn->prepare($query);
+        if ($stmt) {
+            $stmt->bind_param("si", $level, $userId);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            while ($row = $res->fetch_assoc()) {
+                $announcements[] = $row;
+            }
+            $stmt->close();
+        }
+    } else {
+        // L1 can view all announcements (including Drafts and Scheduled)
+        $res = $conn->query("SELECT * FROM announcements WHERE status != 'Archived' ORDER BY announcement_id DESC");
+        if ($res) {
+            while ($row = $res->fetch_assoc()) {
+                $announcements[] = $row;
+            }
+        }
+    }
+    echo json_encode(['status' => 'success', 'announcements' => $announcements]);
     exit;
 }
 
