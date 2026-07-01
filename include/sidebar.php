@@ -8,6 +8,46 @@ $activePage = $activePage ?? 'dashboard';
 // Simple translation fallback for sidebar if $t is not fully populated
 $brand_name = $t['brand_name'] ?? 'AMRAVATI CONNECT';
 $menu_main = $t['menu_main_modules'] ?? 'Main Modules';
+
+$sRole = $_SESSION['user_role'] ?? '';
+$userLevel = 3; // Default to lowest privilege
+
+$roleLevelMap = [
+    'Administrator'        => 1,
+    'System Administrator' => 1,
+    'Collector'            => 1,
+    'Additional Collector' => 1,
+    'Deputy Collector'     => 1,
+    'SDO'                  => 2,
+    'Tehsildar'            => 2,
+    'BDO'                  => 2,
+    'Talathi'              => 3,
+    'Gramsevak'            => 3,
+];
+
+if (!empty($sRole)) {
+    if (isset($_SESSION['user_level'])) {
+        $userLevel = (int)$_SESSION['user_level'];
+    } elseif (isset($conn) && $conn instanceof mysqli) {
+        try {
+            $stmt = $conn->prepare("SELECT role_level FROM roles WHERE role_name = ? LIMIT 1");
+            if ($stmt) {
+                $stmt->bind_param('s', $sRole);
+                $stmt->execute();
+                $res = $stmt->get_result();
+                if ($row = $res->fetch_assoc()) {
+                    $userLevel = (int)$row['role_level'];
+                }
+                $stmt->close();
+            }
+        } catch (Exception $e) {
+            error_log('Sidebar role level lookup error: ' . $e->getMessage());
+            $userLevel = $roleLevelMap[$sRole] ?? 3;
+        }
+    } else {
+        $userLevel = $roleLevelMap[$sRole] ?? 3;
+    }
+}
 ?>
 <!-- Mobile Overlay -->
 <div id="sidebarOverlay" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 hidden lg:hidden" onclick="toggleSidebar()"></div>
@@ -49,11 +89,13 @@ $menu_main = $t['menu_main_modules'] ?? 'Main Modules';
                 <?= htmlspecialchars($t['menu_announcement_center'] ?? 'Announcement Center') ?>
             </a>
             
+            <?php if ($userLevel < 3): ?>
             <a href="create_task.php?lang=<?= $lang ?>" 
                class="nav-item <?= $activePage === 'create_task' ? 'nav-active' : '' ?>">
                 <i data-lucide="network" class="w-5 h-5 mr-3 <?= $activePage === 'create_task' ? '' : 'text-slate-400 dark:text-slate-500' ?>"></i>
                 <?= htmlspecialchars($t['menu_task_alloc'] ?? 'Task Allocation') ?>
             </a>
+            <?php endif; ?>
             
             <a href="notifications.php?lang=<?= $lang ?>" 
                class="nav-item <?= $activePage === 'notifications' ? 'nav-active' : '' ?>">
@@ -90,11 +132,13 @@ $menu_main = $t['menu_main_modules'] ?? 'Main Modules';
                 <?= htmlspecialchars($t['menu_admin'] ?? 'Administration') ?>
             </p>
             
+            <?php if ($userLevel === 1): ?>
             <a href="user_creation.php?lang=<?= $lang ?>" 
                class="nav-item <?= $activePage === 'users' ? 'nav-active' : '' ?>">
                 <i data-lucide="users" class="w-5 h-5 mr-3 <?= $activePage === 'users' ? '' : 'text-slate-400 dark:text-slate-500' ?>"></i>
                 <?= htmlspecialchars($t['menu_users'] ?? 'User Management') ?>
             </a>
+            <?php endif; ?>
 
             <a href="#" onclick="Swal.fire({icon: 'info', title: 'Coming Soon', text: 'Location Hierarchy feature is coming soon.', confirmButtonColor: '#0069cd'}); return false;" class="nav-item">
                 <i data-lucide="network" class="w-5 h-5 mr-3 text-slate-400 dark:text-slate-500"></i>
