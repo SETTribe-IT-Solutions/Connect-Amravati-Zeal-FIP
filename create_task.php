@@ -58,7 +58,7 @@ $translations = [
         'breadcrumb_dashboard' => 'Dashboard',
         'breadcrumb_task_allocation' => 'Task Allocation',
         'breadcrumb_create_task' => 'Create Task',
-        'page_title' => 'Create & Allocate Task',
+        'page_title' => 'Task Allocation',
         'page_subtitle' => 'Assign official tasks to government employees by name or by role/department.',
         'lbl_auto_id' => 'Auto ID:',
         'lbl_auto_generated' => 'Auto-Generated',
@@ -466,7 +466,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $due_date     = '';
     if (!empty($due_date_raw)) {
         // datetime-local sends "YYYY-MM-DDTHH:MM" — convert to "YYYY-MM-DD HH:MM:SS"
-        $due_date = $conn->real_escape_string(str_replace('T', ' ', $due_date_raw) . ':00');
+        $due_date_ts = strtotime($due_date_raw);
+        if ($due_date_ts < time() - 60) { // allow a 60 second grace period for clock drift
+            $error_msg = $lang === 'mr' ? 'नियत तारीख भूतकाळातील असू शकत नाही.' : 'Due date cannot be in the past.';
+        } else {
+            $due_date = $conn->real_escape_string(str_replace('T', ' ', $due_date_raw) . ':05');
+        }
     }
 
     // ── File Upload ────────────────────────────────────────────────
@@ -764,7 +769,10 @@ include 'include/sidebar.php';
                 <button id="profileDropdownBtn" class="flex items-center space-x-3 cursor-pointer focus:outline-none">
                     <div class="flex flex-col text-right hidden sm:block">
                         <span class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($sName ?? 'User') ?></span>
-                        <span class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($sRole ?? $roleLabel ?? 'Officer') ?></span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">
+                            <?= htmlspecialchars($sRole ?? $roleLabel ?? 'Officer') ?>
+                            <?= ' (' . htmlspecialchars($headerLocationDisplay) . ')' ?>
+                        </span>
                     </div>
                     <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-sm">
                         <?= htmlspecialchars($initials ?? 'U') ?>
@@ -1197,14 +1205,14 @@ include 'include/sidebar.php';
                 <!-- ── Right Column (metadata) ── -->
                 <div class="space-y-6">
 
-                    <!-- Card: Scheduling -->
-                    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden animate-in" style="animation-delay:0.05s">
-                        <div class="flex items-center gap-3 px-6 py-4 border-b border-slate-100 dark:border-slate-700 bg-gradient-to-r from-slate-50 to-white dark:from-slate-800 dark:to-slate-800">
-                            <div class="w-8 h-8 rounded-lg bg-govgreen-50 dark:bg-green-900/30 flex items-center justify-center">
-                                <i data-lucide="calendar-clock" class="w-4 h-4 text-govgreen-600 dark:text-green-400"></i>
+                    <!-- Card: Scheduling (Attractive Gradient/Design) -->
+                    <div class="bg-gradient-to-r from-amber-50/50 to-orange-50/30 dark:from-slate-800 dark:to-slate-900 rounded-2xl shadow-md border-2 border-orange-500/20 overflow-hidden animate-in hover:shadow-lg transition-all" style="animation-delay:0.05s">
+                        <div class="flex items-center gap-3 px-6 py-4 border-b border-orange-200/30 dark:border-slate-700 bg-gradient-to-r from-orange-100/50 to-white dark:from-slate-800 dark:to-slate-800">
+                            <div class="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                                <i data-lucide="calendar-clock" class="w-5 h-5 text-orange-600 dark:text-orange-400"></i>
                             </div>
                             <div>
-                                <h2 class="text-sm font-semibold text-slate-800 dark:text-white"><?= htmlspecialchars($t['section_schedule'] ?? 'Schedule') ?></h2>
+                                <h2 class="text-sm font-bold text-slate-900 dark:text-white"><?= htmlspecialchars($t['section_schedule'] ?? 'Schedule') ?></h2>
                                 <p class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($t['section_schedule_desc'] ?? 'Deadlines & targets') ?></p>
                             </div>
                         </div>
@@ -1212,18 +1220,18 @@ include 'include/sidebar.php';
 
                             <!-- Due Date & Time -->
                             <div>
-                                <label class="form-label" for="due_date">
+                                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2" for="due_date">
                                     <?= htmlspecialchars($t['lbl_due_date'] ?? 'Due Date & Time') ?> <span class="text-red-500">*</span>
                                </label> 
                                 <div class="relative">
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <i data-lucide="calendar" class="w-4 h-4 text-slate-400"></i>
+                                        <i data-lucide="calendar" class="w-4 h-4 text-orange-500"></i>
                                     </div>
                                     <input type="datetime-local" id="due_date" name="due_date" required
                                            value="<?= htmlspecialchars($_POST['due_date'] ?? '') ?>"
-                                           class="w-full pl-10 pr-3 py-2.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg
+                                           class="w-full pl-10 pr-3 py-2.5 text-sm border-2 border-orange-200 dark:border-slate-700 rounded-lg
                                                   bg-white dark:bg-slate-800 text-slate-900 dark:text-white
-                                                  focus:outline-none focus:ring-2 focus:ring-navy-500 focus:border-navy-500
+                                                  focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20
                                                   transition-colors">
                                 </div>
                                 <p id="dueDateWarning" class="hidden mt-1 text-xs text-red-500 flex items-center gap-1">
@@ -1563,8 +1571,21 @@ include 'include/sidebar.php';
         document.getElementById('prevTitle').textContent = titleInput.value || '—';
     });
 
-    // ── Due Date Validation ──────────────────────────────────────
+    // ── Due Date Validation & Min Date Setup ──────────────────────
     const dueDateInput   = document.getElementById('due_date');
+    
+    // Set min date-time to now
+    function updateMinDateTime() {
+        const now = new Date();
+        const localNow = now.getFullYear() + '-' + 
+                         String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                         String(now.getDate()).padStart(2, '0') + 'T' + 
+                         String(now.getHours()).padStart(2, '0') + ':' + 
+                         String(now.getMinutes()).padStart(2, '0');
+        dueDateInput.min = localNow;
+    }
+    updateMinDateTime();
+    setInterval(updateMinDateTime, 30000); // Update min time every 30s
     const dueDateWarning = document.getElementById('dueDateWarning');
     const prevDue        = document.getElementById('prevDue');
 

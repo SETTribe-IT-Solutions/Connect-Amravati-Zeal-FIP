@@ -219,8 +219,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $status = $_POST['status'];
 
         // Basic validations
-        if (empty($full_name) || empty($email) || empty($mobile)) {
-            $msg = "Full Name, Email, and Mobile are required.";
+        if (empty($full_name) || empty($email) || empty($mobile) || empty($department_id) || empty($role_id) || empty($taluka_id) || empty($village_id)) {
+            $msg = "All fields (Full Name, Email, Mobile, Department, Role, Taluka, and Village) are required.";
             $msgType = "error";
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $msg = "Invalid email format.";
@@ -400,8 +400,7 @@ $usersQuery = "SELECT u.*, d.department_name, r.role_name
                $whereClause 
                ORDER BY u.user_id DESC";
 $usersResult = $conn->query($usersQuery);
-
-close_db_connection();
+// close_db_connection(); // Handled automatically at shutdown
 ?>
 <?php
 $pageTitle = $t['title'];
@@ -474,7 +473,10 @@ include 'include/sidebar.php';
                 <button id="profileDropdownBtn" class="flex items-center space-x-3 cursor-pointer focus:outline-none">
                     <div class="flex flex-col text-right hidden sm:block">
                         <span class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($sName ?? 'User') ?></span>
-                        <span class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($sRole ?? $roleLabel ?? 'Officer') ?></span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">
+                            <?= htmlspecialchars($sRole ?? $roleLabel ?? 'Officer') ?>
+                            <?= ' (' . htmlspecialchars($headerLocationDisplay) . ')' ?>
+                        </span>
                     </div>
                     <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-sm">
                         <?= htmlspecialchars($initials ?? 'U') ?>
@@ -518,12 +520,18 @@ include 'include/sidebar.php';
                 </div>
             </div>
 
-            <!-- Alerts -->
+            <!-- Alerts (Trigger SweetAlert2 instead of inline alert box) -->
             <?php if ($msg): ?>
-                <div class="mb-6 px-4 py-3 rounded-md flex items-center shadow-sm <?= $msgType === 'success' ? 'bg-green-50 border border-green-200 text-green-800 dark:bg-green-900/30 dark:border-green-800 dark:text-green-400' : 'bg-red-50 border border-red-200 text-red-800 dark:bg-red-900/30 dark:border-red-800 dark:text-red-400' ?>">
-                    <i data-lucide="<?= $msgType === 'success' ? 'check-circle' : 'alert-circle' ?>" class="w-5 h-5 mr-2"></i>
-                    <span class="text-sm font-medium"><?= htmlspecialchars($msg) ?></span>
-                </div>
+                <script>
+                    window.addEventListener('DOMContentLoaded', () => {
+                        Swal.fire({
+                            icon: '<?= $msgType === "success" ? "success" : "error" ?>',
+                            title: '<?= $msgType === "success" ? "Success" : "Error" ?>',
+                            text: '<?= htmlspecialchars($msg) ?>',
+                            confirmButtonColor: '#0054a4'
+                        });
+                    });
+                </script>
             <?php endif; ?>
 
             <!-- Form Section -->
@@ -569,8 +577,8 @@ include 'include/sidebar.php';
 
                             <!-- Department -->
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"><?= htmlspecialchars($t['label_department']) ?></label>
-                                <select name="department_id" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-1 focus:ring-navy-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"><?= htmlspecialchars($t['label_department']) ?> *</label>
+                                <select name="department_id" required class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-1 focus:ring-navy-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
                                     <option value=""><?= htmlspecialchars($t['select_department']) ?></option>
                                     <?php while ($dept = $departments->fetch_assoc()): ?>
                                         <option value="<?= $dept['department_id'] ?>" <?= ($editData && $editData['department_id'] == $dept['department_id']) ? 'selected' : '' ?>>
@@ -582,8 +590,8 @@ include 'include/sidebar.php';
 
                             <!-- Role -->
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"><?= htmlspecialchars($t['label_role']) ?></label>
-                                <select name="role_id" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-1 focus:ring-navy-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"><?= htmlspecialchars($t['label_role']) ?> *</label>
+                                <select name="role_id" required class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-1 focus:ring-navy-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
                                     <option value=""><?= htmlspecialchars($t['select_role']) ?></option>
                                     <?php while ($role = $roles->fetch_assoc()): ?>
                                         <option value="<?= $role['role_id'] ?>" <?= ($editData && $editData['role_id'] == $role['role_id']) ? 'selected' : '' ?>>
@@ -595,8 +603,8 @@ include 'include/sidebar.php';
 
                             <!-- Taluka -->
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"><?= htmlspecialchars($t['label_taluka']) ?></label>
-                                <select name="taluka_id" id="taluka_id" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-1 focus:ring-navy-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"><?= htmlspecialchars($t['label_taluka']) ?> *</label>
+                                <select name="taluka_id" id="taluka_id" required class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-1 focus:ring-navy-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
                                     <option value=""><?= htmlspecialchars($t['select_taluka']) ?></option>
                                     <?php while ($taluka = $talukas->fetch_assoc()): ?>
                                         <option value="<?= $taluka['taluka_id'] ?>" <?= ($editData && $editData['taluka_id'] == $taluka['taluka_id']) ? 'selected' : '' ?>>
@@ -608,8 +616,8 @@ include 'include/sidebar.php';
 
                             <!-- Village -->
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"><?= htmlspecialchars($t['label_village']) ?></label>
-                                <select name="village_id" id="village_id" class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-1 focus:ring-navy-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"><?= htmlspecialchars($t['label_village']) ?> *</label>
+                                <select name="village_id" id="village_id" required class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:outline-none focus:ring-1 focus:ring-navy-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
                                     <option value=""><?= htmlspecialchars($t['select_village']) ?></option>
                                     <!-- Populated by JavaScript based on Taluka -->
                                 </select>
@@ -763,22 +771,7 @@ include 'include/sidebar.php';
         // Initialize Lucide Icons
         lucide.createIcons();
 
-        // Dark Mode Toggle Logic
-        const themeToggle = document.getElementById('themeToggle');
-        const htmlElement = document.documentElement;
-        
-        function updateTheme(isDark) {
-            if (isDark) {
-                htmlElement.classList.add('dark');
-            } else {
-                htmlElement.classList.remove('dark');
-            }
-        }
-
-        themeToggle.addEventListener('click', () => {
-            const isDark = !htmlElement.classList.contains('dark');
-            updateTheme(isDark);
-        });
+        // Theme Mode Logic is handled by include/footer.php globally
 
         // Sidebar Toggle
         const sidebar = document.getElementById('sidebar');
@@ -796,9 +789,20 @@ include 'include/sidebar.php';
 
         // Delete Confirmation
         function confirmDelete(id) {
-            if (confirm("<?= htmlspecialchars($t['confirm_delete']) ?>")) {
-                window.location.href = "user_creation.php?action=delete&id=" + id + "&lang=<?= $lang ?>";
-            }
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "<?= htmlspecialchars($t['confirm_delete']) ?>",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, delete!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = "user_creation.php?action=delete&id=" + id + "&lang=<?= $lang ?>";
+                }
+            });
         }
 
         // Dynamic Village Dropdown Logic
@@ -832,89 +836,6 @@ include 'include/sidebar.php';
             populateVillages();
         }
 
-        // Notification Bell Logic
-        const notificationBtn = document.getElementById('notificationBtn');
-        const notificationDropdown = document.getElementById('notificationDropdown');
-        const unreadCountBadge = document.getElementById('unreadCountBadge');
-        const notificationList = document.getElementById('notificationList');
-
-        notificationBtn.addEventListener('click', () => {
-            notificationDropdown.classList.toggle('hidden');
-        });
-
-        document.addEventListener('click', (e) => {
-            if (!notificationBtn.contains(e.target) && !notificationDropdown.contains(e.target)) {
-                notificationDropdown.classList.add('hidden');
-            }
-        });
-
-        function fetchNotifications() {
-            fetch('api/get_notifications.php')
-                .then(res => res.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        if (data.unread_count > 0) {
-                            unreadCountBadge.style.display = 'flex';
-                            unreadCountBadge.innerText = data.unread_count > 99 ? '99+' : data.unread_count;
-                        } else {
-                            unreadCountBadge.style.display = 'none';
-                        }
-                        notificationList.innerHTML = '';
-                        if (data.notifications.length === 0) {
-                            notificationList.innerHTML = `<div class="px-4 py-6 text-center text-sm text-slate-500">No new notifications</div>`;
-                        } else {
-                            data.notifications.forEach(n => {
-                                const isUnread = n.is_read == 0;
-                                const readBgClass = isUnread ? 'bg-blue-50/30 dark:bg-slate-800/80 border-l-4 border-blue-500 font-medium' : 'bg-transparent border-l-4 border-transparent opacity-75 hover:opacity-100';
-                                const titleWeight = isUnread ? 'font-bold text-slate-900 dark:text-white' : 'font-medium text-slate-700 dark:text-slate-300';
-                                const dotIndicator = isUnread ? `<span class="absolute top-4 right-4 w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_5px_rgba(59,130,246,0.6)]"></span>` : '';
-                                
-                                const item = document.createElement('div');
-                                item.className = `relative px-4 py-3 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition-all duration-200 ${readBgClass}`;
-                                item.innerHTML = `
-                                    ${dotIndicator}
-                                    <div class="flex items-start">
-                                        <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center mt-0.5 shadow-sm ${n.badge_color}">
-                                            <i data-lucide="bell" class="w-4 h-4"></i>
-                                        </div>
-                                        <div class="ml-3 flex-1 pr-6">
-                                            <p class="text-sm ${titleWeight}">${n.title}</p>
-                                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">${n.message}</p>
-                                            <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-1.5 font-medium flex items-center">
-                                                <i data-lucide="clock" class="w-3 h-3 mr-1 opacity-70"></i> ${n.time_elapsed}
-                                            </p>
-                                        </div>
-                                    </div>
-                                `;
-                                item.onclick = () => {
-                                    if (isUnread) markAsRead(n.id);
-                                };
-                                notificationList.appendChild(item);
-                            });
-                            lucide.createIcons();
-                        }
-                    }
-                })
-                .catch(err => console.error('Error fetching notifications:', err));
-        }
-
-        function markAsRead(id) {
-            fetch('api/mark_notification_read.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ notification_id: id })
-            }).then(() => fetchNotifications());
-        }
-
-        function markAllAsRead() {
-            fetch('api/mark_notification_read.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mark_all: true })
-            }).then(() => fetchNotifications());
-        }
-
-        setInterval(fetchNotifications, 30000);
-        fetchNotifications();
+        // Notification bell and dropdown logic is handled by include/notification_widget.php and include/footer.php globally
     </script>
 <?php include 'include/footer.php'; ?>

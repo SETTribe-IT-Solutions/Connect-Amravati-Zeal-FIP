@@ -949,7 +949,10 @@ include 'include/sidebar.php';
                 <button id="profileDropdownBtn" class="flex items-center space-x-3 cursor-pointer focus:outline-none">
                     <div class="flex flex-col text-right hidden sm:block">
                         <span class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($sName ?? 'User') ?></span>
-                        <span class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($sRole ?? $roleLabel ?? 'Officer') ?></span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">
+                            <?= htmlspecialchars($sRole ?? $roleLabel ?? 'Officer') ?>
+                            <?= ' (' . htmlspecialchars($headerLocationDisplay) . ')' ?>
+                        </span>
                     </div>
                     <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-sm">
                         <?= htmlspecialchars($initials ?? 'U') ?>

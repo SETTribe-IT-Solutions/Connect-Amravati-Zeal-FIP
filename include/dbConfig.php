@@ -12,10 +12,18 @@ define('DB_USER',      'nmrmlatur_districCNTZEAL');
 define('DB_PASS',      'districtCNTDB@2026');
 define('DB_NAME',      'nmrmlatur_districtCNTDB');
 
+// ── Local credentials (XAMPP fallback) ───────────────────────
+define('DB_HOST_LOCAL', 'localhost');
+define('DB_USER_LOCAL', 'root');
+define('DB_PASS_LOCAL', '');
+define('DB_NAME_LOCAL', 'nmrmlatur_districtCNTDB');
+
 $conn = null;
 
-// 1. Try remote server first (suppress error output with @)
-mysqli_report(MYSQLI_REPORT_OFF); // Don't throw on connect error
+// Suppress connect errors so we can handle them manually
+mysqli_report(MYSQLI_REPORT_OFF);
+
+// 1. Try remote server first
 $conn = @new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
 
 if ($conn->connect_errno) {
@@ -35,6 +43,7 @@ if ($conn->connect_errno) {
     }
 } else {
     $conn->set_charset('utf8mb4');
+    error_log('[dbConfig] Connected to REMOTE database successfully');
 }
 
 // Auto-patch missing columns to fix graph data and functionality silently
@@ -50,7 +59,6 @@ if ($conn instanceof mysqli) {
 
 /**
  * Explicitly close the database connection.
- * Also called automatically at shutdown via register_shutdown_function.
  */
 function close_db_connection() {
     global $conn;
@@ -60,29 +68,6 @@ function close_db_connection() {
     }
 }
 
+// Register shutdown to auto-close the connection at script end
 register_shutdown_function('close_db_connection');
-
-// Create MySQLi connection (@ suppresses printed warning; error is handled via connect_error check below)
-$conn = @new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
-
-// Check connection
-if ($conn->connect_error) {
-    throw new RuntimeException("DB Connection failed: " . $conn->connect_error);
-}
-
-// Set character set to UTF-8
-if (isset($conn) && $conn instanceof mysqli) {
-    $conn->set_charset("utf8mb4");
-}
-
-
-// Register a shutdown function to automatically close the database connection at the end of script execution
-register_shutdown_function(function() {
-    close_db_connection();
-});
-
-/**
- * Explicitly close the database connection and set it to null.
- * Call this function at the end of database operations to release connection limits immediately.
- */
 ?>

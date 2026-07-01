@@ -435,12 +435,17 @@ include 'include/sidebar.php';
                 <i data-lucide="moon" class="w-5 h-5 dark:hidden"></i>
                 <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
             </button>
+            <!-- Notifications -->
+            <?php include 'include/notification_widget.php'; ?>
             <!-- Profile Dropdown Container -->
             <div class="relative pl-4 ml-2 border-l border-slate-200 dark:border-slate-700">
                 <button id="profileDropdownBtn" class="flex items-center space-x-3 cursor-pointer focus:outline-none" aria-haspopup="true" aria-expanded="false">
                     <div class="flex flex-col text-right hidden sm:block mr-2">
                         <span class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($sName) ?></span>
-                        <span class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($roleLabel) ?></span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">
+                            <?= htmlspecialchars($roleLabel ?? $sRole ?? 'Officer') ?>
+                            <?= ' (' . htmlspecialchars($headerLocationDisplay) . ')' ?>
+                        </span>
                     </div>
                     <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold text-sm border-2 border-white dark:border-slate-800 shadow-sm transition-transform duration-200 hover:scale-105 active:scale-95">
                         <?= htmlspecialchars($initials) ?>
