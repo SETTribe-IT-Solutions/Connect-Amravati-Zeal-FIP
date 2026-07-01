@@ -158,7 +158,7 @@ $translations = [
         'menu_appreciation' => 'Appreciation',
         'menu_analytics' => 'Analytics & Data',
         'menu_reports' => 'Reports & Analytics',
-        'menu_gis' => 'GIS Map View',
+        'menu_gis' => 'Performance Report',
         'menu_docs' => 'Document Management',
         'menu_admin' => 'Administration',
         'menu_users' => 'User Management',
@@ -167,7 +167,7 @@ $translations = [
         'menu_settings' => 'Settings',
         'menu_logout' => 'Logout',
         'btn_ask_ai' => 'Ask Amravati AI',
-        'page_title' => 'District Executive Dashboard',
+        'page_title' => 'Executive Dashboard',
         'page_subtitle' => 'Real-time overview of Amravati District operations and task hierarchy.',
         'badge_level' => 'Level',
         'btn_export' => 'Export Report',
@@ -1374,22 +1374,18 @@ include 'include/sidebar.php';
                             <?= htmlspecialchars($t['table_title']) ?>
                         </h2>
                         <div class="flex space-x-2">
-                            <select class="block pl-3 pr-8 py-2 text-sm border-slate-300
+                            <select id="talukaTableFilter" onchange="filterTalukaRows()" class="block pl-3 pr-8 py-2 text-sm border-slate-300
                                           dark:border-slate-600 dark:bg-slate-700 dark:text-white
                                           rounded-md focus:outline-none focus:ring-navy-500 focus:border-navy-500">
-                                <option><?= htmlspecialchars($t['all_talukas']) ?></option>
+                                <option value=""><?= htmlspecialchars($t['all_talukas']) ?></option>
                                 <?php foreach ($distData['talukas'] as $tRow): ?>
-                                <option><?= htmlspecialchars($tRow['taluka']) ?></option>
+                                <option value="<?= htmlspecialchars($tRow['taluka']) ?>"><?= htmlspecialchars($tRow['taluka']) ?></option>
                                 <?php endforeach; ?>
                             </select>
-                            <button onclick="Swal.fire({icon: 'info', title: 'Filter', text: 'Advanced filtering is coming soon.', confirmButtonColor: '#0069cd'}); return false;" class="p-2 border border-slate-300 dark:border-slate-600 rounded-md
-                                          text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">
-                                <i data-lucide="filter" class="w-4 h-4"></i>
-                            </button>
                         </div>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                        <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700" id="talukaPerformanceTable">
                             <thead class="bg-slate-50 dark:bg-slate-900/50">
                                 <tr>
                                     <?php foreach ([
@@ -1413,7 +1409,7 @@ include 'include/sidebar.php';
                                     $dotColors = ['bg-red-500','bg-saffron-500','bg-blue-500','bg-govgreen-500','bg-purple-500','bg-teal-500'];
                                     $dot = $dotColors[$idx % count($dotColors)];
                                 ?>
-                                <tr class="table-row-modern border-b border-slate-100 dark:border-slate-700/50">
+                                <tr class="table-row-modern border-b border-slate-100 dark:border-slate-700/50 taluka-row" data-taluka="<?= htmlspecialchars($tRow['taluka']) ?>">
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="flex items-center">
                                             <div class="flex-shrink-0 w-2 h-2 rounded-full <?= $dot ?> mr-3"></div>
@@ -1516,44 +1512,47 @@ include 'include/sidebar.php';
                 <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
                     <?php
                     $tkpi = [
-                        [$t['kpi_active'],   $talData['active'],    'layers',       'blue',   'trending-up',   '+9%',  true],
-                        [$t['kpi_pending'],    $talData['pending'],   'clock',        'orange', 'trending-down', '-2%',  false],
-                        [$t['kpi_completed'],      $talData['completed'], 'check-circle', 'green',  'trending-up',   '+18%', true],
-                        [$t['kpi_overdue'],  $talData['overdue'],   'alert-octagon','red',    'alert-triangle', $lang === 'en' ? '5 Req' : '५ कृती आवश्यक', false],
+                        [$t['kpi_active'],   $talData['active'],    'layers',       'blue',   'trending-up',   '+9%',  true, 'Active'],
+                        [$t['kpi_pending'],    $talData['pending'],   'clock',        'orange', 'trending-down', '-2%',  false, 'Pending'],
+                        [$t['kpi_completed'],      $talData['completed'], 'check-circle', 'green',  'trending-up',   '+18%', true, 'Completed'],
+                        [$t['kpi_overdue'],  $talData['overdue'],   'alert-octagon','red',    'alert-triangle', $lang === 'en' ? '5 Req' : '५ कृती आवश्यक', false, 'Overdue'],
                     ];
-                    foreach ($tkpi as [$label,$val,$icon,$clr,$tIcon,$tTxt,$tUp]):
+                    foreach ($tkpi as [$label,$val,$icon,$clr,$tIcon,$tTxt,$tUp,$filterStatus]):
+                        $linkUrl = "task_tracking.php?lang={$lang}&filter_status=" . urlencode($filterStatus);
                     ?>
-                    <div class="kpi-card bg-gradient-to-br from-<?= $clr ?>-50 to-white dark:from-<?= $clr ?>-900/40 dark:to-slate-800 overflow-hidden shadow-sm
-                                rounded-xl border-l-4 border-l-<?= $clr ?>-500 border-t border-r border-b border-slate-200 dark:border-slate-700">
-                        <div class="p-5 relative">
-                            <i data-lucide="<?= $icon ?>" class="absolute right-0 bottom-0 w-24 h-24 text-<?= $clr ?>-500 opacity-5 transform translate-x-4 translate-y-4 pointer-events-none"></i>
-                            <div class="flex items-center justify-between">
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-medium text-slate-500 dark:text-slate-400 truncate">
-                                        <?= $label ?>
-                                    </p>
-                                    <div class="mt-1 flex items-baseline">
-                                        <p class="text-3xl font-bold
-                                           <?= $clr==='red' ? 'text-red-600 dark:text-red-400'
-                                                           : 'text-slate-900 dark:text-white' ?>">
-                                            <?php echo number_format($val); ?>
+                    <a href="<?= htmlspecialchars($linkUrl) ?>" class="block transition-transform hover:scale-105 cursor-pointer" style="text-decoration: none;">
+                        <div class="kpi-card bg-gradient-to-br from-<?= $clr ?>-50 to-white dark:from-<?= $clr ?>-900/40 dark:to-slate-800 overflow-hidden shadow-sm
+                                    rounded-xl border-l-4 border-l-<?= $clr ?>-500 border-t border-r border-b border-slate-200 dark:border-slate-700 h-full">
+                            <div class="p-5 relative">
+                                <i data-lucide="<?= $icon ?>" class="absolute right-0 bottom-0 w-24 h-24 text-<?= $clr ?>-500 opacity-5 transform translate-x-4 translate-y-4 pointer-events-none"></i>
+                                <div class="flex items-center justify-between">
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-medium text-slate-500 dark:text-slate-400 truncate">
+                                            <?= $label ?>
                                         </p>
-                                        <p class="ml-2 flex items-baseline text-sm font-semibold
-                                           <?= $tUp ? 'text-govgreen-600 dark:text-green-400'
-                                                     : 'text-red-600 dark:text-red-400' ?>">
-                                            <i data-lucide="<?= $tIcon ?>" class="w-3 h-3 mr-1"></i>
-                                            <?= $tTxt ?>
-                                        </p>
+                                        <div class="mt-1 flex items-baseline">
+                                            <p class="text-3xl font-bold
+                                               <?= $clr==='red' ? 'text-red-600 dark:text-red-400'
+                                                               : 'text-slate-900 dark:text-white' ?>">
+                                                <?php echo number_format($val); ?>
+                                            </p>
+                                            <p class="ml-2 flex items-baseline text-sm font-semibold
+                                               <?= $tUp ? 'text-govgreen-600 dark:text-green-400'
+                                                         : 'text-red-600 dark:text-red-400' ?>">
+                                                <i data-lucide="<?= $tIcon ?>" class="w-3 h-3 mr-1"></i>
+                                                <?= $tTxt ?>
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="w-12 h-12 bg-<?= $clr ?>-50 dark:bg-<?= $clr ?>-900/30
-                                            rounded-full flex items-center justify-center">
-                                    <i data-lucide="<?= $icon ?>"
-                                        class="w-6 h-6 text-<?= $clr ?>-600 dark:text-<?= $clr ?>-400"></i>
+                                    <div class="w-12 h-12 bg-<?= $clr ?>-50 dark:bg-<?= $clr ?>-900/30
+                                                rounded-full flex items-center justify-center">
+                                        <i data-lucide="<?= $icon ?>"
+                                            class="w-6 h-6 text-<?= $clr ?>-600 dark:text-<?= $clr ?>-400"></i>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </a>
                     <?php endforeach; ?>
                 </div>
 
@@ -1742,44 +1741,47 @@ include 'include/sidebar.php';
                 <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
                     <?php
                     $vkpi = [
-                        [$t['kpi_active'],  $vilData['active'],    'layers',       'blue',   'trending-up',   '+5%',    true],
-                        [$t['kpi_pending_tasks'],       $vilData['pending'],   'clock',        'orange', 'alert-triangle', $t['kpi_needs_attention'], false],
-                        [$t['kpi_completed'],     $vilData['completed'], 'check-circle', 'green',  'trending-up',   '+15%',   true],
-                        [$t['kpi_overdue_tasks'],       $vilData['overdue'],   'alert-octagon','red',    'alert-triangle', $t['kpi_urgent'], false],
+                        [$t['kpi_active'],  $vilData['active'],    'layers',       'blue',   'trending-up',   '+5%',    true, 'Active'],
+                        [$t['kpi_pending_tasks'],       $vilData['pending'],   'clock',        'orange', 'alert-triangle', $t['kpi_needs_attention'], false, 'Pending'],
+                        [$t['kpi_completed'],     $vilData['completed'], 'check-circle', 'green',  'trending-up',   '+15%',   true, 'Completed'],
+                        [$t['kpi_overdue_tasks'],       $vilData['overdue'],   'alert-octagon','red',    'alert-triangle', $t['kpi_urgent'], false, 'Overdue'],
                     ];
-                    foreach ($vkpi as [$label,$val,$icon,$clr,$tIcon,$tTxt,$tUp]):
+                    foreach ($vkpi as [$label,$val,$icon,$clr,$tIcon,$tTxt,$tUp,$filterStatus]):
+                        $linkUrl = "task_tracking.php?lang={$lang}&filter_status=" . urlencode($filterStatus);
                     ?>
-                    <div class="kpi-card bg-gradient-to-br from-<?= $clr ?>-50 to-white dark:from-<?= $clr ?>-900/40 dark:to-slate-800 overflow-hidden shadow-sm
-                                rounded-xl border-l-4 border-l-<?= $clr ?>-500 border-t border-r border-b border-slate-200 dark:border-slate-700">
-                        <div class="p-5 relative">
-                            <i data-lucide="<?= $icon ?>" class="absolute right-0 bottom-0 w-24 h-24 text-<?= $clr ?>-500 opacity-5 transform translate-x-4 translate-y-4 pointer-events-none"></i>
-                            <div class="flex items-center justify-between">
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-medium text-slate-500 dark:text-slate-400 truncate">
-                                        <?= $label ?>
-                                    </p>
-                                    <div class="mt-1 flex items-baseline">
-                                        <p class="text-3xl font-bold
-                                           <?= $clr==='red' ? 'text-red-600 dark:text-red-400'
-                                                           : 'text-slate-900 dark:text-white' ?>">
-                                            <?php echo number_format($val); ?>
+                    <a href="<?= htmlspecialchars($linkUrl) ?>" class="block transition-transform hover:scale-105 cursor-pointer" style="text-decoration: none;">
+                        <div class="kpi-card bg-gradient-to-br from-<?= $clr ?>-50 to-white dark:from-<?= $clr ?>-900/40 dark:to-slate-800 overflow-hidden shadow-sm
+                                    rounded-xl border-l-4 border-l-<?= $clr ?>-500 border-t border-r border-b border-slate-200 dark:border-slate-700 h-full">
+                            <div class="p-5 relative">
+                                <i data-lucide="<?= $icon ?>" class="absolute right-0 bottom-0 w-24 h-24 text-<?= $clr ?>-500 opacity-5 transform translate-x-4 translate-y-4 pointer-events-none"></i>
+                                <div class="flex items-center justify-between">
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-medium text-slate-500 dark:text-slate-400 truncate">
+                                            <?= $label ?>
                                         </p>
-                                        <p class="ml-2 flex items-baseline text-sm font-semibold
-                                           <?= $tUp ? 'text-govgreen-600 dark:text-green-400'
-                                                     : 'text-red-600 dark:text-red-400' ?>">
-                                            <i data-lucide="<?= $tIcon ?>" class="w-3 h-3 mr-1"></i>
-                                            <?= $tTxt ?>
-                                        </p>
+                                        <div class="mt-1 flex items-baseline">
+                                            <p class="text-3xl font-bold
+                                               <?= $clr==='red' ? 'text-red-600 dark:text-red-400'
+                                                               : 'text-slate-900 dark:text-white' ?>">
+                                                <?php echo number_format($val); ?>
+                                            </p>
+                                            <p class="ml-2 flex items-baseline text-sm font-semibold
+                                               <?= $tUp ? 'text-govgreen-600 dark:text-green-400'
+                                                         : 'text-red-600 dark:text-red-400' ?>">
+                                                <i data-lucide="<?= $tIcon ?>" class="w-3 h-3 mr-1"></i>
+                                                <?= $tTxt ?>
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="w-12 h-12 bg-<?= $clr ?>-50 dark:bg-<?= $clr ?>-900/30
-                                            rounded-full flex items-center justify-center">
-                                    <i data-lucide="<?= $icon ?>"
-                                       class="w-6 h-6 text-<?= $clr ?>-600 dark:text-<?= $clr ?>-400"></i>
+                                    <div class="w-12 h-12 bg-<?= $clr ?>-50 dark:bg-<?= $clr ?>-900/30
+                                                rounded-full flex items-center justify-center">
+                                        <i data-lucide="<?= $icon ?>"
+                                           class="w-6 h-6 text-<?= $clr ?>-600 dark:text-<?= $clr ?>-400"></i>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </a>
                     <?php endforeach; ?>
                 </div>
 
@@ -2077,6 +2079,19 @@ function toggleSec(id) {
     const chev  = document.getElementById('chev-' + id);
     body.classList.toggle('closed');
     chev.classList.toggle('open');
+}
+
+/* ── Taluka Table Filter ─────────────────────────────────────── */
+function filterTalukaRows() {
+    const filterSelect = document.getElementById('talukaTableFilter');
+    const selectedTaluka = filterSelect ? filterSelect.value : '';
+    document.querySelectorAll('#talukaPerformanceTable .taluka-row').forEach(row => {
+        if (!selectedTaluka || row.dataset.taluka === selectedTaluka) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
 }
 
 /* ── Status Filter ─────────────────────────────────────────── */
