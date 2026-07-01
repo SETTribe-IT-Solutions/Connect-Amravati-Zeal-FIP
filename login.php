@@ -323,6 +323,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['village_id']        = $user['village_id'];
                     $_SESSION['email']             = $user['email'];
                     $_SESSION['user_level']        = (int)$user['role_level'];
+                    $_SESSION['last_activity']     = time(); // Initialize inactivity timer
 
                     // BUG FIX: Send email BEFORE redirect (but after session is set)
                     // SMTP errors are silently logged, never break login
@@ -624,3 +625,27 @@ include 'include/header.php';
     </div>
 
 <?php include 'include/footer.php'; ?>
+
+<script>
+// Show notification if user was auto-logged out due to inactivity
+(function() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('auto_logout') === '1' || params.get('reason') === 'inactivity') {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'info',
+                title: 'Session Expired',
+                html: '<p style="color:#64748b;font-size:14px;">You were automatically logged out due to <strong>3 minutes of inactivity</strong>.</p><p style="color:#94a3b8;font-size:12px;margin-top:8px;">Please sign in again to continue.</p>',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#0054a4',
+                customClass: {
+                    popup: 'rounded-xl shadow-2xl',
+                },
+            });
+        }
+        // Clean the URL without reloading
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+    }
+})();
+</script>
