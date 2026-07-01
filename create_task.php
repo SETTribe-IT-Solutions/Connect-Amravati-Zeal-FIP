@@ -82,6 +82,12 @@ $translations = [
         'lbl_by_name_desc' => 'Assign to specific employee',
         'lbl_by_role' => 'By Role',
         'lbl_by_role_desc' => 'Assign to a role/department',
+        'lbl_by_village' => 'By Village',
+        'lbl_by_village_desc' => 'Assign to a specific village',
+        'lbl_select_taluka' => 'Select Taluka',
+        'opt_select_taluka' => '— Select a taluka —',
+        'lbl_select_village' => 'Select Village',
+        'opt_select_village' => '— Select a village —',
         'lbl_select_employee' => 'Select Employee',
         'opt_select_employee' => '— Select an employee —',
         'opt_no_employees' => 'No active employees found in database',
@@ -133,12 +139,17 @@ $translations = [
         'btn_show_all' => 'Show all',
         'btn_hide' => 'Hide',
         'msg_no_employees_role' => 'No active employees found with this role.',
+        'msg_no_employees_village' => 'No active employees mapped to this village.',
+        'msg_fetching_village_employees' => 'Fetching mapped employees for this village…',
+        'msg_responsible_identified' => 'Responsible person identified:',
         'btn_submitting' => 'Creating Task…',
 
         'toast_title_req' => 'Task title is required.',
         'toast_due_req' => 'Please select a due date & time.',
         'toast_employee_req' => 'Please select an employee to assign.',
         'toast_role_req' => 'Please select a role to assign.',
+        'toast_taluka_req' => 'Please select a taluka.',
+        'toast_village_req' => 'Please select a village.',
         'toast_created' => 'created!',
         'toast_warning' => 'warning',
         'toast_success' => 'success',
@@ -212,6 +223,12 @@ $translations = [
         'lbl_by_name_desc' => 'विशिष्ट कर्मचाऱ्याला नियुक्त करा',
         'lbl_by_role' => 'भूमिकेनुसार',
         'lbl_by_role_desc' => 'भूमिका किंवा विभागानुसार नियुक्त करा',
+        'lbl_by_village' => 'गावानुसार',
+        'lbl_by_village_desc' => 'विशिष्ट गावाला कार्य वाटप करा',
+        'lbl_select_taluka' => 'तालुका निवडा',
+        'opt_select_taluka' => '— तालुका निवडा —',
+        'lbl_select_village' => 'गाव निवडा',
+        'opt_select_village' => '— गाव निवडा —',
         'lbl_select_employee' => 'कर्मचारी निवडा',
         'opt_select_employee' => '— कर्मचारी निवडा —',
         'opt_no_employees' => 'डेटाबेसमध्ये कोणतेही सक्रिय कर्मचारी आढळले नाहीत',
@@ -263,12 +280,17 @@ $translations = [
         'btn_show_all' => 'सर्व दाखवा',
         'btn_hide' => 'लपवा',
         'msg_no_employees_role' => 'या भूमिकेसह कोणतेही सक्रिय कर्मचारी आढळले नाहीत.',
+        'msg_no_employees_village' => 'या गावाशी जोडलेले कोणतेही सक्रिय कर्मचारी आढळले नाहीत.',
+        'msg_fetching_village_employees' => 'या गावाचे कर्मचारी शोधत आहे...',
+        'msg_responsible_identified' => 'जबाबदार व्यक्ती ओळखली गेली:',
         'btn_submitting' => 'कार्य तयार करत आहे...',
 
         'toast_title_req' => 'कार्याचे शीर्षक आवश्यक आहे.',
         'toast_due_req' => 'कृपया नियत तारीख आणि वेळ निवडा.',
         'toast_employee_req' => 'कृपया नियुक्त करण्यासाठी कर्मचारी निवडा.',
         'toast_role_req' => 'कृपया नियुक्त करण्यासाठी भूमिका निवडा.',
+        'toast_taluka_req' => 'कृपया तालुका निवडा.',
+        'toast_village_req' => 'कृपया गाव निवडा.',
         'toast_created' => 'तयार केले!',
         'toast_warning' => 'चेतावणी',
         'toast_success' => 'यशस्वी',
@@ -426,6 +448,86 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'role_users' && isset($_GET['role_
     exit;
 }
 
+if (isset($_GET['ajax']) && $_GET['ajax'] === 'taluka_villages' && isset($_GET['taluka_id'])) {
+    header('Content-Type: application/json');
+    if (!$conn) {
+        echo json_encode(['villages' => [], 'error' => 'Database connection unavailable']);
+        exit;
+    }
+    $taluka_id = (int)$_GET['taluka_id'];
+    $res = $conn->query(
+        "SELECT village_id, village_name
+           FROM villages
+          WHERE taluka_id = $taluka_id
+          ORDER BY village_name"
+    );
+    $villages_list = [];
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $villages_list[] = [
+                'id'   => (int)$row['village_id'],
+                'name' => $row['village_name'],
+            ];
+        }
+    }
+    echo json_encode(['villages' => $villages_list]);
+    exit;
+}
+
+if (isset($_GET['ajax']) && $_GET['ajax'] === 'village_users' && isset($_GET['village_id'])) {
+    header('Content-Type: application/json');
+    if (!$conn) {
+        echo json_encode(['users' => [], 'count' => 0, 'error' => 'Database connection unavailable']);
+        exit;
+    }
+    $village_id = (int)$_GET['village_id'];
+    $res = $conn->query(
+        "SELECT u.user_id, u.full_name, u.designation, u.role_id, r.role_name, d.department_name
+           FROM users u
+           LEFT JOIN roles r ON u.role_id = r.role_id
+           LEFT JOIN departments d ON u.department_id = d.department_id
+          WHERE u.village_id = $village_id AND u.status = 'Active'
+          ORDER BY u.role_id DESC, u.full_name"
+    );
+    $users_list = [];
+    $responsible_user = null;
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $role_name_display = $row['role_name'] ?? '';
+            $u_data = [
+                'id'              => (int)$row['user_id'],
+                'full_name'       => $row['full_name'],
+                'designation'     => $row['designation'] ?? '',
+                'role_id'         => $row['role_id'] ? (int)$row['role_id'] : null,
+                'role_name'       => $role_name_display,
+                'department_name' => $row['department_name'] ?? '',
+            ];
+            $users_list[] = $u_data;
+        }
+    }
+
+    if (!empty($users_list)) {
+        // Priority 1: Talathi (7) or Gramsevak (8)
+        foreach ($users_list as $u) {
+            if (in_array((int)$u['role_id'], [7, 8])) {
+                $responsible_user = $u;
+                break;
+            }
+        }
+        // Priority 2: Fallback to the first active user
+        if (!$responsible_user) {
+            $responsible_user = $users_list[0];
+        }
+    }
+
+    echo json_encode([
+        'users'            => $users_list,
+        'count'            => count($users_list),
+        'responsible_user' => $responsible_user
+    ]);
+    exit;
+}
+
 // ─── Fetch dropdown data ─────────────────────────────────────────────
 // users table: primary key = user_id, name column = full_name
 $users_result = $conn ? $conn->query(
@@ -438,6 +540,10 @@ $roles_result = $conn ? $conn->query(
 // departments table
 $departments_result = $conn ? $conn->query(
     "SELECT department_id, department_name FROM departments ORDER BY department_name"
+) : false;
+// talukas table
+$talukas_result = $conn ? $conn->query(
+    "SELECT taluka_id, taluka_name FROM talukas ORDER BY taluka_name"
 ) : false;
 
 // ─── Handle Form Submission ───────────────────────────────────────────
@@ -459,7 +565,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $department_id    = !empty($_POST['department_id'])    ? (int)$_POST['department_id']    : null;
     $assigned_role_id = !empty($_POST['assigned_role_id']) ? (int)$_POST['assigned_role_id'] : null;
     $assigned_user_id = !empty($_POST['assigned_user_id']) ? (int)$_POST['assigned_user_id'] : null;
+    $task_taluka_id   = !empty($_POST['task_taluka_id'])   ? (int)$_POST['task_taluka_id']   : null;
+    $task_village_id  = !empty($_POST['task_village_id'])  ? (int)$_POST['task_village_id']  : null;
     $created_by       = $_SESSION['user_id'] ?? 1;
+
+    if ($allocation_type === 'by_village') {
+        if (!$task_taluka_id || !$task_village_id) {
+            $error_msg = $lang === 'mr' ? 'कृपया तालुका आणि गाव निवडा.' : 'Please select both taluka and village.';
+        }
+    }
 
     // DB column `due_date` is DATE — strip the time part sent by datetime-local
     $due_date_raw = trim($_POST['due_date'] ?? '');
@@ -508,8 +622,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // from the selected user's own record — admin never types these.
     // ─────────────────────────────────────────────────────────────────
     $task_district_id = null;
-    $task_taluka_id   = null;
-    $task_village_id  = null;
+    if ($allocation_type !== 'by_village') {
+        $task_taluka_id   = null;
+        $task_village_id  = null;
+    } else {
+        $task_district_id = 1; // Hardcoded to Amravati (1)
+    }
 
     if ($allocation_type === 'by_name' && $assigned_user_id) {
         $usr_res = $conn->query(
@@ -527,6 +645,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $task_taluka_id   = !empty($usr_data['taluka_id'])     ? (int)$usr_data['taluka_id']     : null;
             $task_village_id  = !empty($usr_data['village_id'])    ? (int)$usr_data['village_id']    : null;
         }
+    } elseif ($allocation_type === 'by_village' && $task_village_id) {
+        // Automatically identify the responsible user/department for the selected village
+        $v_users_res = $conn->query(
+            "SELECT u.user_id, u.role_id, u.department_id
+               FROM users u
+              WHERE u.village_id = $task_village_id AND u.status = 'Active'
+              ORDER BY u.role_id DESC"
+        );
+        $v_users = [];
+        if ($v_users_res) {
+            while ($row = $v_users_res->fetch_assoc()) {
+                $v_users[] = $row;
+            }
+        }
+        
+        $responsible_user = null;
+        if (!empty($v_users)) {
+            // Priority 1: Talathi (7) or Gramsevak (8)
+            foreach ($v_users as $vu) {
+                if (in_array((int)$vu['role_id'], [7, 8])) {
+                    $responsible_user = $vu;
+                    break;
+                }
+            }
+            if (!$responsible_user) {
+                $responsible_user = $v_users[0];
+            }
+        }
+        
+        if ($responsible_user) {
+            $assigned_user_id = (int)$responsible_user['user_id'];
+            $assigned_role_id = $responsible_user['role_id'] ? (int)$responsible_user['role_id'] : null;
+            $department_id    = $responsible_user['department_id'] ? (int)$responsible_user['department_id'] : null;
+        } else {
+            $error_msg = $lang === 'mr' ? 'या गावाशी जोडलेला कोणताही सक्रिय कर्मचारी आढळला नाही.' : 'No active employees mapped to the selected village.';
+        }
     }
     // For by_role the task row keeps district/taluka/village NULL;
     // each user's own context is tracked via task_assignments.
@@ -537,7 +691,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Build nullable SQL literals
         $dept_sql     = $department_id    ? (int)$department_id    : 'NULL';
         $role_sql     = $assigned_role_id ? (int)$assigned_role_id : 'NULL';
-        $user_sql     = ($allocation_type === 'by_name' && $assigned_user_id) ? (int)$assigned_user_id : 'NULL';
+        $user_sql     = (($allocation_type === 'by_name' || $allocation_type === 'by_village') && $assigned_user_id) ? (int)$assigned_user_id : 'NULL';
         $district_sql = $task_district_id ? (int)$task_district_id : 'NULL';
         $taluka_sql   = $task_taluka_id   ? (int)$task_taluka_id   : 'NULL';
         $village_sql  = $task_village_id  ? (int)$task_village_id  : 'NULL';
@@ -626,6 +780,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $assigned_count = 1;
 
                 // ── Notification for single assigned user ──────────
+                createTaskNotification(
+                    $conn,
+                    $new_task_id,
+                    $task_title,
+                    $due_date,
+                    (int)$assigned_user_id,
+                    $created_by
+                );
+            } elseif ($allocation_type === 'by_village' && $task_village_id && $assigned_user_id) {
+                // Single user assignment (responsible person identified for this village)
+                $role_to_assign = $assigned_role_id ? (int)$assigned_role_id : 'NULL';
+                $conn->query(
+                    "INSERT INTO task_assignments (task_id, assigned_from_user, assigned_to_user, assigned_to_role, assigned_date, status)
+                     VALUES ($new_task_id, $created_by, $assigned_user_id, $role_to_assign, NOW(), 'Pending')"
+                );
+                $assigned_count = 1;
+
+                // ── Notification for village assigned user ──────────
                 createTaskNotification(
                     $conn,
                     $new_task_id,
@@ -970,7 +1142,7 @@ include 'include/sidebar.php';
                                 <label class="form-label">
                                     <?= htmlspecialchars($t['lbl_alloc_type'] ?? 'Allocation Type') ?> <span class="text-red-500">*</span>
                                 </label>
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="allocationTypeGroup">
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3" id="allocationTypeGroup">
                                     <!-- By Name -->
                                     <label class="allocation-card cursor-pointer" id="card-byname">
                                         <input type="radio" name="allocation_type" value="by_name"
@@ -998,6 +1170,21 @@ include 'include/sidebar.php';
                                             <div>
                                                 <p class="text-sm font-semibold text-slate-700 dark:text-white"><?= htmlspecialchars($t['lbl_by_role'] ?? 'By Role') ?></p>
                                                 <p class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($t['lbl_by_role_desc'] ?? 'Assign to a role/department') ?></p>
+                                            </div>
+                                        </div>
+                                    </label>
+                                    <!-- By Village -->
+                                    <label class="allocation-card cursor-pointer" id="card-byvillage">
+                                        <input type="radio" name="allocation_type" value="by_village"
+                                               id="alloc_by_village" class="sr-only"
+                                               <?= (($_POST['allocation_type'] ?? '') === 'by_village') ? 'checked' : '' ?>>
+                                        <div class="flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 hover:border-emerald-400 bg-white dark:bg-slate-800 transition-all" id="box-byvillage">
+                                            <div class="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
+                                                <i data-lucide="map-pin" class="w-4 h-4 text-slate-500 dark:text-slate-400"></i>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-semibold text-slate-700 dark:text-white"><?= htmlspecialchars($t['lbl_by_village'] ?? 'By Village') ?></p>
+                                                <p class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($t['lbl_by_village_desc'] ?? 'Assign to a specific village') ?></p>
                                             </div>
                                         </div>
                                     </label>
@@ -1149,6 +1336,108 @@ include 'include/sidebar.php';
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+
+                            <!-- By Village: Taluka + Village Dropdowns -->
+                            <div id="byVillageSection" class="space-y-4 hidden transition-all">
+                                <!-- Taluka -->
+                                <div>
+                                    <label class="form-label" for="task_taluka_id">
+                                        <?= htmlspecialchars($t['lbl_select_taluka'] ?? 'Select Taluka') ?> <span class="text-red-500">*</span>
+                                    </label>
+                                    <div class="relative">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <i data-lucide="map" class="w-4 h-4 text-slate-400"></i>
+                                        </div>
+                                        <select id="task_taluka_id" name="task_taluka_id"
+                                                class="w-full pl-10 pr-10 py-2.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg
+                                                       bg-white dark:bg-slate-800 text-slate-900 dark:text-white
+                                                       focus:outline-none focus:ring-2 focus:ring-navy-500 focus:border-navy-500
+                                                       transition-colors appearance-none">
+                                            <option value=""><?= htmlspecialchars($t['opt_select_taluka'] ?? '— Select a taluka —') ?></option>
+                                            <?php
+                                            if ($talukas_result && $talukas_result->num_rows > 0) {
+                                                $talukas_result->data_seek(0);
+                                                while ($tk = $talukas_result->fetch_assoc()):
+                                                    $sel = (isset($_POST['task_taluka_id']) && $_POST['task_taluka_id'] == $tk['taluka_id']) ? 'selected' : '';
+                                            ?>
+                                            <option value="<?= (int)$tk['taluka_id'] ?>" <?= $sel ?>>
+                                                <?= htmlspecialchars($tk['taluka_name']) ?>
+                                            </option>
+                                            <?php endwhile; } ?>
+                                        </select>
+                                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Village -->
+                                <div>
+                                    <label class="form-label" for="task_village_id">
+                                        <?= htmlspecialchars($t['lbl_select_village'] ?? 'Select Village') ?> <span class="text-red-500">*</span>
+                                    </label>
+                                    <div class="relative">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <i data-lucide="map-pin" class="w-4 h-4 text-slate-400"></i>
+                                        </div>
+                                        <select id="task_village_id" name="task_village_id"
+                                                class="w-full pl-10 pr-10 py-2.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg
+                                                       bg-white dark:bg-slate-800 text-slate-900 dark:text-white
+                                                       focus:outline-none focus:ring-2 focus:ring-navy-500 focus:border-navy-500
+                                                       transition-colors appearance-none">
+                                            <option value=""><?= htmlspecialchars($t['opt_select_village'] ?? '— Select a village —') ?></option>
+                                            <?php
+                                            if (!empty($task_taluka_id)) {
+                                                $villages_res = $conn->query("SELECT village_id, village_name FROM villages WHERE taluka_id = $task_taluka_id ORDER BY village_name");
+                                                if ($villages_res && $villages_res->num_rows > 0) {
+                                                    while ($vg = $villages_res->fetch_assoc()) {
+                                                        $sel = (isset($_POST['task_village_id']) && $_POST['task_village_id'] == $vg['village_id']) ? 'selected' : '';
+                                                        echo '<option value="' . (int)$vg['village_id'] . '" ' . $sel . '>' . htmlspecialchars($vg['village_name']) . '</option>';
+                                                    }
+                                                }
+                                            }
+                                            ?>
+                                        </select>
+                                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Live: users-for-village preview panel -->
+                                <div id="villageUsersPanel" class="hidden mt-2">
+                                    <!-- Loading state -->
+                                    <div id="villageUsersLoading" class="hidden flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 py-2">
+                                        <svg class="animate-spin w-4 h-4 text-navy-500" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                                        </svg>
+                                        <span id="villageUsersLoadingText"><?= htmlspecialchars($t['msg_fetching_village_employees'] ?? 'Fetching mapped employees for this village…') ?></span>
+                                    </div>
+
+                                    <!-- Responsible User badge -->
+                                    <div id="villageUsersBadge" class="hidden p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-800 rounded-xl">
+                                        <div class="flex items-start gap-2.5">
+                                            <i data-lucide="user-check" class="w-5 h-5 text-emerald-600 dark:text-emerald-400 mt-0.5"></i>
+                                            <div class="text-sm">
+                                                <span class="font-medium text-emerald-700 dark:text-emerald-300 block">
+                                                    <?= htmlspecialchars($t['msg_responsible_identified'] ?? 'Responsible person identified:') ?>
+                                                </span>
+                                                <div id="responsibleUserDetails" class="mt-1 font-semibold text-slate-800 dark:text-white">
+                                                    <!-- Filled dynamically -->
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- No users warning -->
+                                    <div id="villageUsersNone" class="hidden flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-600 dark:text-red-400">
+                                        <i data-lucide="alert-circle" class="w-4 h-4 text-red-500"></i>
+                                        <span id="villageUsersNoneText"><?= htmlspecialchars($t['msg_no_employees_village'] ?? 'No active employees mapped to this village.') ?></span>
+                                    </div>
+                                </div>
+
                             </div>
 
                         </div>
@@ -1403,10 +1692,13 @@ include 'include/sidebar.php';
     // ── Allocation Type Toggle ───────────────────────────────────
     const byNameRadio    = document.getElementById('alloc_by_name');
     const byRoleRadio    = document.getElementById('alloc_by_role');
+    const byVillageRadio = document.getElementById('alloc_by_village');
     const byNameSection  = document.getElementById('byNameSection');
     const byRoleSection  = document.getElementById('byRoleSection');
+    const byVillageSection = document.getElementById('byVillageSection');
     const boxByName      = document.getElementById('box-byname');
     const boxByRole      = document.getElementById('box-byrole');
+    const boxByVillage   = document.getElementById('box-byvillage');
     const prevAllocation = document.getElementById('prevAllocation');
     const roleSelect     = document.getElementById('assigned_role_id');
     const rolePanel      = document.getElementById('roleUsersPanel');
@@ -1415,7 +1707,15 @@ include 'include/sidebar.php';
     const roleLoading    = document.getElementById('roleUsersLoading');
     const roleList       = document.getElementById('roleUsersList');
     const roleCountEl    = document.getElementById('roleUserCount');
+    const talukaSelect   = document.getElementById('task_taluka_id');
+    const villageSelect  = document.getElementById('task_village_id');
     let roleUsersListVisible = false;
+
+    const villagePanel    = document.getElementById('villageUsersPanel');
+    const villageBadge    = document.getElementById('villageUsersBadge');
+    const villageNone     = document.getElementById('villageUsersNone');
+    const villageLoading  = document.getElementById('villageUsersLoading');
+    const responsibleEl   = document.getElementById('responsibleUserDetails');
 
     // Dynamic translations for JS
     const langCode = '<?= $lang ?>';
@@ -1423,6 +1723,7 @@ include 'include/sidebar.php';
         ByName: '<?= addslashes($t['lbl_by_name'] ?? 'By Name') ?>',
         ByRole: '<?= addslashes($t['lbl_by_role'] ?? 'By Role') ?>',
         ByRoleUsers: '<?= addslashes($t['lbl_by_role'] ?? 'By Role') ?> (%count%)',
+        ByVillage: '<?= addslashes($t['lbl_by_village'] ?? 'By Village') ?>',
         Low: '<?= addslashes($t['priority_low'] ?? 'Low') ?>',
         Medium: '<?= addslashes($t['priority_medium'] ?? 'Medium') ?>',
         High: '<?= addslashes($t['priority_high'] ?? 'High') ?>',
@@ -1432,29 +1733,58 @@ include 'include/sidebar.php';
         toast_due_req: '<?= addslashes($t['toast_due_req'] ?? 'Please select a due date & time.') ?>',
         toast_employee_req: '<?= addslashes($t['toast_employee_req'] ?? 'Please select an employee to assign.') ?>',
         toast_role_req: '<?= addslashes($t['toast_role_req'] ?? 'Please select a role to assign.') ?>',
+        toast_taluka_req: '<?= addslashes($t['toast_taluka_req'] ?? 'Please select a taluka.') ?>',
+        toast_village_req: '<?= addslashes($t['toast_village_req'] ?? 'Please select a village.') ?>',
+        opt_select_village: '<?= addslashes($t['opt_select_village'] ?? '— Select a village —') ?>',
         btn_submitting: '<?= addslashes($t['btn_submitting'] ?? 'Creating Task…') ?>',
         btn_show_all: '<?= addslashes($t['btn_show_all'] ?? 'Show all') ?>',
         btn_hide: '<?= addslashes($t['btn_hide'] ?? 'Hide') ?>',
-        msg_fetching_employees: '<?= addslashes($t['msg_fetching_employees'] ?? 'Fetching employees with this role…') ?>'
+        msg_fetching_employees: '<?= addslashes($t['msg_fetching_employees'] ?? 'Fetching employees with this role…') ?>',
+        msg_fetching_village_employees: '<?= addslashes($t['msg_fetching_village_employees'] ?? 'Fetching mapped employees for this village…') ?>',
+        msg_responsible_identified: '<?= addslashes($t['msg_responsible_identified'] ?? 'Responsible person identified:') ?>',
+        msg_no_employees_village: '<?= addslashes($t['msg_no_employees_village'] ?? 'No active employees mapped to this village.') ?>'
     };
 
     function setAllocationUI(type) {
         if (type === 'by_name') {
             byNameSection.classList.remove('hidden');
             byRoleSection.classList.add('hidden');
+            byVillageSection.classList.add('hidden');
             boxByName.className = 'flex items-center gap-3 p-4 rounded-xl border-2 border-navy-500 bg-navy-50 dark:bg-navy-900/20 transition-all';
             boxByRole.className = 'flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 transition-all';
+            boxByVillage.className = 'flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 transition-all';
             prevAllocation.textContent = jsTranslations.ByName;
-        } else {
+        } else if (type === 'by_role') {
             byRoleSection.classList.remove('hidden');
             byNameSection.classList.add('hidden');
+            byVillageSection.classList.add('hidden');
             boxByRole.className = 'flex items-center gap-3 p-4 rounded-xl border-2 border-saffron-500 bg-saffron-50 dark:bg-orange-900/20 transition-all';
             boxByName.className = 'flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 transition-all';
+            boxByVillage.className = 'flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 transition-all';
             prevAllocation.textContent = jsTranslations.ByRole;
             // Trigger fetch if a role is already selected
             if (roleSelect.value) fetchRoleUsers(roleSelect.value);
+        } else if (type === 'by_village') {
+            byVillageSection.classList.remove('hidden');
+            byNameSection.classList.add('hidden');
+            byRoleSection.classList.add('hidden');
+            boxByVillage.className = 'flex items-center gap-3 p-4 rounded-xl border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20 transition-all';
+            boxByName.className = 'flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 transition-all';
+            boxByRole.className = 'flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 transition-all';
+            updateVillagePreview();
+            if (villageSelect.value) fetchVillageUsers(villageSelect.value);
+            else villagePanel.classList.add('hidden');
         }
         lucide.createIcons();
+    }
+
+    function updateVillagePreview() {
+        if (villageSelect && villageSelect.value) {
+            const selectedText = villageSelect.options[villageSelect.selectedIndex].text;
+            prevAllocation.textContent = jsTranslations.ByVillage + ': ' + selectedText;
+        } else {
+            prevAllocation.textContent = jsTranslations.ByVillage;
+        }
     }
 
     // ── AJAX: fetch users for the selected role ──────────────────
@@ -1519,9 +1849,83 @@ include 'include/sidebar.php';
 
     byNameRadio.addEventListener('change', () => setAllocationUI('by_name'));
     byRoleRadio.addEventListener('change', () => setAllocationUI('by_role'));
+    byVillageRadio.addEventListener('change', () => setAllocationUI('by_village'));
+
+    // Trigger village loading when taluka changes
+    talukaSelect.addEventListener('change', () => {
+        const talukaId = talukaSelect.value;
+        villageSelect.innerHTML = `<option value="">${jsTranslations.opt_select_village || '— Select a village —'}</option>`;
+        updateVillagePreview();
+        if (!talukaId) return;
+
+        fetch(`create_task.php?ajax=taluka_villages&taluka_id=${talukaId}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.villages && data.villages.length > 0) {
+                    data.villages.forEach(v => {
+                        const opt = document.createElement('option');
+                        opt.value = v.id;
+                        opt.textContent = v.name;
+                        villageSelect.appendChild(opt);
+                    });
+                }
+                updateVillagePreview();
+            })
+            .catch(err => console.error("Error loading villages:", err));
+    });
+
+    // ── AJAX: fetch users for the selected village ────────────────
+    function fetchVillageUsers(villageId) {
+        if (!villageId) {
+            villagePanel.classList.add('hidden');
+            return;
+        }
+        villagePanel.classList.remove('hidden');
+        villageLoading.classList.remove('hidden');
+        villageBadge.classList.add('hidden');
+        villageNone.classList.add('hidden');
+        responsibleEl.innerHTML = '';
+
+        fetch(`create_task.php?ajax=village_users&village_id=${villageId}`)
+            .then(r => r.json())
+            .then(data => {
+                villageLoading.classList.add('hidden');
+                if (!data.responsible_user) {
+                    villageNone.classList.remove('hidden');
+                    villageBadge.classList.add('hidden');
+                } else {
+                    villageNone.classList.add('hidden');
+                    villageBadge.classList.remove('hidden');
+                    const ru = data.responsible_user;
+                    let display = ru.full_name;
+                    if (ru.role_name) {
+                        display += ` (${ru.role_name})`;
+                    }
+                    if (ru.department_name) {
+                        display += ` — ${ru.department_name}`;
+                    }
+                    responsibleEl.textContent = display;
+                }
+            })
+            .catch(() => {
+                villageLoading.classList.add('hidden');
+                villageNone.classList.remove('hidden');
+            });
+    }
+
+    villageSelect.addEventListener('change', () => {
+        updateVillagePreview();
+        fetchVillageUsers(villageSelect.value);
+    });
 
     // Initial state
-    setAllocationUI(byRoleRadio.checked ? 'by_role' : 'by_name');
+    if (byRoleRadio.checked) {
+        setAllocationUI('by_role');
+    } else if (byVillageRadio && byVillageRadio.checked) {
+        setAllocationUI('by_village');
+    } else {
+        setAllocationUI('by_name');
+    }
 
     // ── Priority Selector ────────────────────────────────────────
     const priorityCards  = document.querySelectorAll('.priority-card');
@@ -1689,6 +2093,14 @@ include 'include/sidebar.php';
         if (alloc === 'by_role' && !document.getElementById('assigned_role_id').value) {
             showToast(jsTranslations.toast_role_req, 'warning'); e.preventDefault(); return;
         }
+        if (alloc === 'by_village') {
+            if (!document.getElementById('task_taluka_id').value) {
+                showToast(jsTranslations.toast_taluka_req, 'warning'); e.preventDefault(); return;
+            }
+            if (!document.getElementById('task_village_id').value) {
+                showToast(jsTranslations.toast_village_req, 'warning'); e.preventDefault(); return;
+            }
+        }
 
         const btn  = document.getElementById('submitBtn');
         const text = document.getElementById('submitBtnText');
@@ -1719,6 +2131,9 @@ include 'include/sidebar.php';
         clearFile();
         selectPriority('Medium');
         setAllocationUI('by_name');
+        if (talukaSelect) talukaSelect.value = '';
+        if (villageSelect) villageSelect.innerHTML = `<option value="">${jsTranslations.opt_select_village || '— Select a village —'}</option>`;
+        if (villagePanel) villagePanel.classList.add('hidden');
         document.getElementById('prevTitle').textContent  = '—';
         document.getElementById('prevDue').textContent    = '—';
         const charTemplate = '<?= $t['char_counter'] ?? "%d / 255 characters" ?>';
