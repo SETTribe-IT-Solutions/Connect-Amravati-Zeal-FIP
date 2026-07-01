@@ -189,6 +189,7 @@ function verify_reset_token($token, $conn) {
 
 $message = "";
 $simulated_email = null;
+$linkSent = false;
 
 // Determine current mode
 $token = isset($_GET['token']) ? trim($_GET['token']) : '';
@@ -288,6 +289,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         );
                         
                         $message = "<div class='success'>" . $t['msg_link_sent'] . "</div>";
+                        $linkSent = true;
                     } catch (Exception $e) {
                         $message = "<div class='error'>SMTP Mailer Error: " . htmlspecialchars($e->getMessage()) . "</div>";
                         $simulated_email = [
@@ -325,6 +327,9 @@ close_db_connection();
     elseif ($mode === 'reset' && $valid_user) echo htmlspecialchars($t['title_reset']);
     else echo htmlspecialchars($t['title_forgot']);
 ?></title>
+
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
 .lang-switch {
@@ -596,6 +601,64 @@ button:hover{
             </p>
         </div>
     </div>
+<?php endif; ?>
+
+<?php if ($mode === 'success'): ?>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var title = <?php echo json_encode($lang === 'mr' ? 'पासवर्ड रीसेट यशस्वी!' : 'Password Reset Successful!'); ?>;
+    var msg = <?php echo json_encode($lang === 'mr' ? 'तुमचा पासवर्ड यशस्वीरित्या अपडेट झाला आहे.' : 'Your password has been updated successfully.'); ?>;
+    var hint = <?php echo json_encode($lang === 'mr' ? 'तुम्हाला नवीन पासवर्डने साइन इन करण्यासाठी लॉगिन पृष्ठावर पुनर्निर्देशित केले जाईल.' : 'You will be redirected to the login page to sign in with your new password.'); ?>;
+    var btnText = <?php echo json_encode($lang === 'mr' ? 'लॉगिन वर जा' : 'Go to Login'); ?>;
+    var loginUrl = 'login.php?lang=<?php echo $lang; ?>';
+
+    Swal.fire({
+        icon: 'success',
+        title: title,
+        html: '<p style="color:#64748b;font-size:14px;">' + msg + '</p><p style="color:#94a3b8;font-size:12px;margin-top:8px;">' + hint + '</p>',
+        confirmButtonText: btnText,
+        confirmButtonColor: '#0054a4',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        timer: 4000,
+        timerProgressBar: true,
+        customClass: {
+            popup: 'rounded-xl shadow-2xl',
+        },
+    }).then(function() {
+        window.location.href = loginUrl;
+    });
+});
+</script>
+<?php endif; ?>
+
+<?php if ($linkSent): ?>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var title = <?php echo json_encode($lang === 'mr' ? 'रीसेट लिंक पाठवली!' : 'Reset Link Sent!'); ?>;
+    var msg = <?php echo json_encode($lang === 'mr' ? 'तुमच्या ईमेल पत्त्यावर पासवर्ड रीसेट लिंक पाठवली गेली आहे.' : 'A password reset link has been sent to your email address.'); ?>;
+    var hint = <?php echo json_encode($lang === 'mr' ? 'कृपया तुमचा ईमेल तपासा आणि रीसेट लिंकवर क्लिक करा.' : 'Please check your email inbox and click the reset link.'); ?>;
+    var btnText = <?php echo json_encode($lang === 'mr' ? 'लॉगिन वर जा' : 'Go to Login'); ?>;
+    var loginUrl = 'login.php?lang=<?php echo $lang; ?>';
+
+    Swal.fire({
+        icon: 'success',
+        title: title,
+        html: '<p style="color:#64748b;font-size:14px;">' + msg + '</p><p style="color:#94a3b8;font-size:12px;margin-top:8px;">' + hint + '</p>',
+        confirmButtonText: btnText,
+        confirmButtonColor: '#0054a4',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        timer: 5000,
+        timerProgressBar: true,
+        customClass: {
+            popup: 'rounded-xl shadow-2xl',
+        },
+    }).then(function() {
+        window.location.href = loginUrl;
+    });
+});
+</script>
 <?php endif; ?>
 
 </body>

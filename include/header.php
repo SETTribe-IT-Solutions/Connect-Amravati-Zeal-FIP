@@ -10,6 +10,27 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// ── Session Inactivity Timeout (3 minutes = 180 seconds) ──────────────────
+define('SESSION_TIMEOUT_SECONDS', 180);
+
+if (isset($_SESSION['user_id'])) {
+    if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > SESSION_TIMEOUT_SECONDS) {
+        // Session has expired due to inactivity — destroy and redirect
+        $_SESSION = [];
+        if (ini_get("session.use_cookies")) {
+            $params = session_get_cookie_params();
+            setcookie(session_name(), '', time() - 42000, $params["path"], $params["domain"], $params["secure"], $params["httponly"]);
+        }
+        session_destroy();
+        header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+        header("Pragma: no-cache");
+        header("Location: login.php?auto_logout=1");
+        exit;
+    }
+    // Update last activity timestamp on every page load
+    $_SESSION['last_activity'] = time();
+}
+
 $headerDistrictName = 'Amravati';
 $headerTalukaName = '';
 $headerVillageName = '';
