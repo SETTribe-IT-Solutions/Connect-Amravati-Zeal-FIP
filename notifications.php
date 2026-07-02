@@ -5,6 +5,41 @@ require_once 'include/dbConfig.php';
 // Language Toggle Setup (Support Marathi & English)
 $lang = isset($_GET['lang']) && $_GET['lang'] === 'mr' ? 'mr' : 'en';
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_custom_notification'])) {
+    $title = trim($_POST['title'] ?? '');
+    $message = trim($_POST['message'] ?? '');
+    $receiverId = (int)($_POST['receiver_id'] ?? 0);
+    $priority = $_POST['priority'] ?? 'Medium';
+    $senderId = (int)($_SESSION['user_id'] ?? 0);
+    
+    $attachment_path = null;
+    if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
+        $upload_dir = __DIR__ . '/uploads/notifications/';
+        if (!is_dir($upload_dir)) {
+            mkdir($upload_dir, 0755, true);
+        }
+        $file_ext = strtolower(pathinfo($_FILES['attachment']['name'], PATHINFO_EXTENSION));
+        $new_filename = 'NOTIF_' . uniqid() . '.' . $file_ext;
+        if (move_uploaded_file($_FILES['attachment']['tmp_name'], $upload_dir . $new_filename)) {
+            $attachment_path = 'uploads/notifications/' . $new_filename;
+        }
+    }
+    
+    $stmt = $conn->prepare("INSERT INTO notifications (notification_type, title, message, sender_id, receiver_id, status, attachment_path) VALUES ('System', ?, ?, ?, ?, 'Unread', ?)");
+    if ($stmt) {
+        $stmt->bind_param("ssiis", $title, $message, $senderId, $receiverId, $attachment_path);
+        $stmt->execute();
+        $stmt->close();
+        
+        $_SESSION['notif_success'] = "Notification sent successfully!";
+    } else {
+        $_SESSION['notif_error'] = "Failed to send: " . $conn->error;
+    }
+    
+    header("Location: notifications.php?lang=" . $lang);
+    exit;
+}
+
 $translations = [
     'en' => [
         'title' => 'Notification Center - Amravati Connect',
@@ -18,7 +53,7 @@ $translations = [
         'menu_appreciation' => 'Appreciation',
         'menu_analytics' => 'Analytics & Data',
         'menu_reports' => 'Reports & Analytics',
-        'menu_gis' => 'GIS Map View',
+        'menu_gis' => 'Performance Report',
         'menu_docs' => 'Document Management',
         'menu_admin' => 'Administration',
         'menu_users' => 'User Management',
@@ -185,6 +220,17 @@ $roleLabel = $roleKey ? $t[$roleKey] : $sRole;
 
 $parts    = array_filter(explode(' ', trim($sName)));
 $initials = strtoupper(substr($parts[0] ?? 'U', 0, 1) . substr($parts[1] ?? '', 0, 1));
+
+$usersList = [];
+if (isset($conn) && $conn instanceof mysqli && !$conn->connect_error) {
+    $resUsers = $conn->query("SELECT user_id, full_name, employee_code FROM users WHERE status = 'Active' AND user_id != $userId ORDER BY full_name ASC");
+    if ($resUsers) {
+        while ($u = $resUsers->fetch_assoc()) {
+            $usersList[] = $u;
+        }
+    }
+}
+
 close_db_connection();
 ?>
 <?php
@@ -288,6 +334,9 @@ include 'include/sidebar.php';
                         <i data-lucide="shield" class="w-3.5 h-3.5"></i>
                         <?= htmlspecialchars($t['badge_level']) ?> <?= $level ?> &middot; <?= htmlspecialchars($roleLabel) ?>
                     </span>
+                    <button onclick="openSendNotificationModal()" class="px-4 py-2 bg-govgreen-600 hover:bg-govgreen-700 text-white text-sm font-semibold rounded-lg shadow-md transition-colors flex items-center">
+                        <i data-lucide="send" class="w-4 h-4 mr-2"></i> Send Notification
+                    </button>
                     <button onclick="markAllAsRead()" class="px-4 py-2 bg-navy-500 hover:bg-navy-600 text-white text-sm font-semibold rounded-lg shadow-md transition-colors flex items-center">
                         <i data-lucide="check-check" class="w-4 h-4 mr-2"></i> <?= htmlspecialchars($t['btn_mark_all_read']) ?>
                     </button>
@@ -452,8 +501,55 @@ include 'include/sidebar.php';
         </div>
     </div>
 
+    <!-- MODAL: SEND NOTIFICATION -->
+    <div id="sendNotificationModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-white dark:bg-slate-800 w-full max-w-md rounded-xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-700 m-4">
+            <div class="px-6 py-4 bg-indigo-600 text-white flex justify-between items-center">
+                <h3 class="font-bold text-lg">Send Custom Notification</h3>
+                <button type="button" onclick="closeSendNotificationModal()" class="text-white hover:opacity-80"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <form action="notifications.php?lang=<?= $lang ?>" method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
+                <input type="hidden" name="send_custom_notification" value="1">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Recipient *</label>
+                    <select name="receiver_id" required class="block w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2.5 text-sm focus:ring-indigo-500">
+                        <option value="">-- Select Recipient --</option>
+                        <?php foreach ($usersList as $u): ?>
+                            <option value="<?= $u['user_id'] ?>"><?= htmlspecialchars($u['full_name'] . ' (' . $u['employee_code'] . ')') ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Title *</label>
+                    <input type="text" name="title" required placeholder="e.g. Critical Update Required" class="block w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2.5 text-sm focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Message *</label>
+                    <textarea name="message" required rows="4" placeholder="Type notification details..." class="block w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2.5 text-sm focus:ring-indigo-500"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">File Attachment (Optional)</label>
+                    <input type="file" name="attachment" class="block w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border border-slate-300 dark:border-slate-600 rounded-lg p-1 dark:bg-slate-700">
+                    <p class="text-[10px] text-slate-400 mt-1">Supported formats: PDF, DOC, DOCX, JPG, PNG, ZIP. Max size: 10MB.</p>
+                </div>
+                
+                <div class="flex justify-end space-x-2 pt-4 border-t border-slate-200 dark:border-slate-700">
+                    <button type="button" onclick="closeSendNotificationModal()" class="px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-700">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-govgreen-600 hover:bg-govgreen-700 text-white rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5"><i data-lucide="send" class="w-4.5 h-4.5"></i> Send</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script>
+        function openSendNotificationModal() {
+            document.getElementById('sendNotificationModal').classList.remove('hidden');
+        }
+        function closeSendNotificationModal() {
+            document.getElementById('sendNotificationModal').classList.add('hidden');
+        }
+
         // Init Lucide
         lucide.createIcons();
 
@@ -619,11 +715,22 @@ include 'include/sidebar.php';
                     actionsHtml += `<button onclick="markAsRead(${n.id})" class="px-2.5 py-1.5 border border-slate-200 dark:border-slate-700 text-slate-500 rounded text-xs font-semibold hover:bg-slate-100" title="Mark as Read">Read</button>`;
                 }
 
+                let attachmentHtml = '';
+                if (n.attachment_path) {
+                    attachmentHtml = `
+                        <div class="mt-2 flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 px-2 py-1 rounded w-fit border border-slate-200 dark:border-slate-700">
+                            <i data-lucide="paperclip" class="w-3.5 h-3.5 text-slate-400"></i>
+                            <a href="${n.attachment_path}" target="_blank" class="text-xs font-semibold text-navy-600 dark:text-blue-400 hover:underline">View Attachment</a>
+                        </div>
+                    `;
+                }
+
                 tr.innerHTML = `
                     <td class="px-6 py-4">
                         <div class="text-sm font-semibold text-slate-900 dark:text-white">${n.title}</div>
                         <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">${n.message}</div>
                         <div class="text-[10px] text-slate-400 mt-1">Sender: <span class="font-semibold text-slate-500">${n.sender_name}</span></div>
+                        ${attachmentHtml}
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-xs font-bold text-slate-500 dark:text-slate-350 uppercase">${n.type}</td>
                     <td class="px-6 py-4 whitespace-nowrap">
@@ -777,5 +884,26 @@ include 'include/sidebar.php';
             fetchNotifications();
             loadCenterNotifications();
         }, 5000);
+
+        // Session notifications
+        <?php if (isset($_SESSION['notif_success'])): ?>
+        Swal.fire({
+            icon: 'success',
+            title: 'Success!',
+            text: '<?= htmlspecialchars(addslashes($_SESSION['notif_success'])) ?>',
+            confirmButtonColor: '#4f46e5'
+        });
+        <?php unset($_SESSION['notif_success']); ?>
+        <?php endif; ?>
+
+        <?php if (isset($_SESSION['notif_error'])): ?>
+        Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: '<?= htmlspecialchars(addslashes($_SESSION['notif_error'])) ?>',
+            confirmButtonColor: '#ef4444'
+        });
+        <?php unset($_SESSION['notif_error']); ?>
+        <?php endif; ?>
     </script>
 <?php include 'include/footer.php'; ?>
