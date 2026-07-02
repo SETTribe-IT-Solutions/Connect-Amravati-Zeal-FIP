@@ -36,7 +36,7 @@ $sql = "
         COALESCE(t.status, 'Pending') AS status,
         COALESCE(creator.full_name, creator.employee_code, 'N/A') AS created_by,
         GROUP_CONCAT(DISTINCT COALESCE(assignee.full_name, assignee.employee_code, 'Unassigned') SEPARATOR ', ') AS assigned_to,
-        COALESCE(tk.taluka_name, 'N/A') AS taluka_name,
+        CASE WHEN LOWER(tk.taluka_name) = 'unknown' THEN 'N/A' ELSE COALESCE(tk.taluka_name, 'N/A') END AS taluka_name,
         COALESCE(v.village_name, 'N/A') AS village_name,
         DATE_FORMAT(t.created_at, '%Y-%m-%d') AS created_date,
         COALESCE(DATE_FORMAT(t.due_date, '%Y-%m-%d'), 'N/A') AS due_date

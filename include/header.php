@@ -10,8 +10,8 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// ── Session Inactivity Timeout (3 minutes = 180 seconds) ──────────────────
-define('SESSION_TIMEOUT_SECONDS', 180);
+// ── Session Inactivity Timeout (10 minutes = 600 seconds) ──────────────────
+define('SESSION_TIMEOUT_SECONDS', 600);
 
 if (isset($_SESSION['user_id'])) {
     if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > SESSION_TIMEOUT_SECONDS) {

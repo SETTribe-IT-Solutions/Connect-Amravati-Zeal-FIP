@@ -246,8 +246,8 @@ try {
             t.due_date,
             COALESCE(u.full_name, r.role_name, 'Unassigned') AS assigned_to_name,
             COALESCE(u.designation, r.role_name, 'Unassigned') AS assigned_designation,
-            COALESCE(tk.taluka_name, 'Unknown') AS taluka_name,
-            COALESCE(v.village_name, 'Unknown') AS village_name,
+            tk.taluka_name,
+            v.village_name,
             DATEDIFF(CURDATE(), t.due_date) AS days_overdue
         FROM tasks t
         LEFT JOIN users u ON t.assigned_user_id = u.user_id
@@ -326,11 +326,13 @@ foreach ($overdue_tasks as $tRow) {
         $priority_counts['Low']++;
     }
     
-    $tk = $tRow['taluka_name'] ?? 'Unknown';
-    if (!isset($taluka_counts[$tk])) {
-        $taluka_counts[$tk] = 0;
+    $tk = $tRow['taluka_name'] ?? null;
+    if ($tk !== null && strtolower($tk) !== 'unknown') {
+        if (!isset($taluka_counts[$tk])) {
+            $taluka_counts[$tk] = 0;
+        }
+        $taluka_counts[$tk]++;
     }
-    $taluka_counts[$tk]++;
 }
 
 /* Friendly role label */
@@ -901,7 +903,7 @@ function filterReportTable() {
     document.querySelectorAll('.overdue-row').forEach(row => {
         const titleText = row.querySelector('td:first-child').textContent.toLowerCase();
         const officerText = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
-        const rowTaluka = row.getAttribute('data-taluka') || 'Unknown';
+        const rowTaluka = row.getAttribute('data-taluka') || '';
         const rowPriority = row.getAttribute('data-priority') || 'Low';
         
         const matchesSearch = !searchVal || titleText.includes(searchVal) || officerText.includes(searchVal);
