@@ -540,21 +540,23 @@ function getDistrictStats(mysqli $conn): array {
         /* ── Taluka-wise breakdown ─────────────────────────────── */
         $res = $conn->query("
             SELECT
-              COALESCE(tk.taluka_name, 'Unknown')                          AS taluka,
+              tk.taluka_name                                               AS taluka,
               COUNT(DISTINCT t.task_id)                                    AS total,
               COUNT(DISTINCT CASE WHEN t.status = 'Completed' THEN t.task_id END) AS completed,
               COUNT(DISTINCT CASE WHEN t.status = 'Pending'   THEN t.task_id END) AS pending,
               COUNT(DISTINCT CASE WHEN t.due_date < CURDATE()
                          AND t.status != 'Completed' THEN t.task_id END)   AS overdue,
-              ROUND(COUNT(DISTINCT CASE WHEN t.status='Completed' THEN t.task_id END)
-                    / NULLIF(COUNT(DISTINCT t.task_id),0)*100, 1)          AS rate
-            FROM tasks t
-            LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
-            LEFT JOIN users u ON ta.assigned_to_user = u.user_id
-            LEFT JOIN talukas tk ON COALESCE(t.taluka_id, u.taluka_id) = tk.taluka_id
-            GROUP BY tk.taluka_name, COALESCE(t.taluka_id, u.taluka_id)
-            ORDER BY rate DESC
-            LIMIT 10
+              COALESCE(ROUND(COUNT(DISTINCT CASE WHEN t.status='Completed' THEN t.task_id END)
+                    / NULLIF(COUNT(DISTINCT t.task_id),0)*100, 1), 0.0)    AS rate
+            FROM talukas tk
+            LEFT JOIN (
+                SELECT t.task_id, t.status, t.due_date, COALESCE(t.taluka_id, u.taluka_id) AS taluka_id
+                FROM tasks t
+                LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
+                LEFT JOIN users u ON ta.assigned_to_user = u.user_id
+            ) t ON tk.taluka_id = t.taluka_id
+            GROUP BY tk.taluka_id, tk.taluka_name
+            ORDER BY rate DESC, tk.taluka_name ASC
         ");
         if ($res) {
             while ($row = $res->fetch_assoc()) $out['talukas'][] = $row;
@@ -1030,21 +1032,68 @@ include 'include/sidebar.php';
                 <i data-lucide="menu" class="w-6 h-6"></i>
             </button>
             <!-- Search -->
-            <div class="w-32 sm:max-w-md sm:w-full relative">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <i data-lucide="search" class="h-4 w-4 text-slate-400"></i>
+            <div class="w-32 sm:max-w-md sm:w-full relative" id="searchWrapper">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                    <i data-lucide="search" class="h-4 w-4 text-slate-400" id="searchIcon"></i>
+                    <svg id="searchSpinner" class="hidden h-4 w-4 text-navy-500 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
                 </div>
-                <input id="globalSearch" type="text"
+                <input id="globalSearch" type="text" autocomplete="off"
                        placeholder="<?= htmlspecialchars($t['search_placeholder']) ?>"
-                       class="block w-full pl-8 sm:pl-10 pr-3 py-2 border border-slate-300
+                       class="block w-full pl-8 sm:pl-10 pr-8 py-2 border border-slate-300
                               dark:border-slate-700 rounded-md leading-5
                               bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100
                               placeholder-slate-500 focus:outline-none
-                              focus:ring-1 focus:ring-navy-500 focus:border-navy-500
+                              focus:ring-2 focus:ring-navy-500 focus:border-navy-500
                               text-xs sm:text-sm transition-colors">
-                <div class="hidden sm:flex absolute inset-y-0 right-0 pr-3 items-center pointer-events-none">
-                    <span class="text-slate-400 text-xs border border-slate-300
-                                 dark:border-slate-700 rounded px-1.5 py-0.5">⌘K</span>
+                <!-- Clear button -->
+                <button id="searchClearBtn" class="hidden absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 focus:outline-none" title="Clear search">
+                    <i data-lucide="x" class="h-3.5 w-3.5"></i>
+                </button>
+
+                <!-- Live Search Dropdown -->
+                <div id="searchDropdown"
+                     class="hidden absolute left-0 top-full mt-1.5 w-full min-w-[320px] bg-white dark:bg-slate-800
+                            border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-50
+                            overflow-hidden" style="max-height:440px;overflow-y:auto;">
+
+                    <!-- Section: Tasks -->
+                    <div id="sdTasks" class="hidden">
+                        <div class="px-4 pt-3 pb-1 flex items-center text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                            <i data-lucide="check-square" class="w-3 h-3 mr-1.5"></i> Tasks
+                        </div>
+                        <ul id="sdTaskList"></ul>
+                    </div>
+
+                    <!-- Section: Officers -->
+                    <div id="sdOfficers" class="hidden">
+                        <div class="px-4 pt-3 pb-1 flex items-center text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                            <i data-lucide="users" class="w-3 h-3 mr-1.5"></i> Officers
+                        </div>
+                        <ul id="sdOfficerList"></ul>
+                    </div>
+
+                    <!-- Section: Circulars -->
+                    <div id="sdCirculars" class="hidden">
+                        <div class="px-4 pt-3 pb-1 flex items-center text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                            <i data-lucide="megaphone" class="w-3 h-3 mr-1.5"></i> Circulars
+                        </div>
+                        <ul id="sdCircularList"></ul>
+                    </div>
+
+                    <!-- Empty state -->
+                    <div id="sdEmpty" class="hidden py-8 text-center">
+                        <i data-lucide="search-x" class="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600 mb-2"></i>
+                        <p class="text-sm text-slate-400 dark:text-slate-500">No results found</p>
+                    </div>
+
+                    <!-- Footer hint -->
+                    <div class="border-t border-slate-100 dark:border-slate-700 px-4 py-2 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50">
+                        <span class="text-[10px] text-slate-400">Press <kbd class="px-1 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[9px] font-mono">↑↓</kbd> to navigate &nbsp; <kbd class="px-1 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[9px] font-mono">Enter</kbd> to open &nbsp; <kbd class="px-1 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[9px] font-mono">Esc</kbd> to close</span>
+                        <span class="text-[10px] text-slate-400" id="sdResultCount"></span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2107,21 +2156,245 @@ function filterRows() {
     });
 }
 
-const globalSearchEl = document.getElementById('globalSearch');
-if (globalSearchEl) {
-    globalSearchEl.addEventListener('input', filterRows);
-    globalSearchEl.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
+/* ══════════════════════════════════════════════════════════
+   ACTIVE GLOBAL SEARCH  —  Live AJAX across Tasks, Officers
+   & Circulars/Announcements
+══════════════════════════════════════════════════════════ */
+(function () {
+    const input       = document.getElementById('globalSearch');
+    const dropdown    = document.getElementById('searchDropdown');
+    const spinner     = document.getElementById('searchSpinner');
+    const searchIcon  = document.getElementById('searchIcon');
+    const clearBtn    = document.getElementById('searchClearBtn');
+    const sdEmpty     = document.getElementById('sdEmpty');
+    const sdResultCnt = document.getElementById('sdResultCount');
+
+    if (!input) return;
+
+    let debounceTimer = null;
+    let currentFocusIdx = -1;
+    let allItems = [];
+
+    /* ── Status badge colours ───────────────────────── */
+    function badgeClass(badge, type) {
+        if (type === 'task') {
+            const map = {
+                'Completed':   'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+                'Pending':     'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+                'In Progress': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+                'Overdue':     'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+                'Escalated':   'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+            };
+            return map[badge] || 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300';
+        }
+        if (type === 'circular') {
+            const map = {
+                'High':   'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+                'Medium': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+                'Low':    'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
+            };
+            return map[badge] || 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300';
+        }
+        return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400';
+    }
+
+    /* ── Highlight matching text ────────────────────── */
+    function highlight(text, q) {
+        if (!q) return escHtml(text);
+        const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return escHtml(text).replace(new RegExp('(' + escaped + ')', 'gi'),
+            '<mark class="bg-yellow-200 dark:bg-yellow-800/60 rounded px-0.5">$1</mark>');
+    }
+    function escHtml(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    /* ── Build one result row ───────────────────────── */
+    function buildItem(r, q) {
+        const li = document.createElement('li');
+        li.className = 'search-result-item group flex items-start gap-3 px-4 py-2.5 cursor-pointer ' +
+                       'hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors outline-none';
+        li.setAttribute('tabindex', '-1');
+        li.dataset.url = r.url;
+
+        const iconMap = { task: 'check-square', officer: 'user', circular: 'megaphone' };
+        const icon = iconMap[r.type] || 'search';
+
+        const typeColorMap = {
+            task:    'bg-navy-50 dark:bg-navy-900/40 text-navy-600 dark:text-blue-400',
+            officer: 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400',
+            circular:'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400',
+        };
+
+        li.innerHTML = `
+            <span class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${typeColorMap[r.type] || ''}">
+                <i data-lucide="${icon}" class="w-4 h-4"></i>
+            </span>
+            <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-slate-900 dark:text-white truncate">${highlight(r.title, q)}</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">${escHtml(r.subtitle)}</p>
+            </div>
+            ${r.badge ? `<span class="flex-shrink-0 self-center text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${badgeClass(r.badge, r.type)}">${escHtml(r.badge)}</span>` : ''}
+        `;
+
+        li.addEventListener('click', () => {
+            if (r.type === 'officer' && r.details) {
+                closeDropdown();
+                openOfficerDetailsModal(r.details);
+            } else if (r.type === 'circular' && r.details) {
+                closeDropdown();
+                openCircularDetailsModal(r.details);
+            } else {
+                navigate(r.url);
+            }
+        });
+        li.addEventListener('keydown', handleItemKeydown);
+        return li;
+    }
+
+    /* ── Render all results ─────────────────────────── */
+    function renderResults(results, q) {
+        const tasks    = results.filter(r => r.type === 'task');
+        const officers = results.filter(r => r.type === 'officer');
+        const circs    = results.filter(r => r.type === 'circular');
+
+        const sdTasks    = document.getElementById('sdTasks');
+        const sdOfficers = document.getElementById('sdOfficers');
+        const sdCircs    = document.getElementById('sdCirculars');
+        const listT      = document.getElementById('sdTaskList');
+        const listO      = document.getElementById('sdOfficerList');
+        const listC      = document.getElementById('sdCircularList');
+
+        listT.innerHTML = '';
+        listO.innerHTML = '';
+        listC.innerHTML = '';
+        allItems = [];
+
+        if (tasks.length) {
+            sdTasks.classList.remove('hidden');
+            tasks.forEach(r => { const li = buildItem(r, q); listT.appendChild(li); allItems.push(li); });
+        } else { sdTasks.classList.add('hidden'); }
+
+        if (officers.length) {
+            sdOfficers.classList.remove('hidden');
+            officers.forEach(r => { const li = buildItem(r, q); listO.appendChild(li); allItems.push(li); });
+        } else { sdOfficers.classList.add('hidden'); }
+
+        if (circs.length) {
+            sdCircs.classList.remove('hidden');
+            circs.forEach(r => { const li = buildItem(r, q); listC.appendChild(li); allItems.push(li); });
+        } else { sdCircs.classList.add('hidden'); }
+
+        const total = results.length;
+        sdEmpty.classList.toggle('hidden', total > 0);
+        sdResultCnt.textContent = total > 0 ? total + ' result' + (total !== 1 ? 's' : '') : '';
+
+        lucide.createIcons(); // re-render lucide icons in dropdown
+        currentFocusIdx = -1;
+    }
+
+    /* ── Navigate to URL ────────────────────────────── */
+    function navigate(url) {
+        if (url) window.location.href = url;
+    }
+
+    /* ── Open / close dropdown ──────────────────────── */
+    function openDropdown() {
+        dropdown.classList.remove('hidden');
+    }
+    function closeDropdown() {
+        dropdown.classList.add('hidden');
+        currentFocusIdx = -1;
+    }
+
+    /* ── Show/hide spinner ──────────────────────────── */
+    function setLoading(on) {
+        spinner.classList.toggle('hidden', !on);
+        searchIcon.classList.toggle('hidden', on);
+    }
+
+    /* ── Keyboard navigation inside dropdown ────────── */
+    function handleItemKeydown(e) {
+        if (e.key === 'Enter') { e.preventDefault(); navigate(e.currentTarget.dataset.url); }
+        if (e.key === 'ArrowDown') { e.preventDefault(); focusItem(currentFocusIdx + 1); }
+        if (e.key === 'ArrowUp')   { e.preventDefault(); focusItem(currentFocusIdx - 1); }
+        if (e.key === 'Escape')    { e.preventDefault(); closeDropdown(); input.focus(); }
+    }
+
+    function focusItem(idx) {
+        if (!allItems.length) return;
+        currentFocusIdx = Math.max(0, Math.min(idx, allItems.length - 1));
+        allItems[currentFocusIdx].focus();
+    }
+
+    /* ── Fetch from API ─────────────────────────────── */
+    function doSearch(q) {
+        if (q.length < 2) { closeDropdown(); setLoading(false); return; }
+        setLoading(true);
+        fetch('api/search.php?q=' + encodeURIComponent(q))
+            .then(r => r.json())
+            .then(data => {
+                setLoading(false);
+                if (data.status === 'ok') {
+                    renderResults(data.results, q);
+                    openDropdown();
+                }
+            })
+            .catch(() => { setLoading(false); });
+    }
+
+    /* ── Wire up input events ───────────────────────── */
+    input.addEventListener('input', function () {
+        const q = this.value.trim();
+        clearBtn.classList.toggle('hidden', q.length === 0);
+
+        // Also filter table rows inline (existing behaviour)
+        filterRows();
+
+        clearTimeout(debounceTimer);
+        if (q.length < 2) { closeDropdown(); setLoading(false); return; }
+        debounceTimer = setTimeout(() => doSearch(q), 280);
+    });
+
+    input.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowDown' && !dropdown.classList.contains('hidden')) {
+            e.preventDefault(); focusItem(0);
+        }
+        if (e.key === 'Escape') { closeDropdown(); }
+        if (e.key === 'Enter' && !dropdown.classList.contains('hidden')) {
             e.preventDefault();
-            Swal.fire({
-                icon: 'info',
-                title: 'Coming Soon',
-                text: 'Global Search across all modules is currently under development.',
-                confirmButtonColor: '#0069cd'
-            });
+            if (allItems.length) allItems[0].click();
         }
     });
-}
+
+    /* ── Clear button ───────────────────────────────── */
+    clearBtn.addEventListener('click', function () {
+        input.value = '';
+        clearBtn.classList.add('hidden');
+        closeDropdown();
+        filterRows();
+        input.focus();
+    });
+
+    /* ── Close on outside click ─────────────────────── */
+    document.addEventListener('click', function (e) {
+        if (!document.getElementById('searchWrapper').contains(e.target)) {
+            closeDropdown();
+        }
+        const offModal = document.getElementById('officerDetailsModal');
+        if (offModal && !offModal.classList.contains('hidden') && e.target === offModal) {
+            closeOfficerDetailsModal();
+        }
+        const circModal = document.getElementById('circularDetailsModal');
+        if (circModal && !circModal.classList.contains('hidden') && e.target === circModal) {
+            closeCircularDetailsModal();
+        }
+    });
+
+    /* ── Keyboard shortcut '/' to focus ─────────────── */
+    // (existing listener at line ~2069 already handles this)
+
+})();
 
 /* ════════════════════════════════════════════════════════════
    APEXCHARTS  —  Data pre-serialized from PHP
@@ -2793,6 +3066,116 @@ function markAllAsRead() {
 
 setInterval(fetchNotifications, 5000);
 fetchNotifications();
+
+function openOfficerDetailsModal(details) {
+    const modal = document.getElementById('officerDetailsModal');
+    const card = document.getElementById('officerModalCard');
+    
+    document.getElementById('offName').innerText = details.full_name;
+    document.getElementById('offDesig').innerText = details.designation;
+    document.getElementById('offCode').innerText = details.employee_code;
+    document.getElementById('offDept').innerText = details.department;
+    document.getElementById('offTaluka').innerText = details.taluka;
+    document.getElementById('offVillage').innerText = details.village;
+    
+    const emailEl = document.getElementById('offEmail');
+    if (details.email && details.email !== 'N/A') {
+        emailEl.innerText = details.email;
+        emailEl.href = 'mailto:' + details.email;
+        emailEl.parentElement.classList.remove('hidden');
+    } else {
+        emailEl.parentElement.classList.add('hidden');
+    }
+    
+    const mobileEl = document.getElementById('offMobile');
+    if (details.mobile && details.mobile !== 'N/A') {
+        mobileEl.innerText = details.mobile;
+        mobileEl.href = 'tel:' + details.mobile;
+        mobileEl.parentElement.classList.remove('hidden');
+    } else {
+        mobileEl.parentElement.classList.add('hidden');
+    }
+    
+    // Set initials
+    const parts = details.full_name.trim().split(' ').filter(x => x);
+    let initials = 'U';
+    if (parts.length > 0) {
+        initials = parts[0].charAt(0).toUpperCase() + (parts[1] ? parts[1].charAt(0).toUpperCase() : '');
+    }
+    document.getElementById('offInitials').innerText = initials;
+    
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        card.classList.remove('scale-95', 'opacity-0');
+        card.classList.add('scale-100', 'opacity-100');
+    }, 10);
+    
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+}
+
+function closeOfficerDetailsModal() {
+    const modal = document.getElementById('officerDetailsModal');
+    const card = document.getElementById('officerModalCard');
+    
+    card.classList.remove('scale-100', 'opacity-100');
+    card.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 150);
+}
+
+function openCircularDetailsModal(details) {
+    const modal = document.getElementById('circularDetailsModal');
+    const card = document.getElementById('circularModalCard');
+    
+    document.getElementById('circTitle').innerText = details.title;
+    document.getElementById('circCategory').innerText = details.category;
+    document.getElementById('circPubDate').innerText = details.publish_date;
+    document.getElementById('circDesc').innerText = details.description;
+    
+    const priorityEl = document.getElementById('circPriority');
+    priorityEl.innerText = details.priority;
+    priorityEl.className = 'px-2 py-0.5 rounded-full text-xs font-bold text-white';
+    if (details.priority === 'Urgent') {
+        priorityEl.classList.add('bg-red-650');
+    } else if (details.priority === 'High') {
+        priorityEl.classList.add('bg-orange-500');
+    } else {
+        priorityEl.classList.add('bg-slate-500');
+    }
+    
+    const attachSec = document.getElementById('circAttachmentSection');
+    if (details.attachment) {
+        attachSec.classList.remove('hidden');
+        document.getElementById('circAttachmentName').innerText = details.attachment.split('/').pop();
+        document.getElementById('circAttachmentDownload').href = details.attachment;
+    } else {
+        attachSec.classList.add('hidden');
+    }
+    
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        card.classList.remove('scale-95', 'opacity-0');
+        card.classList.add('scale-100', 'opacity-100');
+    }, 10);
+    
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+}
+
+function closeCircularDetailsModal() {
+    const modal = document.getElementById('circularDetailsModal');
+    const card = document.getElementById('circularModalCard');
+    
+    card.classList.remove('scale-100', 'opacity-100');
+    card.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 150);
+}
 </script>
 
 <!-- MODALS FOR TASK WORKFLOW ACTIONS -->
@@ -2900,6 +3283,96 @@ fetchNotifications();
                 <button type="submit" class="px-4 py-2 bg-saffron-500 hover:bg-saffron-600 text-white rounded-lg text-sm font-semibold transition-colors">Send Request</button>
             </div>
         </form>
+    </div>
+</div>
+<!-- OFFICER DETAILS MODAL -->
+<div id="officerDetailsModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white dark:bg-slate-800 w-full max-w-md rounded-xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-700 m-4 transition-all transform scale-95 opacity-0 duration-300" id="officerModalCard">
+        <div class="px-6 py-4 bg-navy-600 text-white flex justify-between items-center">
+            <h3 class="font-bold text-lg flex items-center gap-2">
+                <i data-lucide="user" class="w-5 h-5"></i> Officer Details
+            </h3>
+            <button onclick="closeOfficerDetailsModal()" class="text-white hover:opacity-85"><i data-lucide="x" class="w-6 h-6"></i></button>
+        </div>
+        <div class="p-6 space-y-4 text-slate-700 dark:text-slate-200">
+            <div class="flex items-center space-x-4 pb-4 border-b border-slate-100 dark:border-slate-700">
+                <div class="w-16 h-16 rounded-full bg-navy-55 dark:bg-navy-900/40 text-navy-650 dark:text-blue-400 flex items-center justify-center text-xl font-bold border-2 border-navy-500" id="offInitials">
+                    -
+                </div>
+                <div>
+                    <h4 class="font-bold text-lg text-slate-900 dark:text-white" id="offName">-</h4>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 font-medium" id="offDesig">-</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                    <span class="block text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Employee Code</span>
+                    <span class="font-semibold text-slate-900 dark:text-white" id="offCode">-</span>
+                </div>
+                <div>
+                    <span class="block text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Department</span>
+                    <span class="font-semibold text-slate-900 dark:text-white" id="offDept">-</span>
+                </div>
+                <div>
+                    <span class="block text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Taluka</span>
+                    <span class="font-semibold text-slate-900 dark:text-white" id="offTaluka">-</span>
+                </div>
+                <div>
+                    <span class="block text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Village</span>
+                    <span class="font-semibold text-slate-900 dark:text-white" id="offVillage">-</span>
+                </div>
+            </div>
+            <div class="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="mail" class="w-4 h-4 text-slate-400"></i>
+                    <a href="#" class="text-sm text-navy-600 dark:text-blue-400 hover:underline" id="offEmail">-</a>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i data-lucide="phone" class="w-4 h-4 text-slate-400"></i>
+                    <a href="#" class="text-sm text-navy-600 dark:text-blue-400 hover:underline" id="offMobile">-</a>
+                </div>
+            </div>
+            <div class="flex justify-end pt-4 border-t border-slate-200 dark:border-slate-700">
+                <button onclick="closeOfficerDetailsModal()" class="px-4 py-2 bg-slate-150 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-650 transition-colors">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CIRCULAR DETAILS MODAL -->
+<div id="circularDetailsModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white dark:bg-slate-800 w-full max-w-lg rounded-xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-700 m-4 transition-all transform scale-95 opacity-0 duration-300" id="circularModalCard">
+        <div class="px-6 py-4 bg-amber-600 text-white flex justify-between items-center">
+            <h3 class="font-bold text-lg flex items-center gap-2">
+                <i data-lucide="megaphone" class="w-5 h-5"></i> Circular Details
+            </h3>
+            <button onclick="closeCircularDetailsModal()" class="text-white hover:opacity-85"><i data-lucide="x" class="w-6 h-6"></i></button>
+        </div>
+        <div class="p-6 space-y-4 text-slate-700 dark:text-slate-200">
+            <div>
+                <span class="px-2 py-0.5 rounded-full text-xs font-bold text-slate-750 bg-slate-100" id="circCategory">-</span>
+                <span class="px-2 py-0.5 rounded-full text-xs font-bold ml-2 text-white bg-slate-500" id="circPriority">-</span>
+            </div>
+            <div>
+                <h4 class="font-bold text-xl text-slate-900 dark:text-white" id="circTitle">-</h4>
+                <p class="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                    <i data-lucide="calendar" class="w-3.5 h-3.5"></i> Published on <span id="circPubDate">-</span>
+                </p>
+            </div>
+            <div class="bg-slate-50 dark:bg-slate-700/30 p-4 rounded-lg border border-slate-100 dark:border-slate-700">
+                <p class="text-sm leading-relaxed whitespace-pre-wrap text-slate-700 dark:text-slate-350" id="circDesc">-</p>
+            </div>
+            <div class="hidden flex items-center gap-2.5 p-3 rounded-lg border border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800" id="circAttachmentSection">
+                <i data-lucide="file-text" class="w-5 h-5 text-slate-400"></i>
+                <div class="flex-1 min-w-0">
+                    <p class="text-xs font-semibold text-slate-950 dark:text-white truncate" id="circAttachmentName">-</p>
+                </div>
+                <a href="#" target="_blank" class="px-3 py-1 bg-navy-500 hover:bg-navy-600 text-white rounded text-xs font-bold transition-colors" id="circAttachmentDownload">Download</a>
+            </div>
+            <div class="flex justify-end pt-4 border-t border-slate-200 dark:border-slate-700">
+                <button onclick="closeCircularDetailsModal()" class="px-4 py-2 bg-slate-150 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-650 transition-colors">Close</button>
+            </div>
+        </div>
     </div>
 </div>
 <?php include 'include/tracking_modal.php'; ?>
