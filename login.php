@@ -635,7 +635,7 @@ include 'include/header.php';
             Swal.fire({
                 icon: 'info',
                 title: 'Session Expired',
-                html: '<p style="color:#64748b;font-size:14px;">You were automatically logged out due to <strong>3 minutes of inactivity</strong>.</p><p style="color:#94a3b8;font-size:12px;margin-top:8px;">Please sign in again to continue.</p>',
+                html: '<p style="color:#64748b;font-size:14px;">You were automatically logged out due to <strong>10 minutes of inactivity</strong>.</p><p style="color:#94a3b8;font-size:12px;margin-top:8px;">Please sign in again to continue.</p>',
                 confirmButtonText: 'OK',
                 confirmButtonColor: '#0054a4',
                 customClass: {
