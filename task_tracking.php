@@ -473,14 +473,14 @@ if ($raw_task_id !== '') {
         SELECT t.*,
                u_assigned.full_name    AS assigned_employee,
                u_assigned.designation  AS assigned_designation,
-               u_assigned.phone        AS assigned_phone,
+               u_assigned.mobile       AS assigned_phone,
                r.role_name,
                d.department_name,
                u_creator.full_name     AS created_by_name
           FROM tasks t
           LEFT JOIN users       u_assigned ON u_assigned.user_id  = t.assigned_user_id
           LEFT JOIN roles       r          ON r.role_id            = t.assigned_role_id
-          LEFT JOIN departments d          ON d.id                 = t.department_id
+          LEFT JOIN departments d          ON d.department_id      = t.department_id
           LEFT JOIN users       u_creator  ON u_creator.user_id    = t.created_by
          WHERE $where_clause
          LIMIT 1");

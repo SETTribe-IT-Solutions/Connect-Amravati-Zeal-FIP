@@ -1150,9 +1150,11 @@ include 'include/sidebar.php';
                 <button onclick="Swal.fire({icon: 'info', title: 'Export Unavailable', text: 'The export module is currently offline for maintenance.', confirmButtonColor: '#0069cd'});" class="btn-modern bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm">
                     <i data-lucide="download" class="w-4 h-4 mr-2"></i><?= htmlspecialchars($t['btn_export']) ?>
                 </button>
+                <?php if ($level <= 2): ?>
                 <button onclick="window.location.href='create_task.php?lang=<?= $lang ?>'" class="btn-modern btn-primary shadow-official">
                     <i data-lucide="plus" class="w-4 h-4 mr-2"></i><?= htmlspecialchars($t['btn_allocate']) ?>
                 </button>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -2812,6 +2814,5 @@ fetchNotifications();
         </form>
     </div>
 </div>
-<?php include 'include/tracking_modal.php'; ?>
 <?php include 'include/tracking_modal.php'; ?>
 <?php include 'include/footer.php'; ?>

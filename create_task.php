@@ -318,6 +318,10 @@ if ($conn) {
         $lvl_q->close();
     }
 }
+if ($user_level > 2) {
+    header("Location: dashboard.php?lang=" . $lang);
+    exit();
+}
 
 // Avatar initials
 $parts    = array_filter(explode(' ', trim($sName)));

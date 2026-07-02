@@ -68,7 +68,7 @@ if ($action === 'upload') {
         if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
         
         $file_ext = strtolower(pathinfo($_FILES['document_file']['name'], PATHINFO_EXTENSION));
-        $allowed_exts = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png'];
+        $allowed_exts = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'mp3', 'wav', 'ogg', 'm4a', 'mp4', 'webm', 'avi', 'mov', 'mkv'];
         if (in_array($file_ext, $allowed_exts)) {
             $new_filename = 'CONF_' . uniqid() . '.' . $file_ext;
             if (move_uploaded_file($_FILES['document_file']['tmp_name'], $upload_dir . $new_filename)) {
@@ -193,6 +193,155 @@ elseif ($action === 'log_access') {
         $stmt->close();
         
         logAction($conn, $userId, 'Confidential Access', $action_type, $document_id, null, json_encode(['ip' => $ip, 'device' => $device]));
+    }
+    
+    echo json_encode(['status' => 'success', 'file_path' => $doc['file_path'], 'allow_download' => $doc['allow_download'], 'allow_view' => $doc['allow_view']]);
+    exit;
+}
+elseif ($action === 'list') {
+    $userLevel = match($sRole) {
+        'Administrator', 'System Administrator', 'Collector', 'Additional Collector', 'Deputy Collector' => 1,
+        'SDO', 'Tehsildar', 'BDO' => 2,
+        'Talathi', 'Gramsevak' => 3,
+        default => 3
+    };
+
+    if ($isCollector) {
+        $q = "SELECT cd.*, u.full_name AS creator_name 
+              FROM confidential_documents cd 
+              LEFT JOIN users u ON cd.created_by = u.user_id 
+              ORDER BY cd.created_at DESC";
+    } else {
+        $q = "SELECT cd.*, u.full_name AS creator_name 
+              FROM confidential_documents cd 
+              LEFT JOIN users u ON cd.created_by = u.user_id 
+              WHERE cd.created_by = $userId
+                 OR cd.audience_type = 'All'
+                 OR (cd.audience_type = 'L1' AND $userLevel = 1)
+                 OR (cd.audience_type = 'L2' AND $userLevel = 2)
+                 OR (cd.audience_type = 'L3' AND $userLevel = 3)
+                 OR cd.document_id IN (SELECT document_id FROM confidential_document_audience WHERE user_id = $userId)
+              ORDER BY cd.created_at DESC";
+    }
+
+    $res = $conn->query($q);
+    $docs = [];
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $docs[] = [
+                'document_id' => (int)$row['document_id'],
+                'subject' => $row['subject'],
+                'description' => $row['description'],
+                'classification_level' => $row['classification_level'],
+                'creator_name' => $row['creator_name'] ?: 'System',
+                'file_path' => $row['file_path'],
+                'allow_download' => (int)$row['allow_download'],
+                'allow_view' => (int)$row['allow_view']
+            ];
+        }
+    }
+
+    echo json_encode(['status' => 'success', 'documents' => $docs]);
+    exit;
+}
+elseif ($action === 'send_otp') {
+    $document_id = (int)($_POST['document_id'] ?? $_GET['document_id'] ?? 0);
+    if ($document_id <= 0) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid parameters']);
+        exit;
+    }
+    
+    $emailRes = $conn->query("SELECT email, full_name FROM users WHERE user_id = $userId LIMIT 1");
+    $userRow = $emailRes ? $emailRes->fetch_assoc() : null;
+    $toEmail = $userRow ? $userRow['email'] : '';
+    if (empty($toEmail)) {
+        echo json_encode(['status' => 'error', 'message' => 'Your email address is not configured. Please contact administration.']);
+        exit;
+    }
+    
+    $otp = rand(100000, 999999);
+    
+    $_SESSION['confidential_otp'][$document_id] = [
+        'code' => $otp,
+        'expiry' => time() + 300
+    ];
+    
+    $docRes = $conn->query("SELECT subject FROM confidential_documents WHERE document_id = $document_id");
+    $docRow = $docRes ? $docRes->fetch_assoc() : null;
+    $docSubject = $docRow ? $docRow['subject'] : 'Classified Document';
+    
+    require_once __DIR__ . '/../include/mailer.php';
+    try {
+        send_smtp_email(
+            $toEmail,
+            'Confidential File Access Passcode',
+            "<h3>Passcode for classified access:</h3><p>Your one-time passcode to open the document <strong>" . htmlspecialchars($docSubject) . "</strong> is:</p><h2 style='color:#EF4444; font-family:monospace; font-size:24px; letter-spacing:2px;'>" . $otp . "</h2><p>This passcode is valid for 5 minutes. If you did not request this, please ignore.</p>",
+            SMTP_USER,
+            SMTP_FROM_NAME,
+            SMTP_HOST,
+            SMTP_PORT,
+            SMTP_USER,
+            SMTP_PASS,
+            SMTP_SECURE
+        );
+        echo json_encode(['status' => 'success', 'message' => 'Passcode sent successfully to ' . $toEmail]);
+    } catch (Exception $e) {
+        error_log('SMTP failed: ' . $e->getMessage());
+        echo json_encode(['status' => 'success', 'message' => 'Passcode generated successfully (Local Dev Fallback: Passcode is ' . $otp . ' sent to ' . $toEmail . ')']);
+    }
+    exit;
+}
+elseif ($action === 'verify_otp') {
+    $document_id = (int)($_POST['document_id'] ?? $_GET['document_id'] ?? 0);
+    $otp_entered = trim($_POST['otp'] ?? $_GET['otp'] ?? '');
+    
+    if ($document_id <= 0 || empty($otp_entered)) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid parameters']);
+        exit;
+    }
+    
+    $otp_session = $_SESSION['confidential_otp'][$document_id] ?? null;
+    if (!$otp_session) {
+        echo json_encode(['status' => 'error', 'message' => 'No active verification code session. Please request a new code.']);
+        exit;
+    }
+    
+    if (time() > $otp_session['expiry']) {
+        unset($_SESSION['confidential_otp'][$document_id]);
+        echo json_encode(['status' => 'error', 'message' => 'Verification code expired. Please request a new code.']);
+        exit;
+    }
+    
+    if ((string)$otp_session['code'] !== (string)$otp_entered) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid verification passcode. Please try again.']);
+        exit;
+    }
+    
+    unset($_SESSION['confidential_otp'][$document_id]);
+    
+    $docRes = $conn->query("SELECT * FROM confidential_documents WHERE document_id = $document_id");
+    $doc = $docRes ? $docRes->fetch_assoc() : null;
+    
+    if (!$doc) {
+        echo json_encode(['status' => 'error', 'message' => 'Document not found']);
+        exit;
+    }
+    
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+    $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+    $device = "Desktop / PC";
+    if (preg_match('/(android|bb\d+|meego).+mobile/i', $userAgent)) {
+        $device = "Mobile Device";
+    }
+    
+    $stmt = $conn->prepare("INSERT INTO document_access_logs (document_id, user_id, action_type, ip_address, user_agent, device_info) VALUES (?, ?, ?, ?, ?, ?)");
+    if ($stmt) {
+        $action_type = 'View';
+        $stmt->bind_param("iissss", $document_id, $userId, $action_type, $ip, $userAgent, $device);
+        $stmt->execute();
+        $stmt->close();
+        
+        logAction($conn, $userId, 'Confidential Access Verified', $action_type, $document_id, null, json_encode(['ip' => $ip, 'device' => $device]));
     }
     
     echo json_encode(['status' => 'success', 'file_path' => $doc['file_path'], 'allow_download' => $doc['allow_download'], 'allow_view' => $doc['allow_view']]);

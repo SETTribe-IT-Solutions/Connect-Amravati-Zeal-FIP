@@ -175,7 +175,7 @@ function getDashboardLevel(string $role, mysqli $conn): int {
 }
 
 $level = getDashboardLevel($sRole, $conn);
-if ($level !== 1) {
+if (!in_array($sRole, ['Collector', 'System Administrator', 'Administrator'])) {
     header("Location: dashboard.php?lang=" . $lang);
     exit();
 }
