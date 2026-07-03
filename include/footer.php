@@ -195,7 +195,8 @@
             const isAuthPage = window.location.pathname.indexOf('login.php') !== -1 || window.location.pathname.indexOf('passwordReset.php') !== -1 || window.location.pathname.indexOf('logout.php') !== -1;
             if (!isAuthPage && !document.querySelector('footer.custom-page-footer')) {
                 const footer = document.createElement('footer');
-                footer.className = 'custom-page-footer py-6 border-t border-navy-800 text-slate-400 text-xs flex flex-col lg:flex-row items-center justify-between px-8 gap-4 select-none relative overflow-hidden';
+                footer.className = 'custom-page-footer border-t border-navy-800 text-slate-400 text-xs select-none relative overflow-hidden';
+                footer.style.cssText = 'padding: 10px 24px; min-height: 0;';
                 
                 const currentLang = new URLSearchParams(window.location.search).get('lang') || 'en';
                 const adminLabel = currentLang === 'en' ? 'District Administration, Amravati' : 'जिल्हा प्रशासन, अमरावती';
@@ -209,40 +210,44 @@
                     <!-- Background pattern -->
                     <div class="absolute inset-0 bg-[url('assets/images/gov_bg.png')] opacity-10 bg-cover bg-center mix-blend-overlay"></div>
                     
-                    <!-- Left side: emblem and text -->
-                    <div class="flex items-center space-x-3.5 relative z-10">
-                        <img src="assets/images/maharashtra_seal.jpg" alt="Seal of Maharashtra" class="h-12 w-auto" style="filter: invert(1); mix-blend-mode: screen;">
-                        <div class="flex flex-col text-left">
-                            <span class="font-bold text-white leading-tight">${officeLabel}</span>
-                            <span class="text-[10px] text-slate-400 font-medium">${adminLabel}</span>
+                    <!-- Single compact row -->
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; position:relative; z-index:10; flex-wrap:wrap;">
+                        
+                        <!-- Left: Emblem + Office name -->
+                        <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
+                            <img src="assets/images/maharashtra_seal.jpg" alt="Seal of Maharashtra" style="height:32px; width:auto; filter:invert(1); mix-blend-mode:screen;">
+                            <div style="display:flex; flex-direction:column; line-height:1.3;">
+                                <span style="font-weight:700; color:#fff; font-size:11px; white-space:nowrap;">${officeLabel}</span>
+                                <span style="font-size:9px; color:#94a3b8;">${adminLabel}</span>
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- Middle side: contact info columns -->
-                    <div class="flex flex-col sm:flex-row items-center sm:space-x-8 gap-2.5 relative z-10 text-slate-350">
-                        <div class="flex items-center space-x-2">
-                            <i data-lucide="phone" class="w-4 h-4 text-amber-500"></i>
-                            <span class="font-semibold text-xs text-white">0721-2661001</span>
+                        <!-- Center: Contact info in one row -->
+                        <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap; justify-content:center;">
+                            <div style="display:flex; align-items:center; gap:5px;">
+                                <i data-lucide="phone" style="width:12px; height:12px; color:#f59e0b; flex-shrink:0;"></i>
+                                <span style="color:#fff; font-size:11px; font-weight:600; white-space:nowrap;">0721-2661001</span>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:5px;">
+                                <i data-lucide="mail" style="width:12px; height:12px; color:#60a5fa; flex-shrink:0;"></i>
+                                <span style="color:#fff; font-size:11px; font-weight:600; white-space:nowrap;">collector.amravati@maharashtra.gov.in</span>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:5px;">
+                                <i data-lucide="map-pin" style="width:12px; height:12px; color:#34d399; flex-shrink:0;"></i>
+                                <span style="color:#fff; font-size:11px; font-weight:600; white-space:nowrap;">${addrLabel}</span>
+                            </div>
                         </div>
-                        <div class="flex items-center space-x-2">
-                            <i data-lucide="mail" class="w-4 h-4 text-blue-400"></i>
-                            <span class="font-semibold text-xs text-white">collector.amravati@maharashtra.gov.in</span>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <i data-lucide="map-pin" class="w-4 h-4 text-emerald-400"></i>
-                            <span class="font-semibold text-xs text-white">${addrLabel}</span>
-                        </div>
-                    </div>
 
-                    <!-- Right side: Copyright & Policy Links -->
-                    <div class="flex flex-col items-center lg:items-end gap-1.5 relative z-10 text-slate-400 font-medium">
-                        <span>© 2026 AMRAVATI CONNECT. All rights reserved.</span>
-                        <div class="flex items-center space-x-3 text-[10px] text-slate-500">
-                            <a href="#" class="hover:text-white transition-colors" style="text-decoration: none;">${privacyLabel}</a>
-                            <span>|</span>
-                            <a href="#" class="hover:text-white transition-colors" style="text-decoration: none;">${termsLabel}</a>
-                            <span>|</span>
-                            <a href="#" class="hover:text-white transition-colors" style="text-decoration: none;">${accessLabel}</a>
+                        <!-- Right: Copyright & Links -->
+                        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:3px; flex-shrink:0;">
+                            <span style="color:#cbd5e1; font-size:10px; white-space:nowrap;">© 2026 AMRAVATI CONNECT. All rights reserved.</span>
+                            <div style="display:flex; align-items:center; gap:8px; font-size:10px; color:#64748b;">
+                                <a href="#" style="color:#64748b; text-decoration:none; transition:color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#64748b'">${privacyLabel}</a>
+                                <span>|</span>
+                                <a href="#" style="color:#64748b; text-decoration:none; transition:color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#64748b'">${termsLabel}</a>
+                                <span>|</span>
+                                <a href="#" style="color:#64748b; text-decoration:none; transition:color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#64748b'">${accessLabel}</a>
+                            </div>
                         </div>
                     </div>
                 `;
