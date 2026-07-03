@@ -143,7 +143,14 @@ $translations = [
         'toast_warning' => 'warning',
         'toast_success' => 'success',
         
-        'char_counter' => '%d / 255 characters'
+        'char_counter' => '%d / 255 characters',
+
+        // Wizard pagination
+        'wizard_step1' => 'Task Details & Allocation',
+        'wizard_step2' => 'Attachments, Schedule & Priority',
+        'btn_next' => 'Next: Schedule & Attachments',
+        'btn_prev' => 'Previous: Task Details',
+        'wizard_step_of' => 'Step %d of %d'
     ],
     'mr' => [
         // Sidebar & Header Menu
@@ -273,7 +280,14 @@ $translations = [
         'toast_warning' => 'चेतावणी',
         'toast_success' => 'यशस्वी',
         
-        'char_counter' => '%d / २५५ अक्षरे'
+        'char_counter' => '%d / २५५ अक्षरे',
+
+        // Wizard pagination
+        'wizard_step1' => 'कार्य तपशील आणि वाटप',
+        'wizard_step2' => 'संलग्नक, वेळापत्रक आणि प्राधान्य',
+        'btn_next' => 'पुढे: वेळापत्रक आणि संलग्नक',
+        'btn_prev' => 'मागे: कार्य तपशील',
+        'wizard_step_of' => 'पायरी %d पैकी %d'
     ]
 ];
 
@@ -844,6 +858,125 @@ $extraHead = <<<'EOT'
         }
         .step-dot.active { background: #1a365d; }
 
+        /* ── Wizard Page Stepper ── */
+        .wizard-stepper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 2rem;
+        }
+        .wizard-step {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            padding: 0.625rem 1.25rem;
+            border-radius: 0.75rem;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .wizard-step .ws-num {
+            width: 2rem; height: 2rem;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.8rem; font-weight: 700;
+            border: 2px solid #cbd5e1;
+            color: #94a3b8;
+            background: #fff;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+        .dark .wizard-step .ws-num { background: #1e293b; border-color: #475569; color: #64748b; }
+        .wizard-step.active .ws-num {
+            background: linear-gradient(135deg, #1a365d, #2563eb);
+            border-color: #2563eb;
+            color: #fff;
+            box-shadow: 0 0 0 4px rgba(37,99,235,0.15);
+        }
+        .wizard-step.completed .ws-num {
+            background: linear-gradient(135deg, #059669, #10b981);
+            border-color: #10b981;
+            color: #fff;
+        }
+        .wizard-step .ws-label {
+            font-size: 0.8125rem; font-weight: 600;
+            color: #94a3b8;
+            transition: color 0.3s;
+            white-space: nowrap;
+        }
+        .wizard-step.active .ws-label { color: #1e293b; }
+        .dark .wizard-step.active .ws-label { color: #f1f5f9; }
+        .wizard-step.completed .ws-label { color: #059669; }
+        .wizard-connector {
+            width: 4rem; height: 2px;
+            background: #e2e8f0;
+            transition: background 0.3s;
+            flex-shrink: 0;
+        }
+        .dark .wizard-connector { background: #334155; }
+        .wizard-connector.done { background: linear-gradient(90deg, #10b981, #2563eb); }
+
+        /* Wizard pages */
+        .wizard-page { display: none; animation: wizardFadeIn 0.35s ease both; }
+        .wizard-page.active { display: block; }
+        @keyframes wizardFadeIn {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Wizard nav buttons */
+        .wizard-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1.5rem;
+            gap: 1rem;
+        }
+        .wizard-nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.75rem;
+            border-radius: 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+        .wizard-nav-btn:hover { transform: translateY(-1px); }
+        .wizard-nav-btn:active { transform: translateY(0); }
+        .wizard-nav-btn.btn-next {
+            background: linear-gradient(135deg, #1a365d, #2563eb);
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(37,99,235,0.25);
+        }
+        .wizard-nav-btn.btn-next:hover {
+            box-shadow: 0 6px 20px rgba(37,99,235,0.35);
+        }
+        .wizard-nav-btn.btn-prev {
+            background: #fff;
+            color: #475569;
+            border: 1.5px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+        .dark .wizard-nav-btn.btn-prev {
+            background: #1e293b;
+            color: #cbd5e1;
+            border-color: #475569;
+        }
+        .wizard-nav-btn.btn-prev:hover {
+            border-color: #94a3b8;
+            background: #f8fafc;
+        }
+        .dark .wizard-nav-btn.btn-prev:hover { background: #334155; }
+        .wizard-page-indicator {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: #94a3b8;
+        }
+
         /* Animate in */
         @keyframes fadeSlideIn {
             from { opacity: 0; transform: translateY(12px); }
@@ -1010,6 +1143,21 @@ include 'include/sidebar.php';
         <?php endif; ?>
         <form method="POST" enctype="multipart/form-data" id="createTaskForm" novalidate>
 
+            <!-- ── Wizard Stepper ── -->
+            <div class="wizard-stepper" id="wizardStepper">
+                <div class="wizard-step active" id="ws1" onclick="goToWizardPage(1)">
+                    <span class="ws-num">1</span>
+                    <span class="ws-label"><?= htmlspecialchars($t['wizard_step1'] ?? 'Task Details & Allocation') ?></span>
+                </div>
+                <div class="wizard-connector" id="wc1"></div>
+                <div class="wizard-step" id="ws2" onclick="goToWizardPage(2)">
+                    <span class="ws-num">2</span>
+                    <span class="ws-label"><?= htmlspecialchars($t['wizard_step2'] ?? 'Attachments, Schedule & Priority') ?></span>
+                </div>
+            </div>
+
+            <!-- ═══════ WIZARD PAGE 1: Task Details & Allocation ═══════ -->
+            <div class="wizard-page active" id="wizardPage1">
 
             <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
 

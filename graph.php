@@ -486,11 +486,12 @@ function makeBarChart(id, labels, values, color) {
             datasets: [{ label: 'Completion %', data: values.slice(0,15), backgroundColor: color, borderRadius: 6 }]
         },
         options: {
+            indexAxis: 'y',
             responsive: true,
             plugins: { legend: { display: false } },
             scales: {
-                y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: '#e2e8f0' } },
-                x: { ticks: { font: { size: 10 }, maxRotation: 30 }, grid: { display: false } }
+                x: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: '#e2e8f0' } },
+                y: { ticks: { font: { size: 10 } }, grid: { display: false } }
             }
         }
     });

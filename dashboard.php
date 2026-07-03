@@ -550,16 +550,20 @@ function getDistrictStats(mysqli $conn): array {
                     / NULLIF(COUNT(DISTINCT t.task_id),0)*100, 1), 0.0)    AS rate
             FROM talukas tk
             LEFT JOIN (
-                SELECT t.task_id, t.status, t.due_date, COALESCE(t.taluka_id, u.taluka_id) AS taluka_id
-                FROM tasks t
-                LEFT JOIN task_assignments ta ON t.task_id = ta.task_id
-                LEFT JOIN users u ON ta.assigned_to_user = u.user_id
-            ) t ON tk.taluka_id = t.taluka_id
+                SELECT t2.task_id, t2.status, t2.due_date, COALESCE(t2.taluka_id, u2.taluka_id) AS eff_taluka_id
+                FROM tasks t2
+                LEFT JOIN task_assignments ta2 ON t2.task_id = ta2.task_id
+                LEFT JOIN users u2 ON ta2.assigned_to_user = u2.user_id
+            ) t ON t.eff_taluka_id = tk.taluka_id
+            WHERE LOWER(tk.taluka_name) != 'unknown'
             GROUP BY tk.taluka_id, tk.taluka_name
             ORDER BY rate DESC, tk.taluka_name ASC
         ");
         if ($res) {
-            while ($row = $res->fetch_assoc()) $out['talukas'][] = $row;
+            while ($row = $res->fetch_assoc()) {
+                $row['rate'] = $row['rate'] ?? 0;
+                $out['talukas'][] = $row;
+            }
         }
 
      } catch (mysqli_sql_exception $e) {
@@ -600,7 +604,7 @@ function getTalukaStats(mysqli $conn, int $talukaId): array {
         /* ── Village breakdown ─────────────────────────────────── */
         $st = $conn->prepare("
             SELECT
-              COALESCE(v.village_name, 'Unknown')                          AS village,
+              v.village_name                                               AS village,
               COUNT(DISTINCT t.task_id)                                    AS total,
               COUNT(DISTINCT CASE WHEN t.status='Completed' THEN t.task_id END) AS completed,
               COUNT(DISTINCT CASE WHEN t.status='Pending'   THEN t.task_id END) AS pending,
@@ -611,6 +615,7 @@ function getTalukaStats(mysqli $conn, int $talukaId): array {
             LEFT JOIN users u ON ta.assigned_to_user = u.user_id
             LEFT JOIN villages v ON COALESCE(t.village_id, u.village_id) = v.village_id
             WHERE (t.taluka_id = ? OR u.taluka_id = ?)
+              AND v.village_id IS NOT NULL
             GROUP BY v.village_name, COALESCE(t.village_id, u.village_id)
             ORDER BY total DESC LIMIT 10
         ");
@@ -1286,7 +1291,11 @@ include 'include/sidebar.php';
                     }
 
                     foreach ($dkpi as [$label,$val,$icon,$clr,$trendIcon,$trendTxt,$trendUp,$filterStatus]):
-                        $linkUrl = "task_tracking.php?lang={$lang}&filter_status=" . urlencode($filterStatus);
+                        if ($filterStatus === 'Overdue') {
+                            $linkUrl = "reports.php?lang={$lang}&tab=assigned&status=Overdue";
+                        } else {
+                            $linkUrl = "task_tracking.php?lang={$lang}&filter_status=" . urlencode($filterStatus);
+                        }
                     ?>
                     <a href="<?= htmlspecialchars($linkUrl) ?>" class="block transition-transform hover:scale-105 cursor-pointer" style="text-decoration: none;">
                         <div class="kpi-card bg-gradient-to-br from-<?= $clr ?>-50 to-white dark:from-<?= $clr ?>-900/40 dark:to-slate-800 overflow-hidden shadow-sm
@@ -1353,7 +1362,7 @@ include 'include/sidebar.php';
                                 <i data-lucide="more-vertical" class="w-5 h-5"></i>
                             </button>
                         </div>
-                        <div id="chart-dist-bar" class="h-72 w-full"></div>
+                        <div id="chart-dist-bar" class="w-full"></div>
                     </div>
                 </div>
 
@@ -1412,7 +1421,7 @@ include 'include/sidebar.php';
                                 <?= $lang === 'en' ? 'Top Officer Performance (Task Completion)' : 'वरिष्ठ अधिकारी कामगिरी (कार्य पूर्णता)' ?>
                             </h2>
                         </div>
-                        <div id="chart-dist-performance" class="h-72 w-full"></div>
+                        <div id="chart-dist-performance" class="w-full"></div>
                     </div>
                 </div>
 
@@ -1499,29 +1508,11 @@ include 'include/sidebar.php';
                     <div class="bg-white dark:bg-slate-800 px-4 py-3 border-t border-slate-200
                                 dark:border-slate-700 flex items-center justify-between sm:px-6">
                         <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                            <p class="text-sm text-slate-700 dark:text-slate-400">
+                            <p class="text-sm text-slate-700 dark:text-slate-400" id="talukaTableShowingText">
                                 <?= sprintf($t['showing_results'], count($distData['talukas']), number_format($distData['total'])) ?>
                             </p>
-                            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                                <a href="#" onclick="Swal.fire({icon: 'info', title: 'Pagination', text: 'More data is coming soon.', confirmButtonColor: '#0069cd'}); return false;" class="relative inline-flex items-center px-2 py-2 rounded-l-md
-                                    border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700
-                                    text-sm font-medium text-slate-500 dark:text-slate-300
-                                    hover:bg-slate-50 dark:hover:bg-slate-600">
-                                    <i data-lucide="chevron-left" class="h-5 w-5"></i>
-                                </a>
-                                <a href="#" aria-current="page"
-                                   class="z-10 bg-navy-50 dark:bg-navy-900 border-navy-500 dark:border-navy-400
-                                          text-navy-600 dark:text-blue-400
-                                          relative inline-flex items-center px-4 py-2 border text-sm font-medium">1</a>
-                                <a href="#" class="bg-white dark:bg-slate-700 border-slate-300
-                                    dark:border-slate-600 text-slate-500 dark:text-slate-300
-                                    hover:bg-slate-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">2</a>
-                                <a href="#" onclick="Swal.fire({icon: 'info', title: 'Pagination', text: 'More data is coming soon.', confirmButtonColor: '#0069cd'}); return false;" class="relative inline-flex items-center px-2 py-2 rounded-r-md
-                                    border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700
-                                    text-sm font-medium text-slate-500 dark:text-slate-300
-                                    hover:bg-slate-50 dark:hover:bg-slate-600">
-                                    <i data-lucide="chevron-right" class="h-5 w-5"></i>
-                                </a>
+                            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" id="talukaTablePaginationNav">
+                                <!-- Populated dynamically by JS -->
                             </nav>
                         </div>
                     </div>
@@ -1569,7 +1560,11 @@ include 'include/sidebar.php';
                         [$t['kpi_overdue'],  $talData['overdue'],   'alert-octagon','red',    'alert-triangle', $lang === 'en' ? '5 Req' : '५ कृती आवश्यक', false, 'Overdue'],
                     ];
                     foreach ($tkpi as [$label,$val,$icon,$clr,$tIcon,$tTxt,$tUp,$filterStatus]):
-                        $linkUrl = "task_tracking.php?lang={$lang}&filter_status=" . urlencode($filterStatus);
+                        if ($filterStatus === 'Overdue') {
+                            $linkUrl = "reports.php?lang={$lang}&tab=assigned&status=Overdue";
+                        } else {
+                            $linkUrl = "task_tracking.php?lang={$lang}&filter_status=" . urlencode($filterStatus);
+                        }
                     ?>
                     <a href="<?= htmlspecialchars($linkUrl) ?>" class="block transition-transform hover:scale-105 cursor-pointer" style="text-decoration: none;">
                         <div class="kpi-card bg-gradient-to-br from-<?= $clr ?>-50 to-white dark:from-<?= $clr ?>-900/40 dark:to-slate-800 overflow-hidden shadow-sm
@@ -1646,7 +1641,7 @@ include 'include/sidebar.php';
                             <i data-lucide="more-vertical" class="w-5 h-5"></i>
                         </button>
                     </div>
-                    <div id="chart-tal-bar" class="h-60 w-full"></div>
+                    <div id="chart-tal-bar" class="w-full"></div>
                 </div>
 
                 <!-- New Taluka Graphs -->
@@ -1687,7 +1682,7 @@ include 'include/sidebar.php';
                                 <?= $lang === 'en' ? 'Taluka Officer Performance' : 'तालुका अधिकारी कामगिरी' ?>
                             </h2>
                         </div>
-                        <div id="chart-tal-performance" class="h-72 w-full"></div>
+                        <div id="chart-tal-performance" class="w-full"></div>
                     </div>
                 </div>
 
@@ -1798,7 +1793,11 @@ include 'include/sidebar.php';
                         [$t['kpi_overdue_tasks'],       $vilData['overdue'],   'alert-octagon','red',    'alert-triangle', $t['kpi_urgent'], false, 'Overdue'],
                     ];
                     foreach ($vkpi as [$label,$val,$icon,$clr,$tIcon,$tTxt,$tUp,$filterStatus]):
-                        $linkUrl = "task_tracking.php?lang={$lang}&filter_status=" . urlencode($filterStatus);
+                        if ($filterStatus === 'Overdue') {
+                            $linkUrl = "reports.php?lang={$lang}&tab=assigned&status=Overdue";
+                        } else {
+                            $linkUrl = "task_tracking.php?lang={$lang}&filter_status=" . urlencode($filterStatus);
+                        }
                     ?>
                     <a href="<?= htmlspecialchars($linkUrl) ?>" class="block transition-transform hover:scale-105 cursor-pointer" style="text-decoration: none;">
                         <div class="kpi-card bg-gradient-to-br from-<?= $clr ?>-50 to-white dark:from-<?= $clr ?>-900/40 dark:to-slate-800 overflow-hidden shadow-sm
@@ -2024,27 +2023,11 @@ include 'include/sidebar.php';
                     <div class="bg-white dark:bg-slate-800 px-4 py-3 border-t border-slate-200
                                 dark:border-slate-700 flex items-center justify-between sm:px-6">
                         <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                            <p class="text-sm text-slate-700 dark:text-slate-400">
+                            <p class="text-sm text-slate-700 dark:text-slate-400" id="taskTableShowingText">
                                 <?= sprintf($t['showing_results'], count($vilData['tasks']), number_format($vilData['total'])) ?>
                             </p>
-                            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                                <a href="#" onclick="Swal.fire({icon: 'info', title: 'Pagination', text: 'More data is coming soon.', confirmButtonColor: '#0069cd'}); return false;" class="relative inline-flex items-center px-2 py-2 rounded-l-md border
-                                    border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm
-                                    font-medium text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600">
-                                    <i data-lucide="chevron-left" class="h-5 w-5"></i>
-                                </a>
-                                <a href="#" aria-current="page"
-                                   class="z-10 bg-navy-50 dark:bg-navy-900 border-navy-500 dark:border-navy-400
-                                          text-navy-600 dark:text-blue-400 relative inline-flex items-center
-                                          px-4 py-2 border text-sm font-medium">1</a>
-                                <a href="#" class="bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600
-                                    text-slate-500 dark:text-slate-300 hover:bg-slate-50 relative inline-flex
-                                    items-center px-4 py-2 border text-sm font-medium">2</a>
-                                <a href="#" onclick="Swal.fire({icon: 'info', title: 'Pagination', text: 'More data is coming soon.', confirmButtonColor: '#0069cd'}); return false;" class="relative inline-flex items-center px-2 py-2 rounded-r-md border
-                                    border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm
-                                    font-medium text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600">
-                                    <i data-lucide="chevron-right" class="h-5 w-5"></i>
-                                </a>
+                            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" id="taskTablePaginationNav">
+                                <!-- Populated dynamically by JS -->
                             </nav>
                         </div>
                     </div>
@@ -2090,6 +2073,12 @@ window.addEventListener('load', function() {
     function tryBuild(attempts) {
         if (typeof ApexCharts !== 'undefined') {
             buildAllCharts(prefersDark);
+            if (typeof updateTalukaTablePage === 'function') {
+                updateTalukaTablePage(1);
+            }
+            if (typeof updateTaskTablePage === 'function') {
+                updateTaskTablePage(1);
+            }
         } else if (attempts > 0) {
             setTimeout(() => tryBuild(attempts - 1), 300);
         } else {
@@ -2133,29 +2122,196 @@ function toggleSec(id) {
 }
 
 /* ── Taluka Table Filter ─────────────────────────────────────── */
-function filterTalukaRows() {
+/* ── Taluka Table Pagination & Filter ─────────────────────────── */
+let currentTalukaPage = 1;
+const talukaRowsPerPage = 7;
+
+function updateTalukaTablePage(page) {
+    currentTalukaPage = page;
     const filterSelect = document.getElementById('talukaTableFilter');
     const selectedTaluka = filterSelect ? filterSelect.value : '';
-    document.querySelectorAll('#talukaPerformanceTable .taluka-row').forEach(row => {
-        if (!selectedTaluka || row.dataset.taluka === selectedTaluka) {
+    
+    const rows = Array.from(document.querySelectorAll('#talukaPerformanceTable .taluka-row'));
+    
+    // First, filter by dropdown selection
+    const activeRows = rows.filter(row => !selectedTaluka || row.dataset.taluka === selectedTaluka);
+    
+    const totalActive = activeRows.length;
+    const totalPages = Math.ceil(totalActive / talukaRowsPerPage) || 1;
+    
+    // Bound page
+    if (currentTalukaPage < 1) currentTalukaPage = 1;
+    if (currentTalukaPage > totalPages) currentTalukaPage = totalPages;
+    
+    // Hide all first
+    rows.forEach(r => r.style.display = 'none');
+    
+    // Show only the ones on current page
+    const startIdx = (currentTalukaPage - 1) * talukaRowsPerPage;
+    const endIdx = Math.min(startIdx + talukaRowsPerPage, totalActive);
+    
+    activeRows.forEach((row, idx) => {
+        if (idx >= startIdx && idx < endIdx) {
             row.style.display = '';
-        } else {
-            row.style.display = 'none';
         }
     });
+    
+    // Update showing text
+    const showingStart = totalActive > 0 ? startIdx + 1 : 0;
+    updateTalukaShowingText(showingStart, endIdx, totalActive);
+    
+    // Update pagination controls
+    updateTalukaPaginationControls(totalPages);
 }
 
-/* ── Status Filter ─────────────────────────────────────────── */
-function filterRows() {
-    const statusVal = document.getElementById('statusFilter') ? document.getElementById('statusFilter').value : '';
+function updateTalukaShowingText(start, end, total) {
+    const p = document.getElementById('talukaTableShowingText');
+    if (!p) return;
+    const isMr = <?= $lang === 'mr' ? 'true' : 'false' ?>;
+    if (isMr) {
+        p.innerHTML = `एकूण <span class="font-medium text-slate-900 dark:text-white">${total}</span> पैकी <span class="font-medium text-slate-900 dark:text-white">${start}</span> ते <span class="font-medium text-slate-900 dark:text-white">${end}</span> निकाल दर्शवित आहे`;
+    } else {
+        p.innerHTML = `Showing <span class="font-medium text-slate-900 dark:text-white">${start}</span> to <span class="font-medium text-slate-900 dark:text-white">${end}</span> of <span class="font-medium text-slate-900 dark:text-white">${total}</span> results`;
+    }
+}
+
+function updateTalukaPaginationControls(totalPages) {
+    const nav = document.getElementById('talukaTablePaginationNav');
+    if (!nav) return;
+    
+    let html = '';
+    
+    // Previous button
+    const prevDisabled = currentTalukaPage === 1;
+    html += `<a href="#" onclick="${prevDisabled ? 'return false;' : `updateTalukaTablePage(${currentTalukaPage - 1}); return false;`}" 
+                class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm font-medium ${prevDisabled ? 'text-slate-300 dark:text-slate-500 cursor-not-allowed' : 'text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600'}">
+                <i data-lucide="chevron-left" class="h-5 w-5"></i>
+             </a>`;
+             
+    // Page numbers
+    for (let i = 1; i <= totalPages; i++) {
+        const isCurrent = i === currentTalukaPage;
+        if (isCurrent) {
+            html += `<a href="#" aria-current="page" class="z-10 bg-navy-50 dark:bg-navy-900 border-navy-500 dark:border-navy-400 text-navy-600 dark:text-blue-400 relative inline-flex items-center px-4 py-2 border text-sm font-medium">${i}</a>`;
+        } else {
+            html += `<a href="#" onclick="updateTalukaTablePage(${i}); return false;" class="bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-300 hover:bg-slate-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">${i}</a>`;
+        }
+    }
+    
+    // Next button
+    const nextDisabled = currentTalukaPage === totalPages;
+    html += `<a href="#" onclick="${nextDisabled ? 'return false;' : `updateTalukaTablePage(${currentTalukaPage + 1}); return false;`}" 
+                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm font-medium ${nextDisabled ? 'text-slate-300 dark:text-slate-500 cursor-not-allowed' : 'text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600'}">
+                <i data-lucide="chevron-right" class="h-5 w-5"></i>
+             </a>`;
+             
+    nav.innerHTML = html;
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+function filterTalukaRows() {
+    updateTalukaTablePage(1);
+}
+
+/* ── Status Filter & Task Pagination ───────────────────────────── */
+let currentTaskPage = 1;
+const taskRowsPerPage = 10;
+
+function updateTaskTablePage(page) {
+    currentTaskPage = page;
+    const filterSelect = document.getElementById('statusFilter');
+    const selectedStatus = filterSelect ? filterSelect.value : '';
     const searchInput = document.getElementById('globalSearch');
     const searchVal = searchInput ? searchInput.value.toLowerCase() : '';
     
-    document.querySelectorAll('#taskTable .task-row').forEach(r => {
-        const statusMatch = (!statusVal || r.dataset.status === statusVal);
+    const rows = Array.from(document.querySelectorAll('#taskTable .task-row'));
+    
+    // First, filter by dropdown and search input
+    const activeRows = rows.filter(r => {
+        const statusMatch = (!selectedStatus || r.dataset.status === selectedStatus);
         const textMatch = (!searchVal || r.textContent.toLowerCase().includes(searchVal));
-        r.style.display = (statusMatch && textMatch) ? '' : 'none';
+        return statusMatch && textMatch;
     });
+    
+    const totalActive = activeRows.length;
+    const totalPages = Math.ceil(totalActive / taskRowsPerPage) || 1;
+    
+    // Bound page
+    if (currentTaskPage < 1) currentTaskPage = 1;
+    if (currentTaskPage > totalPages) currentTaskPage = totalPages;
+    
+    // Hide all first
+    rows.forEach(r => r.style.display = 'none');
+    
+    // Show only the ones on current page
+    const startIdx = (currentTaskPage - 1) * taskRowsPerPage;
+    const endIdx = Math.min(startIdx + taskRowsPerPage, totalActive);
+    
+    activeRows.forEach((row, idx) => {
+        if (idx >= startIdx && idx < endIdx) {
+            row.style.display = '';
+        }
+    });
+    
+    // Update showing text
+    const showingStart = totalActive > 0 ? startIdx + 1 : 0;
+    updateTaskShowingText(showingStart, endIdx, totalActive);
+    
+    // Update pagination controls
+    updateTaskPaginationControls(totalPages);
+}
+
+function updateTaskShowingText(start, end, total) {
+    const p = document.getElementById('taskTableShowingText');
+    if (!p) return;
+    const isMr = <?= $lang === 'mr' ? 'true' : 'false' ?>;
+    if (isMr) {
+        p.innerHTML = `एकूण <span class="font-medium text-slate-900 dark:text-white">${total}</span> पैकी <span class="font-medium text-slate-900 dark:text-white">${start}</span> ते <span class="font-medium text-slate-900 dark:text-white">${end}</span> निकाल दर्शवित आहे`;
+    } else {
+        p.innerHTML = `Showing <span class="font-medium text-slate-900 dark:text-white">${start}</span> to <span class="font-medium text-slate-900 dark:text-white">${end}</span> of <span class="font-medium text-slate-900 dark:text-white">${total}</span> results`;
+    }
+}
+
+function updateTaskPaginationControls(totalPages) {
+    const nav = document.getElementById('taskTablePaginationNav');
+    if (!nav) return;
+    
+    let html = '';
+    
+    // Previous button
+    const prevDisabled = currentTaskPage === 1;
+    html += `<a href="#" onclick="${prevDisabled ? 'return false;' : `updateTaskTablePage(${currentTaskPage - 1}); return false;`}" 
+                class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm font-medium ${prevDisabled ? 'text-slate-300 dark:text-slate-500 cursor-not-allowed' : 'text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600'}">
+                <i data-lucide="chevron-left" class="h-5 w-5"></i>
+             </a>`;
+             
+    // Page numbers
+    for (let i = 1; i <= totalPages; i++) {
+        const isCurrent = i === currentTaskPage;
+        if (isCurrent) {
+            html += `<a href="#" aria-current="page" class="z-10 bg-navy-50 dark:bg-navy-900 border-navy-500 dark:border-navy-400 text-navy-600 dark:text-blue-400 relative inline-flex items-center px-4 py-2 border text-sm font-medium">${i}</a>`;
+        } else {
+            html += `<a href="#" onclick="updateTaskTablePage(${i}); return false;" class="bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-300 hover:bg-slate-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">${i}</a>`;
+        }
+    }
+    
+    // Next button
+    const nextDisabled = currentTaskPage === totalPages;
+    html += `<a href="#" onclick="${nextDisabled ? 'return false;' : `updateTaskTablePage(${currentTaskPage + 1}); return false;`}" 
+                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm font-medium ${nextDisabled ? 'text-slate-300 dark:text-slate-500 cursor-not-allowed' : 'text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600'}">
+                <i data-lucide="chevron-right" class="h-5 w-5"></i>
+             </a>`;
+             
+    nav.innerHTML = html;
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+function filterRows() {
+    updateTaskTablePage(1);
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -2569,16 +2725,17 @@ function buildHBar(el, data, cats, color, isDark) {
 function buildStackedBar(el, seriesArr, cats, colors, isDark) {
     const tc = isDark ? '#94a3b8' : '#64748b';
     const gc = isDark ? '#1e3a5f33' : '#e2e8f0';
+    const h  = Math.max(240, cats.length * 36 + 60);
     return new ApexCharts(el, {
         series: seriesArr, colors,
-        chart:{height:240, type:'bar', stacked:true, fontFamily:'Inter,sans-serif',
+        chart:{height:h, type:'bar', stacked:true, fontFamily:'Inter,sans-serif',
                toolbar:{show:false}, background:isDark?'#1e293b':'#ffffff',
                animations:{enabled:true,easing:'easeinout',speed:900}},
-        plotOptions:{bar:{borderRadius:4,columnWidth:'55%',
+        plotOptions:{bar:{borderRadius:4,horizontal:true,barHeight:'55%',
             borderRadiusApplication:'end',borderRadiusWhenStacked:'last'}},
         dataLabels:{enabled:false},
-        xaxis:{categories:cats, labels:{..._ax(tc),rotate:-35,trim:true,maxHeight:60}},
-        yaxis:{labels:_ax(tc)},
+        xaxis:{categories:cats, labels:_ax(tc)},
+        yaxis:{labels:{..._ax(tc), maxWidth:160}},
         grid:{borderColor:gc,strokeDashArray:4},
         legend:{position:'top',fontFamily:'Inter,sans-serif',fontSize:'12px',labels:{colors:tc},
                 markers:{width:8,height:8,radius:8}},

@@ -266,9 +266,9 @@
     (() => {
         'use strict';
 
-        const TIMEOUT_MS       = 3 * 60 * 1000;   // 3 minutes total
-        const WARNING_AT_MS    = 2.5 * 60 * 1000;  // Show warning at 2:30
-        const COUNTDOWN_SEC    = 30;                // 30-second countdown in warning
+        const TIMEOUT_MS       = 10 * 60 * 1000;   // 10 minutes total
+        const WARNING_AT_MS    = 9 * 60 * 1000;    // Show warning at 9:00
+        const COUNTDOWN_SEC    = 60;                // 60-second countdown in warning
         const LOGOUT_URL       = 'logout.php?reason=inactivity';
         const TRACKED_EVENTS   = ['mousemove', 'mousedown', 'click', 'keydown', 'scroll', 'touchstart', 'touchmove'];
 
@@ -444,7 +444,7 @@
             }
         });
 
-        console.log('[Session Guard] Inactivity auto-logout initialized (3 min timeout)');
+        console.log('[Session Guard] Inactivity auto-logout initialized (10 min timeout)');
     })();
     </script>
     <?php endif; ?>
