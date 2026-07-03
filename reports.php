@@ -861,11 +861,11 @@ include 'include/sidebar.php';
                             <?= ' (' . htmlspecialchars($headerLocationDisplay) . ')' ?>
                         </span>
                     </div>
-                    <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-sm">
+                    <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border border-amber-500/40 shadow-sm">
                         <?= htmlspecialchars($initials ?? 'U') ?>
                     </div>
                 </button>
-                <div id="profileDropdownMenu" class="hidden absolute right-0 mt-2 w-48 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md z-50">
+                <div id="profileDropdownMenu" class="hidden absolute right-0 top-full mt-2 w-48 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md z-50 text-left">
                     <div class="py-1">
                         <a href="profile_update.php?lang=<?= $lang ?? 'en' ?>" class="flex items-center px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
                             <i data-lucide="user" class="w-4 h-4 mr-2 text-slate-400"></i><?= ($lang ?? 'en') === 'en' ? 'User Profile Update' : 'वापरकर्ता प्रोफाइल अपडेट' ?>
@@ -954,25 +954,25 @@ include 'include/sidebar.php';
 
         <!-- KPI Cards -->
         <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6 no-print">
-            <a href="reports.php?lang=<?= $lang ?>&tab=<?= $activeTab ?>&status=All" class="block kpi-card bg-gradient-to-br from-blue-50 to-white dark:from-slate-800 dark:to-slate-900 p-5 rounded-xl border-l-4 border-blue-500 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200 cursor-pointer">
-                <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_total']) ?></p>
+            <a href="reports.php?lang=<?= $lang ?>&tab=<?= $activeTab ?>&status=All" class="block kpi-card kpi-blue p-5 hover:scale-[1.02] cursor-pointer">
+                <p class="text-xs font-semibold text-slate-450 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_total']) ?></p>
                 <p id="kpi-total" class="text-2xl font-bold mt-2 text-slate-800 dark:text-white"><?= $currentKpis['total'] ?></p>
             </a>
-            <a href="reports.php?lang=<?= $lang ?>&tab=<?= $activeTab ?>&status=Pending" class="block kpi-card bg-gradient-to-br from-yellow-50 to-white dark:from-slate-800 dark:to-slate-900 p-5 rounded-xl border-l-4 border-yellow-500 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200 cursor-pointer">
-                <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_pending']) ?></p>
-                <p id="kpi-pending" class="text-2xl font-bold mt-2 text-yellow-600 dark:text-yellow-400"><?= $currentKpis['pending'] ?></p>
+            <a href="reports.php?lang=<?= $lang ?>&tab=<?= $activeTab ?>&status=Pending" class="block kpi-card kpi-orange p-5 hover:scale-[1.02] cursor-pointer">
+                <p class="text-xs font-semibold text-slate-450 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_pending']) ?></p>
+                <p id="kpi-pending" class="text-2xl font-bold mt-2 text-amber-600 dark:text-amber-400"><?= $currentKpis['pending'] ?></p>
             </a>
-            <a href="reports.php?lang=<?= $lang ?>&tab=<?= $activeTab ?>&status=In+Progress" class="block kpi-card bg-gradient-to-br from-indigo-50 to-white dark:from-slate-800 dark:to-slate-900 p-5 rounded-xl border-l-4 border-indigo-500 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200 cursor-pointer">
-                <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_in_progress']) ?></p>
-                <p id="kpi-in-progress" class="text-2xl font-bold mt-2 text-blue-600 dark:text-blue-400"><?= $currentKpis['in_progress'] ?></p>
+            <a href="reports.php?lang=<?= $lang ?>&tab=<?= $activeTab ?>&status=In+Progress" class="block kpi-card kpi-indigo p-5 hover:scale-[1.02] cursor-pointer">
+                <p class="text-xs font-semibold text-slate-450 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_in_progress']) ?></p>
+                <p id="kpi-in-progress" class="text-2xl font-bold mt-2 text-indigo-650 dark:text-indigo-400"><?= $currentKpis['in_progress'] ?></p>
             </a>
-            <a href="reports.php?lang=<?= $lang ?>&tab=<?= $activeTab ?>&status=Completed" class="block kpi-card bg-gradient-to-br from-green-50 to-white dark:from-slate-800 dark:to-slate-900 p-5 rounded-xl border-l-4 border-govgreen-500 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-200 cursor-pointer">
-                <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_completed']) ?></p>
-                <p id="kpi-completed" class="text-2xl font-bold mt-2 text-govgreen-600 dark:text-govgreen-450"><?= $currentKpis['completed'] ?></p>
+            <a href="reports.php?lang=<?= $lang ?>&tab=<?= $activeTab ?>&status=Completed" class="block kpi-card kpi-green p-5 hover:scale-[1.02] cursor-pointer">
+                <p class="text-xs font-semibold text-slate-450 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_completed']) ?></p>
+                <p id="kpi-completed" class="text-2xl font-bold mt-2 text-emerald-600 dark:text-emerald-400"><?= $currentKpis['completed'] ?></p>
             </a>
-            <a href="reports.php?lang=<?= $lang ?>&tab=<?= $activeTab ?>&status=Overdue" class="block kpi-card bg-gradient-to-br from-red-50 to-white dark:from-slate-800 dark:to-slate-900 p-5 rounded-xl border-l-4 border-red-500 shadow-sm col-span-2 lg:col-span-1 hover:shadow-md hover:scale-[1.02] transition-all duration-200 cursor-pointer">
-                <p class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_overdue']) ?></p>
-                <p id="kpi-overdue" class="text-2xl font-bold mt-2 text-red-600 dark:text-red-400"><?= $currentKpis['overdue'] ?></p>
+            <a href="reports.php?lang=<?= $lang ?>&tab=<?= $activeTab ?>&status=Overdue" class="block kpi-card kpi-red p-5 col-span-2 lg:col-span-1 hover:scale-[1.02] cursor-pointer">
+                <p class="text-xs font-semibold text-slate-450 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['kpi_overdue']) ?></p>
+                <p id="kpi-overdue" class="text-2xl font-bold mt-2 text-red-650 dark:text-red-400"><?= $currentKpis['overdue'] ?></p>
             </a>
         </div>
 
@@ -1303,15 +1303,20 @@ include 'include/sidebar.php';
             <input type="hidden" id="reassignTaskId" name="task_id">
             
             <div>
-                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Select New Assignee *</label>
-                <select name="new_assignee_id" id="new_assignee_id" required class="block w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg p-2.5 text-sm focus:ring-blue-500">
-                    <option value="">-- Select Candidate --</option>
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Select New Assignee *</label>
+                <div class="max-h-48 overflow-y-auto p-3 rounded-lg border border-slate-300 dark:border-slate-650 bg-white dark:bg-slate-800 space-y-1" id="transfer_checkboxes_container">
                     <?php if (isset($usersList) && is_array($usersList)): ?>
                         <?php foreach ($usersList as $u): ?>
-                            <option value="<?= $u['user_id'] ?>"><?= htmlspecialchars($u['full_name'] . ' (' . $u['employee_code'] . ')') ?></option>
+                        <label class="flex items-center space-x-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/30 cursor-pointer transition-colors">
+                            <input type="checkbox" name="new_assignee_ids[]" value="<?= $u['user_id'] ?>" class="w-4 h-4 text-blue-600 dark:text-blue-500 border-slate-300 dark:border-slate-600 rounded focus:ring-blue-500">
+                            <span class="text-sm text-slate-750 dark:text-slate-200">
+                                <?= htmlspecialchars($u['full_name'] . ' (' . $u['employee_code'] . ')') ?>
+                            </span>
+                        </label>
                         <?php endforeach; ?>
                     <?php endif; ?>
-                </select>
+                </div>
+                <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">Select one or more employees from the list above.</p>
             </div>
             
             <div class="flex justify-end space-x-2 pt-4 border-t border-slate-200 dark:border-slate-700">
@@ -1793,23 +1798,27 @@ include 'include/sidebar.php';
 
     function closeReassignModal() {
         document.getElementById('reassignTaskModal').classList.add('hidden');
-        document.getElementById('new_assignee_id').value = '';
+        const checkboxes = document.querySelectorAll('input[name="new_assignee_ids[]"]');
+        checkboxes.forEach(cb => cb.checked = false);
     }
 
     function submitReassignment(e) {
         e.preventDefault();
         const taskId = document.getElementById('reassignTaskId').value;
-        const newAssigneeId = document.getElementById('new_assignee_id').value;
+        const checkedBoxes = document.querySelectorAll('input[name="new_assignee_ids[]"]:checked');
+        const selectedIds = Array.from(checkedBoxes).map(cb => cb.value);
 
-        if (!newAssigneeId) {
-            alert('Please select a new assignee.');
+        if (selectedIds.length === 0) {
+            alert('Please select at least one new assignee.');
             return;
         }
 
         const fd = new FormData();
         fd.append('action', 'reassign_task');
         fd.append('task_id', taskId);
-        fd.append('new_assignee_id', newAssigneeId);
+        selectedIds.forEach(id => {
+            fd.append('new_assignee_ids[]', id);
+        });
 
         fetch('api/task_notification_actions.php', {
             method: 'POST',

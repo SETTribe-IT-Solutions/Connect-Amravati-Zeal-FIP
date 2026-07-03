@@ -80,7 +80,7 @@
                 const currentLang = new URLSearchParams(window.location.search).get('lang') || 'en';
                 
                 // Redesign profileDropdownMenu HTML dynamically to make it consistent & attractive
-                profileDropdownMenu.className = "hidden absolute right-0 mt-2 w-56 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg z-50 transition-all duration-150 ease-out origin-top-right";
+                profileDropdownMenu.className = "hidden absolute right-0 top-full mt-2 w-56 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg z-50 transition-all duration-150 ease-out origin-top-right text-left";
                 
                 const titleLogged = currentLang === 'en' ? 'Logged In As' : 'लॉग इन';
                 const labelProfile = currentLang === 'en' ? 'User Profile Update' : 'वापरकर्ता प्रोफाइल अपडेट';
@@ -195,7 +195,7 @@
             const isAuthPage = window.location.pathname.indexOf('login.php') !== -1 || window.location.pathname.indexOf('passwordReset.php') !== -1 || window.location.pathname.indexOf('logout.php') !== -1;
             if (!isAuthPage && !document.querySelector('footer.custom-page-footer')) {
                 const footer = document.createElement('footer');
-                footer.className = 'custom-page-footer py-6 border-t border-navy-800 text-slate-400 text-xs flex flex-col lg:flex-row items-center justify-between px-8 gap-4 select-none relative overflow-hidden';
+                footer.className = 'custom-page-footer py-3.5 border-t border-navy-800 text-slate-400 text-xs flex flex-col lg:flex-row items-center justify-between px-8 gap-4 select-none relative overflow-hidden';
                 
                 const currentLang = new URLSearchParams(window.location.search).get('lang') || 'en';
                 const adminLabel = currentLang === 'en' ? 'District Administration, Amravati' : 'जिल्हा प्रशासन, अमरावती';
@@ -210,32 +210,32 @@
                     <div class="absolute inset-0 bg-[url('assets/images/gov_bg.png')] opacity-10 bg-cover bg-center mix-blend-overlay"></div>
                     
                     <!-- Left side: emblem and text -->
-                    <div class="flex items-center space-x-3.5 relative z-10">
-                        <img src="assets/images/maharashtra_seal.jpg" alt="Seal of Maharashtra" class="h-12 w-auto" style="filter: invert(1); mix-blend-mode: screen;">
+                    <div class="flex items-center space-x-3 relative z-10">
+                        <img src="assets/images/maharashtra_seal.jpg" alt="Seal of Maharashtra" class="h-9 w-auto" style="filter: invert(1); mix-blend-mode: screen;">
                         <div class="flex flex-col text-left">
-                            <span class="font-bold text-white leading-tight">${officeLabel}</span>
-                            <span class="text-[10px] text-slate-400 font-medium">${adminLabel}</span>
+                            <span class="font-semibold text-xs text-white leading-tight">${officeLabel}</span>
+                            <span class="text-[9px] text-slate-450 font-medium">${adminLabel}</span>
                         </div>
                     </div>
 
                     <!-- Middle side: contact info columns -->
-                    <div class="flex flex-col sm:flex-row items-center sm:space-x-8 gap-2.5 relative z-10 text-slate-350">
-                        <div class="flex items-center space-x-2">
-                            <i data-lucide="phone" class="w-4 h-4 text-amber-500"></i>
-                            <span class="font-semibold text-xs text-white">0721-2661001</span>
+                    <div class="flex flex-col sm:flex-row items-center sm:space-x-6 gap-2.5 relative z-10 text-slate-350 text-[11px]">
+                        <div class="flex items-center space-x-1.5">
+                            <i data-lucide="phone" class="w-3.5 h-3.5 text-amber-500"></i>
+                            <a href="tel:07212661001" class="font-semibold text-white hover:text-amber-400 transition-colors" style="text-decoration: none;">0721-2661001</a>
                         </div>
-                        <div class="flex items-center space-x-2">
-                            <i data-lucide="mail" class="w-4 h-4 text-blue-400"></i>
-                            <span class="font-semibold text-xs text-white">collector.amravati@maharashtra.gov.in</span>
+                        <div class="flex items-center space-x-1.5">
+                            <i data-lucide="mail" class="w-3.5 h-3.5 text-blue-400"></i>
+                            <a href="mailto:collector.amravati@maharashtra.gov.in" class="font-semibold text-white hover:text-blue-300 transition-colors" style="text-decoration: none;">collector.amravati@maharashtra.gov.in</a>
                         </div>
-                        <div class="flex items-center space-x-2">
-                            <i data-lucide="map-pin" class="w-4 h-4 text-emerald-400"></i>
-                            <span class="font-semibold text-xs text-white">${addrLabel}</span>
+                        <div class="flex items-center space-x-1.5">
+                            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-emerald-400"></i>
+                            <a href="https://maps.google.com/?q=Collector+Office,+Amravati" target="_blank" class="font-semibold text-white hover:text-emerald-350 transition-colors" style="text-decoration: none;">${addrLabel}</a>
                         </div>
                     </div>
 
                     <!-- Right side: Copyright & Policy Links -->
-                    <div class="flex flex-col items-center lg:items-end gap-1.5 relative z-10 text-slate-400 font-medium">
+                    <div class="flex flex-col items-center lg:items-end gap-1 relative z-10 text-slate-400 font-medium text-[11px]">
                         <span>© 2026 AMRAVATI CONNECT. All rights reserved.</span>
                         <div class="flex items-center space-x-3 text-[10px] text-slate-500">
                             <a href="#" class="hover:text-white transition-colors" style="text-decoration: none;">${privacyLabel}</a>

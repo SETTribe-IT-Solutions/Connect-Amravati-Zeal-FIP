@@ -1159,11 +1159,11 @@ include 'include/sidebar.php';
                             <?= ' (' . htmlspecialchars($headerLocationDisplay) . ')' ?>
                         </span>
                     </div>
-                    <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-sm">
+                    <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border border-amber-500/40 shadow-sm">
                         <?= htmlspecialchars($initials ?? 'U') ?>
                     </div>
                 </button>
-                <div id="profileDropdownMenu" class="hidden absolute right-0 mt-2 w-48 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md z-50">
+                <div id="profileDropdownMenu" class="hidden absolute right-0 top-full mt-2 w-48 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md z-50 text-left">
                     <div class="py-1">
                         <a href="profile_update.php?lang=<?= $lang ?? 'en' ?>" class="flex items-center px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
                             <i data-lucide="user" class="w-4 h-4 mr-2 text-slate-400"></i><?= ($lang ?? 'en') === 'en' ? 'User Profile Update' : 'वापरकर्ता प्रोफाइल अपडेट' ?>
@@ -1254,13 +1254,19 @@ include 'include/sidebar.php';
 
                     // 2. Status-wise KPIs
                     $statusStyles = [
-                        'Completed'   => ['icon' => 'check-circle', 'color' => 'green'],
-                        'Pending'     => ['icon' => 'clock', 'color' => 'orange'],
-                        'In Progress' => ['icon' => 'activity', 'color' => 'blue'],
-                        'Overdue'     => ['icon' => 'alert-octagon', 'color' => 'red'],
-                        'Escalated'   => ['icon' => 'alert-triangle', 'color' => 'red'],
-                        'Assigned'    => ['icon' => 'user-check', 'color' => 'indigo'],
-                        'Rejected'    => ['icon' => 'x-circle', 'color' => 'red'],
+                        'Completed'          => ['icon' => 'check-circle', 'color' => 'green'],
+                        'Pending'            => ['icon' => 'clock', 'color' => 'orange'],
+                        'In Progress'        => ['icon' => 'activity', 'color' => 'blue'],
+                        'Overdue'            => ['icon' => 'alert-octagon', 'color' => 'red'],
+                        'Escalated'          => ['icon' => 'alert-triangle', 'color' => 'red'],
+                        'Assigned'           => ['icon' => 'user-check', 'color' => 'indigo'],
+                        'Rejected'           => ['icon' => 'x-circle', 'color' => 'red'],
+                        'Reassigned'         => ['icon' => 'corner-down-right', 'color' => 'indigo'],
+                        'Accepted'           => ['icon' => 'thumbs-up', 'color' => 'green'],
+                        'Verified'           => ['icon' => 'shield-check', 'color' => 'blue'],
+                        'Approved Rejection' => ['icon' => 'slash', 'color' => 'red'],
+                        'On Hold'            => ['icon' => 'clock', 'color' => 'orange'],
+                        'Hold'               => ['icon' => 'clock', 'color' => 'orange'],
                     ];
 
                     // Explicitly add Overdue Tasks (uses $overdueTasks calculated earlier)
@@ -1278,7 +1284,7 @@ include 'include/sidebar.php';
                         if ($st === 'Overdue' || $st === 'Escalated') continue; // Handled by consolidated Overdue card
 
                         $val = (int)$row['total'];
-                        $style = $statusStyles[$st] ?? ['icon' => 'layers', 'color' => 'slate'];
+                        $style = $statusStyles[$st] ?? ['icon' => 'layers', 'color' => 'indigo'];
                         
                         $dkpi[] = [
                             'Total ' . $st . ' Tasks',
@@ -1298,8 +1304,7 @@ include 'include/sidebar.php';
                         }
                     ?>
                     <a href="<?= htmlspecialchars($linkUrl) ?>" class="block transition-transform hover:scale-105 cursor-pointer" style="text-decoration: none;">
-                        <div class="kpi-card bg-gradient-to-br from-<?= $clr ?>-50 to-white dark:from-<?= $clr ?>-900/40 dark:to-slate-800 overflow-hidden shadow-sm
-                                    rounded-xl border-l-4 border-l-<?= $clr ?>-500 border-t border-r border-b border-slate-200 dark:border-slate-700 h-full">
+                        <div class="kpi-card kpi-<?= $clr ?> overflow-hidden h-full">
                             <div class="p-5 relative">
                                 <i data-lucide="<?= $icon ?>" class="absolute right-0 bottom-0 w-24 h-24 text-<?= $clr ?>-500 opacity-5 transform translate-x-4 translate-y-4 pointer-events-none"></i>
                                 <div class="flex items-center justify-between">
@@ -1572,8 +1577,7 @@ include 'include/sidebar.php';
                         }
                     ?>
                     <a href="<?= htmlspecialchars($linkUrl) ?>" class="block transition-transform hover:scale-105 cursor-pointer" style="text-decoration: none;">
-                        <div class="kpi-card bg-gradient-to-br from-<?= $clr ?>-50 to-white dark:from-<?= $clr ?>-900/40 dark:to-slate-800 overflow-hidden shadow-sm
-                                    rounded-xl border-l-4 border-l-<?= $clr ?>-500 border-t border-r border-b border-slate-200 dark:border-slate-700 h-full">
+                        <div class="kpi-card kpi-<?= $clr ?> overflow-hidden h-full">
                             <div class="p-5 relative">
                                 <i data-lucide="<?= $icon ?>" class="absolute right-0 bottom-0 w-24 h-24 text-<?= $clr ?>-500 opacity-5 transform translate-x-4 translate-y-4 pointer-events-none"></i>
                                 <div class="flex items-center justify-between">
@@ -1805,8 +1809,7 @@ include 'include/sidebar.php';
                         }
                     ?>
                     <a href="<?= htmlspecialchars($linkUrl) ?>" class="block transition-transform hover:scale-105 cursor-pointer" style="text-decoration: none;">
-                        <div class="kpi-card bg-gradient-to-br from-<?= $clr ?>-50 to-white dark:from-<?= $clr ?>-900/40 dark:to-slate-800 overflow-hidden shadow-sm
-                                    rounded-xl border-l-4 border-l-<?= $clr ?>-500 border-t border-r border-b border-slate-200 dark:border-slate-700 h-full">
+                        <div class="kpi-card kpi-<?= $clr ?> overflow-hidden h-full">
                             <div class="p-5 relative">
                                 <i data-lucide="<?= $icon ?>" class="absolute right-0 bottom-0 w-24 h-24 text-<?= $clr ?>-500 opacity-5 transform translate-x-4 translate-y-4 pointer-events-none"></i>
                                 <div class="flex items-center justify-between">

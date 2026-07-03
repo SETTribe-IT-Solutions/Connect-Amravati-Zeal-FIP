@@ -449,13 +449,13 @@ include 'include/sidebar.php';
                             <?= ' (' . htmlspecialchars($headerLocationDisplay) . ')' ?>
                         </span>
                     </div>
-                    <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold text-sm border-2 border-white dark:border-slate-800 shadow-sm transition-transform duration-200 hover:scale-105 active:scale-95">
+                    <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold text-sm border border-amber-500/40 shadow-sm transition-transform duration-200 hover:scale-105 active:scale-95">
                         <?= htmlspecialchars($initials) ?>
                     </div>
                 </button>
                 
                 <!-- Dropdown Menu -->
-                <div id="profileDropdownMenu" class="hidden absolute right-0 mt-2 w-48 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div id="profileDropdownMenu" class="hidden absolute right-0 top-full mt-2 w-48 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md z-50 animate-in fade-in slide-in-from-top-2 duration-150 text-left">
                     <div class="py-1 text-left">
                         <a href="profile_update.php?lang=<?= $lang ?>" class="flex items-center px-4 py-2.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors">
                             <i data-lucide="user" class="w-4 h-4 mr-2.5 text-slate-400"></i>
@@ -509,7 +509,7 @@ include 'include/sidebar.php';
         <!-- KPI SUMMARY CARDS -->
         <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
             <!-- KPI 1 -->
-            <div class="kpi-card bg-white dark:bg-slate-800 overflow-hidden shadow-sm rounded-xl border border-slate-200 dark:border-slate-700">
+            <div class="kpi-card kpi-red overflow-hidden h-full">
                 <div class="p-5">
                     <div class="flex items-center justify-between">
                         <div class="flex-1 min-w-0">
@@ -523,7 +523,7 @@ include 'include/sidebar.php';
                 </div>
             </div>
             <!-- KPI 2 -->
-            <div class="kpi-card bg-white dark:bg-slate-800 overflow-hidden shadow-sm rounded-xl border border-slate-200 dark:border-slate-700">
+            <div class="kpi-card kpi-orange overflow-hidden h-full">
                 <div class="p-5">
                     <div class="flex items-center justify-between">
                         <div class="flex-1 min-w-0">
@@ -537,7 +537,7 @@ include 'include/sidebar.php';
                 </div>
             </div>
             <!-- KPI 3 -->
-            <div class="kpi-card bg-white dark:bg-slate-800 overflow-hidden shadow-sm rounded-xl border border-slate-200 dark:border-slate-700">
+            <div class="kpi-card kpi-blue overflow-hidden h-full">
                 <div class="p-5">
                     <div class="flex items-center justify-between">
                         <div class="flex-1 min-w-0">
@@ -551,7 +551,7 @@ include 'include/sidebar.php';
                 </div>
             </div>
             <!-- KPI 4 -->
-            <div class="kpi-card bg-white dark:bg-slate-800 overflow-hidden shadow-sm rounded-xl border border-slate-200 dark:border-slate-700">
+            <div class="kpi-card kpi-green overflow-hidden h-full">
                 <div class="p-5">
                     <div class="flex items-center justify-between">
                         <div class="flex-1 min-w-0">

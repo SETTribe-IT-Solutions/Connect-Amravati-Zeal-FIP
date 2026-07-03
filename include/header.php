@@ -312,6 +312,142 @@ if (isset($_SESSION['user_id'])) {
             border-color: rgba(102, 165, 225, 0.3);
         }
 
+        /* Premium Colorful KPI Card Color Palettes */
+        .kpi-card.kpi-blue {
+            background: linear-gradient(135deg, #dbeafe 0%, #f0f7ff 100%) !important;
+            border-left: 5px solid #1d4ed8 !important;
+            border-top: 1px solid #bfdbfe !important;
+            border-right: 1px solid #bfdbfe !important;
+            border-bottom: 1px solid #bfdbfe !important;
+            box-shadow: 0 4px 12px rgba(37,99,235,0.08);
+        }
+        .kpi-card.kpi-blue p, .kpi-card.kpi-blue span {
+            color: #1e40af !important;
+        }
+        .kpi-card.kpi-blue .text-3xl {
+            color: #1e3a8a !important;
+        }
+        .dark .kpi-card.kpi-blue {
+            background: linear-gradient(135deg, rgba(30,58,138,0.4) 0%, rgba(15,23,42,0.95) 100%) !important;
+            border-left: 5px solid #3b82f6 !important;
+            border-color: rgba(59,130,246,0.3) rgba(59,130,246,0.2) rgba(59,130,246,0.2) rgba(59,130,246,0.2) !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .dark .kpi-card.kpi-blue p, .dark .kpi-card.kpi-blue span {
+            color: #93c5fd !important;
+        }
+        .dark .kpi-card.kpi-blue .text-3xl {
+            color: #ffffff !important;
+        }
+
+        .kpi-card.kpi-red {
+            background: linear-gradient(135deg, #fecaca 0%, #fef2f2 100%) !important;
+            border-left: 5px solid #b91c1c !important;
+            border-top: 1px solid #fca5a5 !important;
+            border-right: 1px solid #fca5a5 !important;
+            border-bottom: 1px solid #fca5a5 !important;
+            box-shadow: 0 4px 12px rgba(220,38,38,0.08);
+        }
+        .kpi-card.kpi-red p, .kpi-card.kpi-red span {
+            color: #991b1b !important;
+        }
+        .kpi-card.kpi-red .text-3xl {
+            color: #7f1d1d !important;
+        }
+        .dark .kpi-card.kpi-red {
+            background: linear-gradient(135deg, rgba(127,29,29,0.4) 0%, rgba(15,23,42,0.95) 100%) !important;
+            border-left: 5px solid #ef4444 !important;
+            border-color: rgba(239,68,68,0.3) rgba(239,68,68,0.2) rgba(239,68,68,0.2) rgba(239,68,68,0.2) !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .dark .kpi-card.kpi-red p, .dark .kpi-card.kpi-red span {
+            color: #fca5a5 !important;
+        }
+        .dark .kpi-card.kpi-red .text-3xl {
+            color: #fca5a5 !important;
+        }
+
+        .kpi-card.kpi-green {
+            background: linear-gradient(135deg, #a7f3d0 0%, #ecfdf5 100%) !important;
+            border-left: 5px solid #047857 !important;
+            border-top: 1px solid #6ee7b7 !important;
+            border-right: 1px solid #6ee7b7 !important;
+            border-bottom: 1px solid #6ee7b7 !important;
+            box-shadow: 0 4px 12px rgba(16,185,129,0.08);
+        }
+        .kpi-card.kpi-green p, .kpi-card.kpi-green span {
+            color: #065f46 !important;
+        }
+        .kpi-card.kpi-green .text-3xl {
+            color: #064e3b !important;
+        }
+        .dark .kpi-card.kpi-green {
+            background: linear-gradient(135deg, rgba(6,95,70,0.35) 0%, rgba(15,23,42,0.95) 100%) !important;
+            border-left: 5px solid #10b981 !important;
+            border-color: rgba(16,185,129,0.3) rgba(16,185,129,0.2) rgba(16,185,129,0.2) rgba(16,185,129,0.2) !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .dark .kpi-card.kpi-green p, .dark .kpi-card.kpi-green span {
+            color: #6ee7b7 !important;
+        }
+        .dark .kpi-card.kpi-green .text-3xl {
+            color: #ffffff !important;
+        }
+
+        .kpi-card.kpi-orange {
+            background: linear-gradient(135deg, #fde68a 0%, #fffbeb 100%) !important;
+            border-left: 5px solid #b45309 !important;
+            border-top: 1px solid #fcd34d !important;
+            border-right: 1px solid #fcd34d !important;
+            border-bottom: 1px solid #fcd34d !important;
+            box-shadow: 0 4px 12px rgba(245,158,11,0.08);
+        }
+        .kpi-card.kpi-orange p, .kpi-card.kpi-orange span {
+            color: #92400e !important;
+        }
+        .kpi-card.kpi-orange .text-3xl {
+            color: #78350f !important;
+        }
+        .dark .kpi-card.kpi-orange {
+            background: linear-gradient(135deg, rgba(146,64,14,0.3) 0%, rgba(15,23,42,0.95) 100%) !important;
+            border-left: 5px solid #f59e0b !important;
+            border-color: rgba(245,158,11,0.3) rgba(245,158,11,0.2) rgba(245,158,11,0.2) rgba(245,158,11,0.2) !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .dark .kpi-card.kpi-orange p, .dark .kpi-card.kpi-orange span {
+            color: #fcd34d !important;
+        }
+        .dark .kpi-card.kpi-orange .text-3xl {
+            color: #ffffff !important;
+        }
+
+        .kpi-card.kpi-indigo {
+            background: linear-gradient(135deg, #c7d2fe 0%, #f5f3ff 100%) !important;
+            border-left: 5px solid #4f46e5 !important;
+            border-top: 1px solid #a5b4fc !important;
+            border-right: 1px solid #a5b4fc !important;
+            border-bottom: 1px solid #a5b4fc !important;
+            box-shadow: 0 4px 12px rgba(99,102,241,0.08);
+        }
+        .kpi-card.kpi-indigo p, .kpi-card.kpi-indigo span {
+            color: #3730a3 !important;
+        }
+        .kpi-card.kpi-indigo .text-3xl {
+            color: #312e81 !important;
+        }
+        .dark .kpi-card.kpi-indigo {
+            background: linear-gradient(135deg, rgba(55,48,163,0.3) 0%, rgba(15,23,42,0.95) 100%) !important;
+            border-left: 5px solid #818cf8 !important;
+            border-color: rgba(129,140,248,0.3) rgba(129,140,248,0.2) rgba(129,140,248,0.2) rgba(129,140,248,0.2) !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .dark .kpi-card.kpi-indigo p, .dark .kpi-card.kpi-indigo span {
+            color: #a5b4fc !important;
+        }
+        .dark .kpi-card.kpi-indigo .text-3xl {
+            color: #ffffff !important;
+        }
+
         /* Gradient Text */
         .text-gradient-navy {
             background-clip: text;
@@ -325,30 +461,48 @@ if (isset($_SESSION['user_id'])) {
 
         /* Modern Form Inputs */
         :where(.input-modern, input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="datetime-local"], input[type="date"], textarea, select) {
-            border-radius: 0.5rem;
-            border: 1px solid #e2e8f0;
-            padding: 0.625rem 1rem;
-            background-color: #f8fafc;
+            border-radius: 0.75rem;
+            border: 1px solid #cbd5e1;
+            padding: 0.75rem 1rem;
+            background-color: #ffffff;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             color: #334155;
             font-size: 0.875rem;
             width: 100%;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+        :where(.input-modern:hover, input[type="text"]:hover, input[type="password"]:hover, input[type="email"]:hover, input[type="number"]:hover, input[type="datetime-local"]:hover, input[type="date"]:hover, textarea:hover, select:hover) {
+            border-color: #94a3b8;
         }
         :where(.dark .input-modern, .dark input[type="text"], .dark input[type="password"], .dark input[type="email"], .dark input[type="number"], .dark input[type="datetime-local"], .dark input[type="date"], .dark textarea, .dark select) {
-            border-color: #334155;
+            border-color: #475569;
             background-color: #0f172a;
             color: #e2e8f0;
+            box-shadow: none;
+        }
+        :where(.dark .input-modern:hover, .dark input[type="text"]:hover, .dark input[type="password"]:hover, .dark input[type="email"]:hover, .dark input[type="number"]:hover, .dark input[type="datetime-local"]:hover, .dark input[type="date"]:hover, .dark textarea:hover, .dark select:hover) {
+            border-color: #64748b;
         }
         :where(.input-modern:focus, input[type="text"]:focus, input[type="password"]:focus, input[type="email"]:focus, input[type="number"]:focus, input[type="datetime-local"]:focus, input[type="date"]:focus, textarea:focus, select:focus) {
             outline: none !important;
             border-color: #0054a4 !important;
-            box-shadow: 0 0 0 3px rgba(0, 84, 164, 0.2) !important;
+            box-shadow: 0 0 0 4px rgba(0, 84, 164, 0.12), 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
             background-color: #ffffff !important;
         }
         :where(.dark .input-modern:focus, .dark input[type="text"]:focus, .dark input[type="password"]:focus, .dark input[type="email"]:focus, .dark input[type="number"]:focus, .dark input[type="datetime-local"]:focus, .dark input[type="date"]:focus, .dark textarea:focus, .dark select:focus) {
             border-color: #3387d7 !important;
-            box-shadow: 0 0 0 3px rgba(51, 135, 215, 0.2) !important;
-            background-color: #1e293b !important;
+            box-shadow: 0 0 0 4px rgba(51, 135, 215, 0.15), 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+            background-color: #0f172a !important;
+        }
+
+        /* Focus Within styles for icons inside input wrappers */
+        .relative:focus-within svg, 
+        .relative:focus-within i {
+            color: #0054a4 !important;
+        }
+        .dark .relative:focus-within svg,
+        .dark .relative:focus-within i {
+            color: #3387d7 !important;
         }
 
         /* Premium Buttons - Vibrant Colors */
@@ -573,7 +727,7 @@ if (isset($_SESSION['user_id'])) {
             margin-left: -1.5rem !important;
             margin-right: -1.5rem !important;
             margin-bottom: -1.5rem !important;
-            margin-top: 3rem !important;
+            margin-top: 1.5rem !important;
             background: linear-gradient(135deg, #0b1528, #111e38) !important;
             color: #f8fafc !important;
             border-top: 2px solid #e19022 !important; /* Gold line separator */
@@ -685,7 +839,7 @@ if (isset($_SESSION['user_id'])) {
                     <span id="unreadCountBadge" style="display:none;" class="absolute top-1 right-1 flex items-center justify-center h-4 w-4 text-[9px] font-bold text-white rounded-full bg-saffron-500 ring-2 ring-navy-900">0</span>
                 </button>
                 <!-- Dropdown -->
-                <div id="notificationDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 z-50">
+                <div id="notificationDropdown" class="hidden absolute right-0 top-full mt-2 w-80 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 z-50 text-left">
                     <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
                         <h3 class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($t['menu_notifications'] ?? 'Notifications') ?></h3>
                         <button onclick="markAllAsRead()" class="text-xs text-navy-600 dark:text-blue-400 hover:text-navy-800 dark:hover:text-blue-300 font-medium">
@@ -716,11 +870,11 @@ if (isset($_SESSION['user_id'])) {
                     <?php
                     $initials = strtoupper(substr($_SESSION['user_name'] ?? 'U', 0, 1));
                     ?>
-                    <div class="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-bold border border-white/30 shadow-sm">
+                    <div class="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-bold border border-amber-500/40 shadow-sm">
                         <?= htmlspecialchars($initials) ?>
                     </div>
                 </button>
-                <div id="profileDropdownMenu" class="hidden absolute right-0 mt-2 w-48 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md z-50">
+                <div id="profileDropdownMenu" class="hidden absolute right-0 top-full mt-2 w-48 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md z-50 text-left">
                     <!-- Javascript will dynamically rebuild this -->
                 </div>
             </div>
