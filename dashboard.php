@@ -1335,35 +1335,40 @@ include 'include/sidebar.php';
                     <?php endforeach; ?>
                 </div>
 
-                <!-- Charts — matching blank_wrushabh.php (Trend and Taluka Bar in same row) -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-                    <!-- Line / Area Chart -->
-                    <div class="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm
-                                border border-slate-200 dark:border-slate-700 p-6">
-                        <div class="flex justify-between items-center mb-4">
+                <!-- Monthly Task Completion Trend Graph (Full Width) -->
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 mb-8 transition-all hover:shadow-md">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
                             <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
                                 <?= htmlspecialchars($t['chart_monthly_trend']) ?>
                             </h2>
-                            <button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                                <i data-lucide="more-vertical" class="w-5 h-5"></i>
-                            </button>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                <?= $lang === 'en' ? 'Track real-time assignment and verification stats across all offices' : 'सर्व कार्यालयांमधील रिअल-टाइम वाटप आणि पडताळणी आकडेवारीचा मागोवा घ्या' ?>
+                            </p>
                         </div>
-                        <div id="chart-dist-trend" class="h-72 w-full"></div>
+                        <button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                            <i data-lucide="more-vertical" class="w-5 h-5"></i>
+                        </button>
                     </div>
-                    
-                    <!-- Top Performing Offices — bar chart -->
-                    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm
-                                border border-slate-200 dark:border-slate-700 p-6">
-                        <div class="flex justify-between items-center mb-4">
+                    <div id="chart-dist-trend" class="h-80 w-full"></div>
+                </div>
+                
+                <!-- Taluka Performance Graph (Full Width, Horizontal Layout Below) -->
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 mb-8 transition-all hover:shadow-md">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
                             <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
                                 <?= htmlspecialchars($t['chart_taluka']) ?>
                             </h2>
-                            <button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                                <i data-lucide="more-vertical" class="w-5 h-5"></i>
-                            </button>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                <?= $lang === 'en' ? 'Performance rating based on completed vs assigned tasks percentage' : 'पूर्ण केलेल्या विरुद्ध वाटप केलेल्या कामांच्या टक्केवारीवर आधारित कामगिरी रेटिंग' ?>
+                            </p>
                         </div>
-                        <div id="chart-dist-bar" class="w-full"></div>
+                        <button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                            <i data-lucide="more-vertical" class="w-5 h-5"></i>
+                        </button>
                     </div>
+                    <div id="chart-dist-bar" class="w-full"></div>
                 </div>
 
                 <!-- Secondary Charts Grid (Status, Priority, Ageing) -->
@@ -2645,18 +2650,19 @@ function buildArea(el, series, cats, colors, isDark) {
     const gc = isDark ? '#1e3a5f33' : '#e2e8f0';
     return new ApexCharts(el, {
         series, colors,
-        chart:{ height:288, type:'area', fontFamily:'Inter,sans-serif', toolbar:{show:false},
+        chart:{ height:320, type:'area', fontFamily:'Inter,sans-serif', toolbar:{show:false},
                 background: isDark ? '#1e293b' : '#ffffff',
                 animations:{enabled:true,easing:'easeinout',speed:900} },
         dataLabels:{enabled:false},
-        stroke:{curve:'smooth',width:2.5},
-        fill:{type:'gradient',gradient:{shadeIntensity:1,opacityFrom:0.35,opacityTo:0.02,stops:[0,100]}},
+        stroke:{curve:'smooth',width:3.5},
+        fill:{type:'gradient',gradient:{shadeIntensity:1,opacityFrom:0.45,opacityTo:0.02,stops:[0,100]}},
         xaxis:{categories:cats, labels:_ax(tc), axisBorder:{show:false}, axisTicks:{show:false}},
         yaxis:{labels:_ax(tc), min:0},
         grid:{borderColor:gc, strokeDashArray:4, padding:{left:8,right:8}},
-        legend:{position:'top',horizontalAlign:'right',fontFamily:'Inter,sans-serif',fontSize:'12px',
-                labels:{colors:tc}},
+        legend:{position:'top',horizontalAlign:'right',fontFamily:'Inter,sans-serif',fontSize:'12px',fontWeight:500,
+                labels:{colors:tc}, markers:{width:8,height:8,radius:8}, itemMargin:{horizontal:12}},
         tooltip:{theme:isDark?'dark':'light',shared:true,intersect:false},
+        markers:{size:4,strokeWidth:2,hover:{size:6}},
         noData:{text:'No data yet',style:{color:tc,fontSize:'13px',fontFamily:'Inter,sans-serif'}},
         theme:{mode:isDark?'dark':'light'}
     });
@@ -2699,26 +2705,85 @@ function buildDonut(el, series, labels, colors, isDark) {
 function buildHBar(el, data, cats, color, isDark) {
     const tc = isDark ? '#94a3b8' : '#64748b';
     const gc = isDark ? '#1e3a5f33' : '#e2e8f0';
-    const h  = Math.max(240, cats.length * 44 + 60);
+    const h  = Math.max(240, cats.length * 36 + 60);
     return new ApexCharts(el, {
         series:[{name:LBL.rate, data}],
         chart:{height:h, type:'bar', fontFamily:'Inter,sans-serif', toolbar:{show:false},
                background: isDark?'#1e293b':'#ffffff',
                animations:{enabled:true,easing:'easeinout',speed:900}},
-        colors:[color],
-        plotOptions:{bar:{borderRadius:6,horizontal:true,barHeight:'55%',
-            dataLabels:{position:'right'}}},
+        colors:[
+            function({ value }) {
+                if (value >= 85) return '#10b981';
+                if (value >= 70) return '#3b82f6';
+                if (value >= 50) return '#f59e0b';
+                return '#ef4444';
+            }
+        ],
+        plotOptions:{bar:{
+            borderRadius:6,
+            horizontal:true,
+            barHeight:'60%',
+            distributed:true,
+            dataLabels:{position:'right'}
+        }},
         dataLabels:{enabled:true,
             textAnchor: 'start',
             formatter:v=>v>0?v.toFixed(1)+'%':'',
-            style:{fontSize:'11px',fontFamily:'Inter,sans-serif',colors:[isDark?'#94a3b8':'#475569']},
-            offsetX:25},
+            style:{fontSize:'11px',fontWeight:'600',fontFamily:'Inter,sans-serif',colors:[isDark?'#e2e8f0':'#1e293b']},
+            offsetX:10},
         xaxis:{categories:cats, max:100, labels:_ax(tc)},
         yaxis:{labels:{..._ax(tc), maxWidth:160}},
         grid:{borderColor:gc,strokeDashArray:4,xaxis:{lines:{show:true}},yaxis:{lines:{show:false}}},
         tooltip:{theme:isDark?'dark':'light',y:{formatter:v=>v.toFixed(1)+'%'}},
         noData:{text:'No data yet',style:{color:tc,fontSize:'13px',fontFamily:'Inter,sans-serif'}},
-        theme:{mode:isDark?'dark':'light'}
+        theme:{mode:isDark?'dark':'light'},
+        legend:{show:false}
+    });
+}
+
+function buildVBar(el, data, cats, color, isDark) {
+    const tc = isDark ? '#94a3b8' : '#64748b';
+    const gc = isDark ? '#1e3a5f33' : '#e2e8f0';
+    return new ApexCharts(el, {
+        series:[{name:LBL.rate, data}],
+        chart:{height:350, type:'bar', fontFamily:'Inter,sans-serif', toolbar:{show:false},
+               background: isDark?'#1e293b':'#ffffff',
+               animations:{enabled:true,easing:'easeinout',speed:900}},
+        colors:[
+            function({ value }) {
+                if (value >= 85) return '#10b981';
+                if (value >= 70) return '#3b82f6';
+                if (value >= 50) return '#f59e0b';
+                return '#ef4444';
+            }
+        ],
+        plotOptions:{bar:{
+            borderRadius:6,
+            horizontal:false,
+            columnWidth:'50%',
+            distributed:true,
+            dataLabels:{position:'top'}
+        }},
+        dataLabels:{enabled:true,
+            formatter:v=>v>0?v.toFixed(1)+'%':'',
+            style:{fontSize:'10px',fontWeight:'600',fontFamily:'Inter,sans-serif',colors:[isDark?'#e2e8f0':'#1e293b']},
+            offsetY:-20},
+        xaxis:{
+            categories:cats,
+            labels:{
+                ..._ax(tc),
+                rotate:-45,
+                rotateAlways:true,
+                trim:true,
+                maxHeight:80
+            }
+        },
+        yaxis:{max:100, labels:_ax(tc)},
+        grid:{borderColor:gc,strokeDashArray:4,xaxis:{lines:{show:false}},yaxis:{lines:{show:true}}},
+        tooltip:{theme:isDark?'dark':'light',y:{formatter:v=>v.toFixed(1)+'%'}},
+        noData:{text:'No data yet',style:{color:tc,fontSize:'13px',fontFamily:'Inter,sans-serif'}},
+        theme:{mode:isDark?'dark':'light'},
+        legend:{show:false}
     });
 }
 
@@ -2775,7 +2840,7 @@ function buildAllCharts(isDark) {
             charts.dDonut = buildDonut(el('donut'), d.distStatus, sL, sC, isDark);
             charts.dDonut.render();
 
-            charts.dBar = buildHBar(el('bar'), d.distTalukaRates, d.distTalukaNames, '#1a365d', isDark);
+            charts.dBar = buildVBar(el('bar'), d.distTalukaRates, d.distTalukaNames, '#1a365d', isDark);
             charts.dBar.render();
 
             charts.dPriority = buildDonut(el('priority'), d.distPriority, pL, pC, isDark);
