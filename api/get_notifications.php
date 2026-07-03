@@ -95,6 +95,7 @@ try {
             'sender_name' => $row['sender_name'] ?? 'System',
             'task_due_date' => $row['task_due_date'],
             'task_status' => $tStatus,
+            'task_description' => $row['task_description'],
             'attachment_path' => $row['attachment_path'],
             'actions' => $actions
         ];

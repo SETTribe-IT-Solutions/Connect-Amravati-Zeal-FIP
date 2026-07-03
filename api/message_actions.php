@@ -137,6 +137,61 @@ elseif ($action === 'mark_read') {
     echo json_encode(['status' => 'success']);
     exit;
 }
+elseif ($action === 'list') {
+    $folder = $_POST['folder'] ?? $_GET['folder'] ?? 'inbox';
+    $messages = [];
+    
+    if ($folder === 'inbox') {
+        $q = "SELECT sm.*, mr.is_read, u.full_name AS sender_name 
+              FROM shared_messages sm 
+              JOIN message_recipients mr ON sm.message_id = mr.message_id 
+              LEFT JOIN users u ON sm.sender_id = u.user_id 
+              WHERE mr.user_id = $userId 
+              ORDER BY sm.created_at DESC";
+        $res = $conn->query($q);
+        if ($res) {
+            while ($row = $res->fetch_assoc()) {
+                $messages[] = [
+                    'message_id' => (int)$row['message_id'],
+                    'subject' => $row['subject'],
+                    'message_body' => $row['message_body'],
+                    'sender_name' => $row['sender_name'] ?: 'System',
+                    'attachment_path' => $row['attachment_path'],
+                    'parent_message_id' => $row['parent_message_id'] ? (int)$row['parent_message_id'] : null,
+                    'is_forwarded' => (int)$row['is_forwarded'],
+                    'created_at' => $row['created_at'],
+                    'is_read' => (int)$row['is_read']
+                ];
+            }
+        }
+    } else {
+        $q = "SELECT sm.*, GROUP_CONCAT(u.full_name SEPARATOR ', ') AS recipient_names 
+              FROM shared_messages sm 
+              LEFT JOIN message_recipients mr ON sm.message_id = mr.message_id 
+              LEFT JOIN users u ON mr.user_id = u.user_id 
+              WHERE sm.sender_id = $userId 
+              GROUP BY sm.message_id 
+              ORDER BY sm.created_at DESC";
+        $res = $conn->query($q);
+        if ($res) {
+            while ($row = $res->fetch_assoc()) {
+                $messages[] = [
+                    'message_id' => (int)$row['message_id'],
+                    'subject' => $row['subject'],
+                    'message_body' => $row['message_body'],
+                    'recipient_names' => $row['recipient_names'] ?: 'All Employees',
+                    'attachment_path' => $row['attachment_path'],
+                    'parent_message_id' => $row['parent_message_id'] ? (int)$row['parent_message_id'] : null,
+                    'is_forwarded' => (int)$row['is_forwarded'],
+                    'created_at' => $row['created_at']
+                ];
+            }
+        }
+    }
+    
+    echo json_encode(['status' => 'success', 'messages' => $messages]);
+    exit;
+}
 else {
     echo json_encode(['status' => 'error', 'message' => 'Invalid action']);
 }

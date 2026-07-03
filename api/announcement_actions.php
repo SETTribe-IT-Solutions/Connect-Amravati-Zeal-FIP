@@ -122,20 +122,82 @@ if ($action === 'create' || $action === 'edit') {
     
     // File upload
     $attachment = null;
-    if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] === UPLOAD_ERR_OK) {
+    if (isset($_FILES['attachment']) && $_FILES['attachment']['error'] !== UPLOAD_ERR_NO_FILE) {
+        if ($_FILES['attachment']['error'] !== UPLOAD_ERR_OK) {
+            $err_msg = 'File upload failed: ';
+            switch ($_FILES['attachment']['error']) {
+                case UPLOAD_ERR_INI_SIZE:
+                case UPLOAD_ERR_FORM_SIZE:
+                    $err_msg .= 'The uploaded file exceeds the maximum allowed upload size (' . ini_get('upload_max_filesize') . ').';
+                    break;
+                case UPLOAD_ERR_PARTIAL:
+                    $err_msg .= 'The file was only partially uploaded.';
+                    break;
+                case UPLOAD_ERR_NO_TMP_DIR:
+                    $err_msg .= 'Missing a temporary folder on the server.';
+                    break;
+                case UPLOAD_ERR_CANT_WRITE:
+                    $err_msg .= 'Failed to write file to disk.';
+                    break;
+                default:
+                    $err_msg .= 'Unknown upload error.';
+            }
+            echo json_encode(['status' => 'error', 'message' => $err_msg]);
+            exit;
+        }
+
         $upload_dir = '../uploads/announcements/';
         if (!is_dir($upload_dir)) {
             mkdir($upload_dir, 0755, true);
         }
+
         $file_ext = strtolower(pathinfo($_FILES['attachment']['name'], PATHINFO_EXTENSION));
-        $allowed_exts = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'gif'];
-        if (in_array($file_ext, $allowed_exts)) {
-            $new_filename = 'ANNC_' . uniqid() . '.' . $file_ext;
-            if (move_uploaded_file($_FILES['attachment']['tmp_name'], $upload_dir . $new_filename)) {
-                $attachment = 'uploads/announcements/' . $new_filename;
+        $allowed_exts = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'gif', 'mp3', 'wav', 'ogg', 'm4a', 'mp4', 'webm', 'avi', 'mov', 'mkv'];
+        if (!in_array($file_ext, $allowed_exts)) {
+            echo json_encode(['status' => 'error', 'message' => 'Unsupported attachment type. Allowed types: PDF, Word, Excel, Images, Audio, and Video.']);
+            exit;
+        }
+
+        // Limit size to 50MB
+        $max_size = 50 * 1024 * 1024;
+        if ($_FILES['attachment']['size'] > $max_size) {
+            echo json_encode(['status' => 'error', 'message' => 'File size exceeds the maximum limit of 50MB.']);
+            exit;
+        }
+
+        // MIME Type validation
+        if (function_exists('mime_content_type')) {
+            $file_mime = mime_content_type($_FILES['attachment']['tmp_name']);
+            $allowed_mimes = [
+                // Documents
+                'application/pdf',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/vnd.ms-excel',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                // Images
+                'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+                // Audio
+                'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/ogg', 'audio/x-m4a', 'audio/aac', 'audio/mp4', 'audio/webm',
+                // Video
+                'video/mp4', 'video/webm', 'video/ogg', 'video/avi', 'video/msvideo', 'video/x-msvideo', 'video/quicktime', 'video/x-matroska', 'video/x-ms-wmv'
+            ];
+            $is_valid_mime = in_array($file_mime, $allowed_mimes) || 
+                             strpos($file_mime, 'image/') === 0 || 
+                             strpos($file_mime, 'audio/') === 0 || 
+                             strpos($file_mime, 'video/') === 0;
+
+            if (!$is_valid_mime) {
+                echo json_encode(['status' => 'error', 'message' => 'Invalid file content (MIME type mismatch).']);
+                exit;
             }
+        }
+
+        $new_filename = 'ANNC_' . uniqid() . '.' . $file_ext;
+        if (move_uploaded_file($_FILES['attachment']['tmp_name'], $upload_dir . $new_filename)) {
+            $attachment = 'uploads/announcements/' . $new_filename;
         } else {
-            echo json_encode(['status' => 'error', 'message' => 'Unsupported attachment type']);
+            echo json_encode(['status' => 'error', 'message' => 'Failed to save the uploaded file.']);
             exit;
         }
     }

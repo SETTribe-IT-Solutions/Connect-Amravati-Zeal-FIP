@@ -59,6 +59,7 @@ $translations = [
         'lbl_desc' => 'Description',
         'lbl_priority' => 'Priority',
         'lbl_attachment' => 'Attachment File',
+        'lbl_attachment_help' => 'Allowed: PDF, Word, Excel, Images, Audio, Video. Max: 50MB.',
         'lbl_audience' => 'Target Audience',
         'lbl_publish_date' => 'Publish Date',
         'lbl_expiry_date' => 'Expiry Date',
@@ -161,6 +162,7 @@ $translations = [
         'lbl_desc' => 'वर्णन',
         'lbl_priority' => 'प्राधान्यक्रम',
         'lbl_attachment' => 'संलग्न दस्तऐवज',
+        'lbl_attachment_help' => 'परवानगी असलेले स्वरूप: PDF, Word, Excel, फोटो, ऑडिओ, व्हिडिओ. कमाल: ५०MB.',
         'lbl_audience' => 'लक्षित वाचक',
         'lbl_publish_date' => 'प्रकाशन तारीख',
         'lbl_expiry_date' => 'समाप्ती तारीख',
@@ -719,8 +721,9 @@ include 'include/sidebar.php';
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-sm font-semibold mb-2"><?= htmlspecialchars($t['lbl_attachment']) ?></label>
-                                <input type="file" name="attachment" class="w-full px-3 py-1.5 border rounded-lg bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
+                                <label class="block text-sm font-semibold mb-1"><?= htmlspecialchars($t['lbl_attachment']) ?></label>
+                                <input type="file" name="attachment" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.mp3,.wav,.ogg,.m4a,.mp4,.webm,.avi,.mov,.mkv" class="w-full px-3 py-1.5 border rounded-lg bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
+                                <p class="text-xs text-slate-400 mt-1"><?= htmlspecialchars($t['lbl_attachment_help'] ?? 'Allowed formats: PDF, Word, Excel, Images, Audio, Video. Max size: 50MB.') ?></p>
                             </div>
                         </div>
 
@@ -967,6 +970,11 @@ include 'include/sidebar.php';
                         <span class="text-sm font-semibold" id="modalAnncAttachmentName">file.pdf</span>
                     </div>
                     <a href="#" id="modalAnncAttachmentDownload" download class="px-4 py-2 bg-navy-500 hover:bg-navy-600 text-white rounded-lg text-xs font-bold transition-colors">Download</a>
+                </div>
+                
+                <div id="modalAnncMediaSection" class="hidden border border-slate-200 dark:border-slate-700 p-4 rounded-xl mt-4">
+                    <span class="text-xs text-slate-400 block mb-2 uppercase tracking-wider font-bold">Media Preview</span>
+                    <div id="modalAnncMediaContainer" class="w-full flex justify-center"></div>
                 </div>
             </div>
         </div>
@@ -1505,10 +1513,31 @@ include 'include/sidebar.php';
             document.getElementById('modalAnncDescription').innerText = desc;
             
             const attachSection = document.getElementById('modalAnncAttachmentSection');
+            const mediaSection = document.getElementById('modalAnncMediaSection');
+            const mediaContainer = document.getElementById('modalAnncMediaContainer');
+            
+            // Reset media preview section
+            if (mediaSection) mediaSection.classList.add('hidden');
+            if (mediaContainer) mediaContainer.innerHTML = '';
+            
             if (attachment) {
                 attachSection.classList.remove('hidden');
-                document.getElementById('modalAnncAttachmentName').innerText = attachment.split('/').pop();
+                const fileName = attachment.split('/').pop();
+                document.getElementById('modalAnncAttachmentName').innerText = fileName;
                 document.getElementById('modalAnncAttachmentDownload').href = attachment;
+                
+                // Render media player dynamically for audio/video files
+                const ext = fileName.split('.').pop().toLowerCase();
+                const audioExts = ['mp3', 'wav', 'ogg', 'm4a'];
+                const videoExts = ['mp4', 'webm', 'avi', 'mov', 'mkv'];
+                
+                if (audioExts.includes(ext) && mediaSection && mediaContainer) {
+                    mediaSection.classList.remove('hidden');
+                    mediaContainer.innerHTML = `<audio controls class="w-full mt-1"><source src="${attachment}" type="audio/${ext === 'mp3' ? 'mpeg' : (ext === 'm4a' ? 'mp4' : ext)}">Your browser does not support the audio element.</audio>`;
+                } else if (videoExts.includes(ext) && mediaSection && mediaContainer) {
+                    mediaSection.classList.remove('hidden');
+                    mediaContainer.innerHTML = `<video controls class="w-full max-h-64 rounded-lg bg-black mt-1"><source src="${attachment}" type="video/${ext === 'mov' ? 'quicktime' : (ext === 'mkv' ? 'x-matroska' : ext)}">Your browser does not support the video element.</video>`;
+                }
             } else {
                 attachSection.classList.add('hidden');
             }
@@ -1523,6 +1552,36 @@ include 'include/sidebar.php';
         function submitAnnouncement(e) {
             e.preventDefault();
             const form = document.getElementById('createAnncForm');
+            
+            // Client-side file validation
+            const fileInput = form.querySelector('input[name="attachment"]');
+            if (fileInput && fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const allowedExts = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'gif', 'mp3', 'wav', 'ogg', 'm4a', 'mp4', 'webm', 'avi', 'mov', 'mkv'];
+                const fileExt = file.name.split('.').pop().toLowerCase();
+                
+                if (!allowedExts.includes(fileExt)) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid File Type',
+                        text: 'Allowed file types are: PDF, Word, Excel, Images, Audio, and Video.',
+                        confirmButtonColor: '#0054a4'
+                    });
+                    return;
+                }
+                
+                const maxSize = 50 * 1024 * 1024; // 50MB
+                if (file.size > maxSize) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'File Too Large',
+                        text: 'The attachment size exceeds the maximum limit of 50MB.',
+                        confirmButtonColor: '#0054a4'
+                    });
+                    return;
+                }
+            }
+
             const fd = new FormData(form);
             fd.append('action', 'create');
             fd.append('publish_now', publishStatusVal);
@@ -1974,59 +2033,131 @@ include 'include/sidebar.php';
         }
 
         function openSecureViewer(docId, subject, filePath, allowView, allowDownload) {
-            activeConfidentialDocId = docId;
-            document.getElementById('viewerSubject').innerText = subject;
-            
-            // Build diagonal watermarking grid
-            const overlay = document.getElementById('viewerWatermarkOverlay');
-            overlay.innerHTML = '';
-            
-            const dateStr = new Date().toISOString().split('T')[0];
-            const watermarkText = `CONFIDENTIAL - ${USER_NAME} - ${dateStr} - Localhost`;
-            
-            // Create repeating diagonal watermarks
-            for (let i = 0; i < 20; i++) {
-                overlay.insertAdjacentHTML('beforeend', `<div class="watermark-text">${watermarkText}</div>`);
-            }
-            
-            const frame = document.getElementById('viewerContentFrame');
-            if (allowView == 0) {
-                frame.innerHTML = `
-                    <div class="p-6 text-center text-slate-400">
-                        <i data-lucide="lock" class="w-12 h-12 text-red-500 mx-auto mb-3"></i>
-                        <p class="text-sm font-semibold">Preview access is restricted by the uploader.</p>
-                        <p class="text-xs mt-1">Please use the Download action if enabled.</p>
-                    </div>
-                `;
-            } else {
-                // If it is an image, preview image. Otherwise pdf preview notice
-                const ext = filePath.split('.').pop().toLowerCase();
-                if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) {
-                    frame.innerHTML = `<img src="${filePath}" class="max-h-[50vh] max-w-full rounded shadow border-2 border-red-500" alt="Preview">`;
-                } else {
-                    frame.innerHTML = `
-                        <div class="p-6 text-center text-slate-300">
-                            <i data-lucide="file-text" class="w-16 h-16 text-navy-500 mx-auto mb-3"></i>
-                            <h4 class="font-bold text-base mb-2">${filePath.split('/').pop()}</h4>
-                            <p class="text-xs text-slate-400">Secure sandboxed PDF viewer loaded inside the encrypted partition.</p>
-                        </div>
-                    `;
+            // First, trigger sending code to email
+            Swal.fire({
+                title: 'Security Verification Required',
+                text: 'Sending secure access passcode to your registered email...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
                 }
-            }
+            });
             
-            const dlBtn = document.getElementById('viewerDownloadBtn');
-            if (allowDownload == 1) {
-                dlBtn.classList.remove('hidden');
-                dlBtn.href = filePath;
-            } else {
-                dlBtn.classList.add('hidden');
-            }
-            
-            // Log access
-            fetch(`api/confidential_actions.php?action=log_access&document_id=${docId}&action_type=View`);
-            
-            document.getElementById('secureViewerModal').classList.remove('hidden');
-            lucide.createIcons();
+            fetch(`api/confidential_actions.php?action=send_otp&document_id=${docId}`)
+                .then(r => r.json())
+                .then(res => {
+                    if (res.status === 'success') {
+                        // Ask user to enter the code
+                        Swal.fire({
+                            title: 'Enter Access Passcode',
+                            text: res.message, // Shows email address where sent (and local fallback passcode if any)
+                            input: 'text',
+                            inputPlaceholder: 'Enter 6-digit passcode',
+                            inputAttributes: {
+                                autocomplete: 'off',
+                                maxlength: 10,
+                                autocapitalize: 'off',
+                                autocorrect: 'off'
+                            },
+                            showCancelButton: true,
+                            confirmButtonText: 'Verify & Open',
+                            confirmButtonColor: '#0054a4',
+                            preConfirm: (otp) => {
+                                if (!otp) {
+                                    Swal.showValidationMessage('Please enter the passcode');
+                                    return false;
+                                }
+                                return fetch(`api/confidential_actions.php?action=verify_otp&document_id=${docId}&otp=${encodeURIComponent(otp)}`)
+                                    .then(r => r.json())
+                                    .then(verifyRes => {
+                                        if (verifyRes.status === 'error') {
+                                            Swal.showValidationMessage(verifyRes.message);
+                                            return false;
+                                        }
+                                        return verifyRes;
+                                    });
+                            }
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                const verifyRes = result.value;
+                                // Now display the viewer!
+                                activeConfidentialDocId = docId;
+                                document.getElementById('viewerSubject').innerText = subject;
+                                
+                                const overlay = document.getElementById('viewerWatermarkOverlay');
+                                overlay.innerHTML = '';
+                                
+                                const dateStr = new Date().toISOString().split('T')[0];
+                                const watermarkText = `CONFIDENTIAL - ${USER_NAME} - ${dateStr} - Localhost`;
+                                
+                                for (let i = 0; i < 20; i++) {
+                                    overlay.insertAdjacentHTML('beforeend', `<div class="watermark-text">${watermarkText}</div>`);
+                                }
+                                
+                                const frame = document.getElementById('viewerContentFrame');
+                                if (verifyRes.allow_view == 0) {
+                                    frame.innerHTML = `
+                                        <div class="p-6 text-center text-slate-400">
+                                            <i data-lucide="lock" class="w-12 h-12 text-red-500 mx-auto mb-3"></i>
+                                            <p class="text-sm font-semibold">Preview access is restricted by the uploader.</p>
+                                            <p class="text-xs mt-1">Please use the Download action if enabled.</p>
+                                        </div>
+                                    `;
+                                } else {
+                                    const ext = verifyRes.file_path.split('.').pop().toLowerCase();
+                                    if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) {
+                                        frame.innerHTML = `<img src="${verifyRes.file_path}" class="max-h-[50vh] max-w-full rounded shadow border-2 border-red-500" alt="Preview">`;
+                                    } else if (['mp3', 'wav', 'ogg', 'm4a'].includes(ext)) {
+                                        frame.innerHTML = `
+                                            <div class="p-6 text-center text-slate-350">
+                                                <i data-lucide="music" class="w-16 h-16 text-navy-500 mx-auto mb-3"></i>
+                                                <h4 class="font-bold text-base mb-3">${verifyRes.file_path.split('/').pop()}</h4>
+                                                <audio controls class="mx-auto mt-2 w-full max-w-md">
+                                                    <source src="${verifyRes.file_path}" type="audio/${ext === 'm4a' ? 'mp4' : ext}">
+                                                    Your browser does not support the audio element.
+                                                </audio>
+                                            </div>
+                                        `;
+                                    } else if (['mp4', 'webm', 'avi', 'mov', 'mkv'].includes(ext)) {
+                                        frame.innerHTML = `
+                                            <div class="p-6 text-center text-slate-355">
+                                                <h4 class="font-bold text-base mb-3 text-white">${verifyRes.file_path.split('/').pop()}</h4>
+                                                <video controls class="mx-auto max-h-[50vh] w-full max-w-lg rounded-lg border-2 border-red-500 shadow-lg">
+                                                    <source src="${verifyRes.file_path}" type="video/${ext === 'mov' ? 'mp4' : (ext === 'mkv' ? 'x-matroska' : ext)}">
+                                                    Your browser does not support the video element.
+                                                </video>
+                                            </div>
+                                        `;
+                                    } else {
+                                        frame.innerHTML = `
+                                            <div class="p-6 text-center text-slate-300">
+                                                <i data-lucide="file-text" class="w-16 h-16 text-navy-500 mx-auto mb-3"></i>
+                                                <h4 class="font-bold text-base mb-2">${verifyRes.file_path.split('/').pop()}</h4>
+                                                <p class="text-xs text-slate-400">Secure sandboxed PDF viewer loaded inside the encrypted partition.</p>
+                                            </div>
+                                        `;
+                                    }
+                                }
+                                
+                                const dlBtn = document.getElementById('viewerDownloadBtn');
+                                if (verifyRes.allow_download == 1) {
+                                    dlBtn.classList.remove('hidden');
+                                    dlBtn.href = verifyRes.file_path;
+                                } else {
+                                    dlBtn.classList.add('hidden');
+                                }
+                                
+                                document.getElementById('secureViewerModal').classList.remove('hidden');
+                                lucide.createIcons();
+                            }
+                        });
+                    } else {
+                        Swal.fire('Error', res.message, 'error');
+                    }
+                })
+                .catch(() => {
+                    Swal.fire('Error', 'Failed to communicate with authentication servers.', 'error');
+                });
         }
 
         function closeSecureViewerModal() {

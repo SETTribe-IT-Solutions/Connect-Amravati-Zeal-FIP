@@ -306,8 +306,8 @@ $sTalukaId  = (int) ($_SESSION['user_taluka_id']  ?? 1);
 $sVillageId = (int) ($_SESSION['user_village_id'] ?? 1);
 
 // Get user role level and redirect Level 3 users back to dashboard
-$userLevel = $_SESSION['user_level'] ?? null;
-if ($userLevel === null && !empty($sRole)) {
+$user_level = $_SESSION['user_level'] ?? null;
+if ($user_level === null && !empty($sRole)) {
     if (isset($conn) && $conn instanceof mysqli) {
         try {
             $stmt = $conn->prepare("SELECT role_level FROM roles WHERE role_name = ? LIMIT 1");
@@ -316,7 +316,7 @@ if ($userLevel === null && !empty($sRole)) {
                 $stmt->execute();
                 $res = $stmt->get_result();
                 if ($row = $res->fetch_assoc()) {
-                    $userLevel = (int)$row['role_level'];
+                    $user_level = (int)$row['role_level'];
                 }
                 $stmt->close();
             }
@@ -324,7 +324,7 @@ if ($userLevel === null && !empty($sRole)) {
             error_log('create_task role level lookup error: ' . $e->getMessage());
         }
     }
-    if ($userLevel === null) {
+    if ($user_level === null) {
         $roleMap = [
             'Administrator'        => 1,
             'System Administrator' => 1,
@@ -337,16 +337,14 @@ if ($userLevel === null && !empty($sRole)) {
             'Talathi'              => 3,
             'Gramsevak'            => 3,
         ];
-        $userLevel = $roleMap[$sRole] ?? 3;
+        $user_level = $roleMap[$sRole] ?? 3;
     }
 }
 
-if ($userLevel === 3) {
+if ($user_level > 2) {
     header("Location: dashboard.php?lang=" . $lang);
     exit();
 }
-
-$user_level = $userLevel;
 // Avatar initials
 $parts    = array_filter(explode(' ', trim($sName)));
 $initials = strtoupper(substr($parts[0] ?? 'U', 0, 1) . substr($parts[1] ?? '', 0, 1));

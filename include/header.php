@@ -6,6 +6,9 @@ $lang = $lang ?? 'en';
 $pageTitle = $pageTitle ?? 'Amravati Connect | Government Portal';
 $pageDesc = $pageDesc ?? 'Official District Administration Portal';
 
+$current_page = basename($_SERVER['PHP_SELF']);
+$is_auth_page = in_array($current_page, ['login.php', 'passwordReset.php', 'logout.php']);
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -219,10 +222,45 @@ if (isset($_SESSION['user_id'])) {
         .font-formal { font-family: 'Roboto', sans-serif; }
 
         /* Scrollbar */
-        ::-webkit-scrollbar { width:6px; height:6px; }
+        ::-webkit-scrollbar { width:8px; height:8px; }
         ::-webkit-scrollbar-track { background:transparent; }
-        ::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
+        ::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:4px; }
         .dark ::-webkit-scrollbar-thumb { background:#475569; }
+
+        /* Custom Scrollbar for Sidebar (.scrollbar-thin) */
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.02);
+            border-radius: 3px;
+        }
+        .dark .scrollbar-thin::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: rgba(0, 84, 164, 0.3); /* Translucent navy thumb */
+            border-radius: 3px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+            background: #0054a4; /* Solid navy on hover */
+        }
+        .dark .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+            background: #66a5e1; /* Light blue on hover in dark mode */
+        }
+
+        /* Firefox support for scrollbar-thin */
+        .scrollbar-thin {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(0, 84, 164, 0.3) rgba(0, 0, 0, 0.02);
+        }
+        .dark .scrollbar-thin {
+            scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.02);
+        }
 
         /* Advanced UI Elements */
         .glass-panel { 
@@ -448,23 +486,26 @@ if (isset($_SESSION['user_id'])) {
         }
         .dark .nav-item { color: #94a3b8; /* slate-400 */ }
         .nav-item:hover { 
-            background: rgba(241, 245, 249, 0.8); /* slate-100 */ 
-            color: #0f172a;
+            background: linear-gradient(to right, #00255c, #004094) !important; 
+            color: #ffffff !important;
             transform: translateX(4px);
         }
+        .nav-item:hover i {
+            color: #ffffff !important;
+        }
         .dark .nav-item:hover { 
-            background: rgba(30, 41, 59, 0.8); /* slate-800 */ 
-            color: #f8fafc;
+            background: linear-gradient(to right, #00255c, #004094) !important; 
+            color: #ffffff !important;
         }
         
         .nav-active { 
-            background: linear-gradient(to right, #e6f0fa, transparent) !important; /* navy-50 */
-            color: #0054a4 !important; /* navy-600 */
+            background: linear-gradient(to right, #00255c, #004094) !important; 
+            color: #ffffff !important;
             font-weight: 600;
         }
         .dark .nav-active { 
-            background: linear-gradient(to right, rgba(0,84,164,0.2), transparent) !important; 
-            color: #66a5e1 !important; 
+            background: linear-gradient(to right, #00255c, #004094) !important; 
+            color: #ffffff !important;
         }
         .nav-active::before {
             content: '';
@@ -473,18 +514,219 @@ if (isset($_SESSION['user_id'])) {
             top: 15%;
             height: 70%;
             width: 4px;
-            background-color: #0054a4;
+            background-color: #e19022 !important; /* Gold line indicator */
             border-radius: 0 4px 4px 0;
-            box-shadow: 0 0 8px rgba(0, 84, 164, 0.6);
+            box-shadow: 0 0 8px rgba(225, 144, 34, 0.6);
         }
         .dark .nav-active::before {
-            background-color: #66a5e1;
-            box-shadow: 0 0 8px rgba(102, 165, 225, 0.6);
+            background-color: #e19022 !important;
+            box-shadow: 0 0 8px rgba(225, 144, 34, 0.6);
         }
-        .nav-active i { color: #0054a4 !important; }
-        .dark .nav-active i { color: #66a5e1 !important; }
+        .nav-active i { color: #ffffff !important; }
+        .dark .nav-active i { color: #ffffff !important; }
+
+        /* Hide page-specific old headers */
+        header.glass-panel {
+            display: none !important;
+        }
+
+        <?php if (!$is_auth_page): ?>
+        /* Dynamic Grid Layout to match screenshot */
+        body {
+            display: grid !important;
+            grid-template-rows: auto 1fr !important;
+            grid-template-columns: auto 1fr !important;
+            grid-template-areas: 
+                "banner banner"
+                "sidebar main" !important;
+            height: 100vh !important;
+            overflow: hidden !important;
+            margin: 0 !important;
+        }
+
+        #topBannerWrap {
+            grid-area: banner !important;
+            z-index: 45 !important;
+            background: linear-gradient(to right, #00255c, #004094, #001c48) !important;
+            border-bottom: 2px solid #e19022 !important; /* Gold line separator */
+        }
+
+        #sidebar {
+            grid-area: sidebar !important;
+            z-index: 40 !important;
+            min-height: 0 !important;
+            overflow: hidden !important;
+        }
+
+        .flex-1.flex.flex-col.overflow-hidden,
+        div.flex-1.flex.flex-col.overflow-hidden {
+            grid-area: main !important;
+            height: 100% !important;
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important;
+        }
+
+        footer.custom-page-footer {
+            z-index: 10 !important;
+            width: auto !important;
+            margin-left: -1.5rem !important;
+            margin-right: -1.5rem !important;
+            margin-bottom: -1.5rem !important;
+            margin-top: 3rem !important;
+            background: linear-gradient(135deg, #0b1528, #111e38) !important;
+            color: #f8fafc !important;
+            border-top: 2px solid #e19022 !important; /* Gold line separator */
+        }
+        @media (min-width: 640px) {
+            footer.custom-page-footer {
+                margin-left: -2rem !important;
+                margin-right: -2rem !important;
+                margin-bottom: -2rem !important;
+            }
+        }
+
+        footer.custom-page-footer a {
+            color: #66a5e1 !important;
+        }
+        footer.custom-page-footer a:hover {
+            color: #ffffff !important;
+        }
+
+        /* Responsive Mobile Layout Override */
+        @media (max-width: 1023px) {
+            body {
+                grid-template-areas: 
+                    "banner banner"
+                    "main main" !important;
+            }
+            #sidebar {
+                position: fixed !important;
+                top: 0 !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                height: 100vh !important;
+                z-index: 50 !important;
+            }
+        }
+        @media (min-width: 1024px) {
+            #sidebar {
+                position: static !important;
+                transform: none !important;
+                height: 100% !important;
+            }
+        }
+        <?php endif; ?>
     </style>
     <?= $extraHead ?? '' ?>
 </head>
-<?php $bodyClass = $bodyClass ?? 'h-screen flex overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors duration-200'; ?>
+<?php $bodyClass = $bodyClass ?? 'h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-200'; ?>
 <body class="<?= htmlspecialchars($bodyClass) ?>">
+    <?php if (!$is_auth_page): ?>
+    <!-- Top Government Banner / Merged Unified Header -->
+    <div id="topBannerWrap" class="h-20 bg-gradient-to-r from-navy-950 via-navy-850 to-navy-900 border-b border-navy-800 text-white flex items-center justify-between px-6 select-none relative overflow-visible flex-shrink-0">
+        <!-- Background decorative pattern -->
+        <div class="absolute inset-0 bg-[url('assets/images/gov_bg.png')] opacity-15 bg-cover bg-center mix-blend-overlay"></div>
+        <div class="absolute inset-0 bg-gradient-to-r from-navy-950/80 via-transparent to-navy-950/80 pointer-events-none"></div>
+
+        <!-- Left Side: Sidebar Toggle + Emblem of India + Amravati Connect Title -->
+        <div class="flex items-center space-x-3.5 relative z-10">
+            <!-- Sidebar toggle icon button -->
+            <button id="sidebarToggle" class="p-2 mr-1 rounded-lg text-slate-350 hover:text-white hover:bg-white/10 transition-colors focus:outline-none sidebar-toggle" title="Toggle Sidebar">
+                <i data-lucide="menu" class="w-6 h-6"></i>
+            </button>
+            
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" alt="Emblem of India" class="h-14 w-auto" style="filter: invert(79%) sepia(50%) saturate(1000%) hue-rotate(350deg) brightness(105%) contrast(105%) drop-shadow(0 2px 6px rgba(0,0,0,0.3));">
+            <div class="flex flex-col">
+                <h1 class="text-base font-extrabold tracking-wide text-white leading-tight font-formal">Amravati Connect</h1>
+                <p class="text-[10px] text-slate-350 font-medium">Amravati District Administration</p>
+                <p class="text-[9px] text-amber-400 font-extrabold tracking-wide mt-0.5">जनसेवा हीच आमची सेवा</p>
+            </div>
+        </div>
+
+        <!-- Center Search Box -->
+        <div class="hidden lg:flex items-center flex-1 max-w-md mx-8 relative z-10">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i data-lucide="search" class="h-4 w-4 text-slate-400"></i>
+            </div>
+            <?php
+            $search_placeholder = $t['search_placeholder'] ?? ($lang === 'en' ? "Search tasks, officers, or circulars (Press '/')" : "कार्ये, अधिकारी किंवा परिपत्रके शोधा (दाबा '/')");
+            ?>
+            <input id="globalSearch" type="text"
+                   placeholder="<?= htmlspecialchars($search_placeholder) ?>"
+                   class="block w-full pl-9 pr-3 py-1.5 border border-white/20 rounded-lg text-sm bg-white/10 text-white placeholder-slate-400 focus:outline-none focus:bg-white focus:text-slate-900 focus:border-navy-500 focus:ring-1 focus:ring-navy-500 transition-all">
+        </div>
+
+        <!-- Right Side: Actions (Language, Theme, Notifications, Profile, Seal) -->
+        <div class="flex items-center space-x-3.5 relative z-10 text-right">
+            <!-- Language Switcher -->
+            <?php
+            $queryParams = $_GET;
+            $queryParams['lang'] = ($lang === 'en' ? 'mr' : 'en');
+            $lang_switch_url = $_SERVER['PHP_SELF'] . '?' . http_build_query($queryParams);
+            ?>
+            <a href="<?php echo htmlspecialchars($lang_switch_url); ?>" 
+               class="flex items-center text-xs font-semibold text-slate-200 hover:text-white hover:bg-white/10 px-2.5 py-1.5 rounded-lg transition-colors border border-white/20" style="text-decoration: none;">
+                <i data-lucide="languages" class="w-4 h-4 mr-1.5 text-slate-300"></i>
+                <span class="hidden sm:inline"><?php echo $lang === 'en' ? 'मराठी' : 'English'; ?></span>
+            </a>
+
+            <!-- Theme Toggle -->
+            <button id="themeToggle"
+                    class="p-2 text-slate-350 hover:text-white rounded-lg hover:bg-white/10 transition-colors focus:outline-none">
+                <i data-lucide="moon" class="w-5 h-5 dark:hidden"></i>
+                <i data-lucide="sun"  class="w-5 h-5 hidden dark:block"></i>
+            </button>
+
+            <!-- Notifications Bell -->
+            <div class="relative">
+                <button id="notificationBtn" class="relative p-2 text-slate-350 hover:text-white rounded-lg hover:bg-white/10 transition-colors focus:outline-none">
+                    <i data-lucide="bell" class="w-5 h-5"></i>
+                    <span id="unreadCountBadge" style="display:none;" class="absolute top-1 right-1 flex items-center justify-center h-4 w-4 text-[9px] font-bold text-white rounded-full bg-saffron-500 ring-2 ring-navy-900">0</span>
+                </button>
+                <!-- Dropdown -->
+                <div id="notificationDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 z-50">
+                    <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-t-xl">
+                        <h3 class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($t['menu_notifications'] ?? 'Notifications') ?></h3>
+                        <button onclick="markAllAsRead()" class="text-xs text-navy-600 dark:text-blue-400 hover:text-navy-800 dark:hover:text-blue-300 font-medium">
+                            <?= $lang === 'en' ? 'Mark all as read' : 'सर्व वाचलेले म्हणून चिन्हांकित करा' ?>
+                        </button>
+                    </div>
+                    <div id="notificationList" class="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700/50">
+                        <!-- Populated via AJAX -->
+                    </div>
+                    <div class="border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-b-xl">
+                        <a href="notifications.php?lang=<?= $lang ?>" class="block w-full text-center px-4 py-3 text-xs font-medium text-slate-500 hover:text-navy-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors">
+                            <?= $lang === 'en' ? 'View All Notifications' : 'सर्व सूचना पहा' ?>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Dropdown Container -->
+            <div class="relative pl-3 border-l border-white/20 flex items-center">
+                <button id="profileDropdownBtn" class="flex items-center space-x-3 cursor-pointer focus:outline-none px-2.5 py-1.5 rounded-xl hover:bg-white/10 transition-colors">
+                    <div class="flex flex-col text-right hidden md:block">
+                        <span class="text-xs font-semibold text-white"><?= htmlspecialchars($_SESSION['user_name'] ?? 'User') ?></span>
+                        <span class="text-[9px] text-xs text-slate-300 leading-none mt-0.5">
+                            <?= htmlspecialchars($_SESSION['user_role'] ?? 'Officer') ?>
+                            <?= ' (' . htmlspecialchars($headerLocationDisplay) . ')' ?>
+                        </span>
+                    </div>
+                    <?php
+                    $initials = strtoupper(substr($_SESSION['user_name'] ?? 'U', 0, 1));
+                    ?>
+                    <div class="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-bold border border-white/30 shadow-sm">
+                        <?= htmlspecialchars($initials) ?>
+                    </div>
+                </button>
+                <div id="profileDropdownMenu" class="hidden absolute right-0 mt-2 w-48 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md z-50">
+                    <!-- Javascript will dynamically rebuild this -->
+                </div>
+            </div>
+
+            <!-- Maharashtra Seal -->
+            <img src="assets/images/maharashtra_seal.jpg" alt="Seal of Maharashtra" class="h-16 w-auto hidden sm:block" style="filter: invert(1); mix-blend-mode: screen;">
+        </div>
+    </div>
+    <?php endif; ?>
