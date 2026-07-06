@@ -70,4 +70,14 @@ function close_db_connection() {
 
 // Register shutdown to auto-close the connection at script end
 register_shutdown_function('close_db_connection');
+// Clear all tasks from the database
+function clear_all_tasks() {
+    global $conn;
+    if ($conn instanceof mysqli) {
+        $conn->query("DELETE FROM `tasks`");
+        $conn->query("ALTER TABLE `tasks` AUTO_INCREMENT = 1");
+    } else {
+        error_log('[dbConfig] No DB connection to clear tasks');
+    }
+}
 ?>
