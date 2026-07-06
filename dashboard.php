@@ -2327,7 +2327,7 @@ function filterRows() {
    & Circulars/Announcements
 ══════════════════════════════════════════════════════════ */
 (function () {
-    const input       = document.getElementById('globalSearch');
+    const inputs      = document.querySelectorAll('#globalSearch');
     const dropdown    = document.getElementById('searchDropdown');
     const spinner     = document.getElementById('searchSpinner');
     const searchIcon  = document.getElementById('searchIcon');
@@ -2335,7 +2335,7 @@ function filterRows() {
     const sdEmpty     = document.getElementById('sdEmpty');
     const sdResultCnt = document.getElementById('sdResultCount');
 
-    if (!input) return;
+    if (!inputs.length) return;
 
     let debounceTimer = null;
     let currentFocusIdx = -1;
@@ -2431,6 +2431,8 @@ function filterRows() {
         const listO      = document.getElementById('sdOfficerList');
         const listC      = document.getElementById('sdCircularList');
 
+        if (!listT || !listO || !listC) return;
+
         listT.innerHTML = '';
         listO.innerHTML = '';
         listC.innerHTML = '';
@@ -2466,17 +2468,17 @@ function filterRows() {
 
     /* ── Open / close dropdown ──────────────────────── */
     function openDropdown() {
-        dropdown.classList.remove('hidden');
+        if (dropdown) dropdown.classList.remove('hidden');
     }
     function closeDropdown() {
-        dropdown.classList.add('hidden');
+        if (dropdown) dropdown.classList.add('hidden');
         currentFocusIdx = -1;
     }
 
     /* ── Show/hide spinner ──────────────────────────── */
     function setLoading(on) {
-        spinner.classList.toggle('hidden', !on);
-        searchIcon.classList.toggle('hidden', on);
+        if (spinner) spinner.classList.toggle('hidden', !on);
+        if (searchIcon) searchIcon.classList.toggle('hidden', on);
     }
 
     /* ── Keyboard navigation inside dropdown ────────── */
@@ -2484,7 +2486,7 @@ function filterRows() {
         if (e.key === 'Enter') { e.preventDefault(); navigate(e.currentTarget.dataset.url); }
         if (e.key === 'ArrowDown') { e.preventDefault(); focusItem(currentFocusIdx + 1); }
         if (e.key === 'ArrowUp')   { e.preventDefault(); focusItem(currentFocusIdx - 1); }
-        if (e.key === 'Escape')    { e.preventDefault(); closeDropdown(); input.focus(); }
+        if (e.key === 'Escape')    { e.preventDefault(); closeDropdown(); if (inputs.length) inputs[0].focus(); }
     }
 
     function focusItem(idx) {
@@ -2494,7 +2496,7 @@ function filterRows() {
     }
 
     /* ── Fetch from API ─────────────────────────────── */
-    function doSearch(q) {
+    function doSearch(q, showSwalIfEmpty = false) {
         if (q.length < 2) { closeDropdown(); setLoading(false); return; }
         setLoading(true);
         fetch('api/search.php?q=' + encodeURIComponent(q))
@@ -2503,48 +2505,91 @@ function filterRows() {
                 setLoading(false);
                 if (data.status === 'ok') {
                     renderResults(data.results, q);
-                    openDropdown();
+                    if (data.results && data.results.length > 0) {
+                        openDropdown();
+                    } else {
+                        closeDropdown();
+                        if (showSwalIfEmpty) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Data Not Found',
+                                text: 'Try again with correct data',
+                                confirmButtonColor: '#1e3a8a',
+                                confirmButtonText: 'OK'
+                            });
+                        } else {
+                            openDropdown();
+                        }
+                    }
                 }
             })
-            .catch(() => { setLoading(false); });
+            .catch(() => { 
+                setLoading(false); 
+                if (showSwalIfEmpty) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Search Failed',
+                        text: 'Unable to perform search. Please try again.',
+                        confirmButtonColor: '#1e3a8a'
+                    });
+                }
+            });
     }
 
     /* ── Wire up input events ───────────────────────── */
-    input.addEventListener('input', function () {
-        const q = this.value.trim();
-        clearBtn.classList.toggle('hidden', q.length === 0);
+    inputs.forEach(input => {
+        input.addEventListener('input', function () {
+            const q = this.value.trim();
+            inputs.forEach(otherInput => {
+                if (otherInput !== this) otherInput.value = this.value;
+            });
+            if (clearBtn) clearBtn.classList.toggle('hidden', q.length === 0);
 
-        // Also filter table rows inline (existing behaviour)
-        filterRows();
+            filterRows();
 
-        clearTimeout(debounceTimer);
-        if (q.length < 2) { closeDropdown(); setLoading(false); return; }
-        debounceTimer = setTimeout(() => doSearch(q), 280);
-    });
+            clearTimeout(debounceTimer);
+            if (q.length < 2) { closeDropdown(); setLoading(false); return; }
+            debounceTimer = setTimeout(() => doSearch(q, false), 280);
+        });
 
-    input.addEventListener('keydown', function (e) {
-        if (e.key === 'ArrowDown' && !dropdown.classList.contains('hidden')) {
-            e.preventDefault(); focusItem(0);
-        }
-        if (e.key === 'Escape') { closeDropdown(); }
-        if (e.key === 'Enter' && !dropdown.classList.contains('hidden')) {
-            e.preventDefault();
-            if (allItems.length) allItems[0].click();
-        }
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'ArrowDown' && !dropdown.classList.contains('hidden')) {
+                e.preventDefault(); focusItem(0);
+            }
+            if (e.key === 'Escape') { closeDropdown(); }
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const q = this.value.trim();
+                if (q.length < 2) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Search Query Too Short',
+                        text: 'Please enter at least 2 characters.',
+                        confirmButtonColor: '#1e3a8a'
+                    });
+                    return;
+                }
+                clearTimeout(debounceTimer);
+                doSearch(q, true);
+            }
+        });
     });
 
     /* ── Clear button ───────────────────────────────── */
-    clearBtn.addEventListener('click', function () {
-        input.value = '';
-        clearBtn.classList.add('hidden');
-        closeDropdown();
-        filterRows();
-        input.focus();
-    });
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function () {
+            inputs.forEach(input => input.value = '');
+            clearBtn.classList.add('hidden');
+            closeDropdown();
+            filterRows();
+            inputs[0].focus();
+        });
+    }
 
     /* ── Close on outside click ─────────────────────── */
     document.addEventListener('click', function (e) {
-        if (!document.getElementById('searchWrapper').contains(e.target)) {
+        const searchWrapper = document.getElementById('searchWrapper');
+        if (searchWrapper && !searchWrapper.contains(e.target)) {
             closeDropdown();
         }
         const offModal = document.getElementById('officerDetailsModal');
@@ -2557,8 +2602,16 @@ function filterRows() {
         }
     });
 
-    /* ── Keyboard shortcut '/' to focus ─────────────── */
-    // (existing listener at line ~2069 already handles this)
+    // Check if query is in URL (redirected from another page)
+    const urlParams = new URLSearchParams(window.location.search);
+    const searchVal = urlParams.get('search');
+    if (searchVal) {
+        const query = searchVal.trim();
+        inputs.forEach(inp => inp.value = query);
+        if (clearBtn) clearBtn.classList.remove('hidden');
+        filterRows();
+        doSearch(query, true);
+    }
 
 })();
 
@@ -2681,7 +2734,32 @@ function buildDonut(el, series, labels, colors, isDark) {
         series: safeSeries, labels: safeLabels, colors: safeColors,
         chart:{ height:288, type:'donut', fontFamily:'Inter,sans-serif',
                 background: isDark ? '#1e293b' : '#ffffff',
-                animations:{enabled:true,easing:'easeinout',speed:900} },
+                animations:{enabled:true,easing:'easeinout',speed:900},
+                dropShadow: {
+                    enabled: true,
+                    top: 4,
+                    left: 2,
+                    blur: 6,
+                    color: '#000000',
+                    opacity: isDark ? 0.35 : 0.12
+                } },
+        stroke: {
+            show: true,
+            width: 3,
+            colors: [isDark ? '#1e293b' : '#ffffff']
+        },
+        fill: {
+            type: 'gradient',
+            gradient: {
+                shade: isDark ? 'dark' : 'light',
+                type: 'radial',
+                shadeIntensity: 0.15,
+                inverseColors: false,
+                opacityFrom: 1.0,
+                opacityTo: 0.95,
+                stops: [70, 95, 100]
+            }
+        },
         dataLabels:{
             enabled: total > 0,
             formatter: val => val.toFixed(1)+'%',
@@ -2716,10 +2794,10 @@ function buildHBar(el, data, cats, color, isDark) {
                animations:{enabled:true,easing:'easeinout',speed:900}},
         colors:[
             function({ value }) {
-                if (value >= 85) return '#10b981';
-                if (value >= 70) return '#3b82f6';
-                if (value >= 50) return '#f59e0b';
-                return '#ef4444';
+                if (value >= 85) return '#064e3b';
+                if (value >= 70) return '#1e3a8a';
+                if (value >= 50) return '#92400e';
+                return '#7f1d1d';
             }
         ],
         plotOptions:{bar:{
@@ -2754,10 +2832,10 @@ function buildVBar(el, data, cats, color, isDark) {
                animations:{enabled:true,easing:'easeinout',speed:900}},
         colors:[
             function({ value }) {
-                if (value >= 85) return '#10b981';
-                if (value >= 70) return '#3b82f6';
-                if (value >= 50) return '#f59e0b';
-                return '#ef4444';
+                if (value >= 85) return '#064e3b';
+                if (value >= 70) return '#1e3a8a';
+                if (value >= 50) return '#92400e';
+                return '#7f1d1d';
             }
         ],
         plotOptions:{bar:{
@@ -2825,11 +2903,11 @@ function buildAllCharts(isDark) {
     try {
         const d = CHART_DATA;
         const pL = ['Critical','High','Medium','Low'];
-        const pC = ['#ef4444','#f97316','#eab308','#3b82f6'];
+        const pC = ['#7f1d1d','#92400e','#312e81','#1e3a8a'];
         const aL = ['< 5 Days','5–10 Days','11–30 Days','> 30 Days'];
-        const aC = ['#10b981','#3b82f6','#f59e0b','#ef4444'];
+        const aC = ['#064e3b','#1e3a8a','#92400e','#7f1d1d'];
         const sL = [LBL.inProgress, LBL.pending, LBL.completed, LBL.overdue];
-        const sC = ['#3b82f6','#f59e0b','#10b981','#ef4444'];
+        const sC = ['#1e3a8a','#92400e','#064e3b','#7f1d1d'];
 
         /* ── District ─────────────────────────────────── */
         if (d.showL1) {
@@ -2837,7 +2915,7 @@ function buildAllCharts(isDark) {
 
             charts.dTrend = buildArea(el('trend'),
                 [{name:LBL.assigned, data:d.distTrend.assigned},{name:LBL.completed, data:d.distTrend.completed}],
-                d.distTrend.cats, ['#3b82f6','#10b981'], isDark);
+                d.distTrend.cats, ['#1e3a8a','#064e3b'], isDark);
             charts.dTrend.render();
 
             charts.dDonut = buildDonut(el('donut'), d.distStatus, sL, sC, isDark);
@@ -2853,10 +2931,10 @@ function buildAllCharts(isDark) {
             charts.dAgeing.render();
 
             charts.dRejections = buildDonut(el('rejections'), d.distRejValues, d.distRejLabels,
-                ['#ef4444','#f97316','#3b82f6','#10b981','#a855f7'], isDark);
+                ['#7f1d1d','#92400e','#1e3a8a','#064e3b','#312e81'], isDark);
             charts.dRejections.render();
 
-            charts.dPerformance = buildHBar(el('performance'), d.distPerfRates, d.distPerfNames, '#10b981', isDark);
+            charts.dPerformance = buildHBar(el('performance'), d.distPerfRates, d.distPerfNames, '#064e3b', isDark);
             charts.dPerformance.render();
         }
 
@@ -2866,7 +2944,7 @@ function buildAllCharts(isDark) {
 
             charts.tTrend = buildArea(el('trend'),
                 [{name:LBL.assigned, data:d.talTrend.assigned},{name:LBL.completed, data:d.talTrend.completed}],
-                d.talTrend.cats, ['#f59e0b','#10b981'], isDark);
+                d.talTrend.cats, ['#92400e','#064e3b'], isDark);
             charts.tTrend.render();
 
             charts.tDonut = buildDonut(el('donut'), d.talStatus, sL, sC, isDark);
@@ -2874,7 +2952,7 @@ function buildAllCharts(isDark) {
 
             charts.tBar = buildStackedBar(el('bar'),
                 [{name:LBL.vilCompleted,data:d.talVilCompleted},{name:LBL.vilPending,data:d.talVilPending},{name:LBL.vilOverdue,data:d.talVilOverdue}],
-                d.talVilNames, ['#10b981','#f59e0b','#ef4444'], isDark);
+                d.talVilNames, ['#064e3b','#92400e','#7f1d1d'], isDark);
             charts.tBar.render();
 
             charts.tPriority = buildDonut(el('priority'), d.talPriority, pL, pC, isDark);
@@ -2884,10 +2962,10 @@ function buildAllCharts(isDark) {
             charts.tAgeing.render();
 
             charts.tRejections = buildDonut(el('rejections'), d.talRejValues, d.talRejLabels,
-                ['#ef4444','#f97316','#3b82f6','#10b981','#a855f7'], isDark);
+                ['#7f1d1d','#92400e','#1e3a8a','#064e3b','#312e81'], isDark);
             charts.tRejections.render();
 
-            charts.tPerformance = buildHBar(el('performance'), d.talPerfRates, d.talPerfNames, '#10b981', isDark);
+            charts.tPerformance = buildHBar(el('performance'), d.talPerfRates, d.talPerfNames, '#064e3b', isDark);
             charts.tPerformance.render();
         }
 
@@ -2897,7 +2975,7 @@ function buildAllCharts(isDark) {
 
             charts.vTrend = buildArea(el('trend'),
                 [{name:LBL.assigned, data:d.vilTrend.assigned},{name:LBL.completed, data:d.vilTrend.completed}],
-                d.vilTrend.cats, ['#10b981','#f59e0b'], isDark);
+                d.vilTrend.cats, ['#064e3b','#92400e'], isDark);
             charts.vTrend.render();
 
             charts.vDonut = buildDonut(el('donut'), d.vilStatus, sL, sC, isDark);

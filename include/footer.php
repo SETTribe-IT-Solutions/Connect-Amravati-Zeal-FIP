@@ -448,6 +448,39 @@
     })();
     </script>
     <?php endif; ?>
+    
+    <?php if (!$is_auth_page): ?>
+    <script>
+    (() => {
+        // Only run this redirect script if not on dashboard.php
+        const path = window.location.pathname;
+        if (path.includes('dashboard.php') || path.endsWith('/') || path.endsWith('index.php')) return;
+
+        const input = document.getElementById('globalSearch');
+        if (!input) return;
+
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const q = this.value.trim();
+                if (q.length < 2) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Search Query Too Short',
+                            text: 'Please enter at least 2 characters.',
+                            confirmButtonColor: '#1e3a8a'
+                        });
+                    }
+                    return;
+                }
+                // Redirect to dashboard.php with search query parameter
+                window.location.href = 'dashboard.php?search=' + encodeURIComponent(q);
+            }
+        });
+    })();
+    </script>
+    <?php endif; ?>
 
 </body>
 </html>

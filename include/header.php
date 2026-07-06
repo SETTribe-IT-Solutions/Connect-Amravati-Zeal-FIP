@@ -314,137 +314,147 @@ if (isset($_SESSION['user_id'])) {
 
         /* Premium Colorful KPI Card Color Palettes */
         .kpi-card.kpi-blue {
-            background: linear-gradient(135deg, #dbeafe 0%, #f0f7ff 100%) !important;
-            border-left: 5px solid #1d4ed8 !important;
-            border-top: 1px solid #bfdbfe !important;
-            border-right: 1px solid #bfdbfe !important;
-            border-bottom: 1px solid #bfdbfe !important;
-            box-shadow: 0 4px 12px rgba(37,99,235,0.08);
+            background: linear-gradient(135deg, #090d16 0%, #172554 100%) !important;
+            border-left: 5px solid #3b82f6 !important;
+            border-top: 1px solid rgba(59,130,246,0.15) !important;
+            border-right: 1px solid rgba(59,130,246,0.15) !important;
+            border-bottom: 1px solid rgba(59,130,246,0.15) !important;
+            box-shadow: 0 4px 12px rgba(37,99,235,0.15);
         }
         .kpi-card.kpi-blue p, .kpi-card.kpi-blue span {
-            color: #1e40af !important;
+            color: #93c5fd !important;
         }
-        .kpi-card.kpi-blue .text-3xl {
-            color: #1e3a8a !important;
+        .kpi-card.kpi-blue .text-3xl, .kpi-card.kpi-blue .text-2xl, .kpi-card.kpi-blue [id^="kpi-"] {
+            color: #ffffff !important;
         }
         .dark .kpi-card.kpi-blue {
-            background: linear-gradient(135deg, rgba(30,58,138,0.4) 0%, rgba(15,23,42,0.95) 100%) !important;
-            border-left: 5px solid #3b82f6 !important;
-            border-color: rgba(59,130,246,0.3) rgba(59,130,246,0.2) rgba(59,130,246,0.2) rgba(59,130,246,0.2) !important;
+            background: linear-gradient(135deg, #020617 0%, #1e3a8a 100%) !important;
+            border-left: 5px solid #2563eb !important;
+            border-top: 1px solid rgba(59,130,246,0.1) !important;
+            border-right: 1px solid rgba(59,130,246,0.1) !important;
+            border-bottom: 1px solid rgba(59,130,246,0.1) !important;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
         .dark .kpi-card.kpi-blue p, .dark .kpi-card.kpi-blue span {
-            color: #93c5fd !important;
+            color: #60a5fa !important;
         }
-        .dark .kpi-card.kpi-blue .text-3xl {
+        .dark .kpi-card.kpi-blue .text-3xl, .dark .kpi-card.kpi-blue .text-2xl, .dark .kpi-card.kpi-blue [id^="kpi-"] {
             color: #ffffff !important;
         }
 
         .kpi-card.kpi-red {
-            background: linear-gradient(135deg, #fecaca 0%, #fef2f2 100%) !important;
-            border-left: 5px solid #b91c1c !important;
-            border-top: 1px solid #fca5a5 !important;
-            border-right: 1px solid #fca5a5 !important;
-            border-bottom: 1px solid #fca5a5 !important;
-            box-shadow: 0 4px 12px rgba(220,38,38,0.08);
+            background: linear-gradient(135deg, #180505 0%, #450a0a 100%) !important;
+            border-left: 5px solid #ef4444 !important;
+            border-top: 1px solid rgba(239,68,68,0.15) !important;
+            border-right: 1px solid rgba(239,68,68,0.15) !important;
+            border-bottom: 1px solid rgba(239,68,68,0.15) !important;
+            box-shadow: 0 4px 12px rgba(220,38,38,0.15);
         }
         .kpi-card.kpi-red p, .kpi-card.kpi-red span {
-            color: #991b1b !important;
+            color: #fca5a5 !important;
         }
-        .kpi-card.kpi-red .text-3xl {
-            color: #7f1d1d !important;
+        .kpi-card.kpi-red .text-3xl, .kpi-card.kpi-red .text-2xl, .kpi-card.kpi-red [id^="kpi-"] {
+            color: #ffffff !important;
         }
         .dark .kpi-card.kpi-red {
-            background: linear-gradient(135deg, rgba(127,29,29,0.4) 0%, rgba(15,23,42,0.95) 100%) !important;
-            border-left: 5px solid #ef4444 !important;
-            border-color: rgba(239,68,68,0.3) rgba(239,68,68,0.2) rgba(239,68,68,0.2) rgba(239,68,68,0.2) !important;
+            background: linear-gradient(135deg, #0f0505 0%, #7f1d1d 100%) !important;
+            border-left: 5px solid #dc2626 !important;
+            border-top: 1px solid rgba(239,68,68,0.1) !important;
+            border-right: 1px solid rgba(239,68,68,0.1) !important;
+            border-bottom: 1px solid rgba(239,68,68,0.1) !important;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
         .dark .kpi-card.kpi-red p, .dark .kpi-card.kpi-red span {
             color: #fca5a5 !important;
         }
-        .dark .kpi-card.kpi-red .text-3xl {
-            color: #fca5a5 !important;
+        .dark .kpi-card.kpi-red .text-3xl, .dark .kpi-card.kpi-red .text-2xl, .dark .kpi-card.kpi-red [id^="kpi-"] {
+            color: #ffffff !important;
         }
 
         .kpi-card.kpi-green {
-            background: linear-gradient(135deg, #a7f3d0 0%, #ecfdf5 100%) !important;
-            border-left: 5px solid #047857 !important;
-            border-top: 1px solid #6ee7b7 !important;
-            border-right: 1px solid #6ee7b7 !important;
-            border-bottom: 1px solid #6ee7b7 !important;
-            box-shadow: 0 4px 12px rgba(16,185,129,0.08);
+            background: linear-gradient(135deg, #022c22 0%, #064e3b 100%) !important;
+            border-left: 5px solid #10b981 !important;
+            border-top: 1px solid rgba(16,185,129,0.15) !important;
+            border-right: 1px solid rgba(16,185,129,0.15) !important;
+            border-bottom: 1px solid rgba(16,185,129,0.15) !important;
+            box-shadow: 0 4px 12px rgba(16,185,129,0.15);
         }
         .kpi-card.kpi-green p, .kpi-card.kpi-green span {
-            color: #065f46 !important;
+            color: #6ee7b7 !important;
         }
-        .kpi-card.kpi-green .text-3xl {
-            color: #064e3b !important;
+        .kpi-card.kpi-green .text-3xl, .kpi-card.kpi-green .text-2xl, .kpi-card.kpi-green [id^="kpi-"] {
+            color: #ffffff !important;
         }
         .dark .kpi-card.kpi-green {
-            background: linear-gradient(135deg, rgba(6,95,70,0.35) 0%, rgba(15,23,42,0.95) 100%) !important;
-            border-left: 5px solid #10b981 !important;
-            border-color: rgba(16,185,129,0.3) rgba(16,185,129,0.2) rgba(16,185,129,0.2) rgba(16,185,129,0.2) !important;
+            background: linear-gradient(135deg, #022c22 0%, #064e3b 100%) !important;
+            border-left: 5px solid #059669 !important;
+            border-top: 1px solid rgba(16,185,129,0.1) !important;
+            border-right: 1px solid rgba(16,185,129,0.1) !important;
+            border-bottom: 1px solid rgba(16,185,129,0.1) !important;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
         .dark .kpi-card.kpi-green p, .dark .kpi-card.kpi-green span {
-            color: #6ee7b7 !important;
+            color: #34d399 !important;
         }
-        .dark .kpi-card.kpi-green .text-3xl {
+        .dark .kpi-card.kpi-green .text-3xl, .dark .kpi-card.kpi-green .text-2xl, .dark .kpi-card.kpi-green [id^="kpi-"] {
             color: #ffffff !important;
         }
 
         .kpi-card.kpi-orange {
-            background: linear-gradient(135deg, #fde68a 0%, #fffbeb 100%) !important;
-            border-left: 5px solid #b45309 !important;
-            border-top: 1px solid #fcd34d !important;
-            border-right: 1px solid #fcd34d !important;
-            border-bottom: 1px solid #fcd34d !important;
-            box-shadow: 0 4px 12px rgba(245,158,11,0.08);
+            background: linear-gradient(135deg, #2d1b02 0%, #78350f 100%) !important;
+            border-left: 5px solid #f59e0b !important;
+            border-top: 1px solid rgba(245,158,11,0.15) !important;
+            border-right: 1px solid rgba(245,158,11,0.15) !important;
+            border-bottom: 1px solid rgba(245,158,11,0.15) !important;
+            box-shadow: 0 4px 12px rgba(245,158,11,0.15);
         }
         .kpi-card.kpi-orange p, .kpi-card.kpi-orange span {
-            color: #92400e !important;
+            color: #fcd34d !important;
         }
-        .kpi-card.kpi-orange .text-3xl {
-            color: #78350f !important;
+        .kpi-card.kpi-orange .text-3xl, .kpi-card.kpi-orange .text-2xl, .kpi-card.kpi-orange [id^="kpi-"] {
+            color: #ffffff !important;
         }
         .dark .kpi-card.kpi-orange {
-            background: linear-gradient(135deg, rgba(146,64,14,0.3) 0%, rgba(15,23,42,0.95) 100%) !important;
-            border-left: 5px solid #f59e0b !important;
-            border-color: rgba(245,158,11,0.3) rgba(245,158,11,0.2) rgba(245,158,11,0.2) rgba(245,158,11,0.2) !important;
+            background: linear-gradient(135deg, #1c0f02 0%, #92400e 100%) !important;
+            border-left: 5px solid #d97706 !important;
+            border-top: 1px solid rgba(245,158,11,0.1) !important;
+            border-right: 1px solid rgba(245,158,11,0.1) !important;
+            border-bottom: 1px solid rgba(245,158,11,0.1) !important;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
         .dark .kpi-card.kpi-orange p, .dark .kpi-card.kpi-orange span {
-            color: #fcd34d !important;
+            color: #fbbf24 !important;
         }
-        .dark .kpi-card.kpi-orange .text-3xl {
+        .dark .kpi-card.kpi-orange .text-3xl, .dark .kpi-card.kpi-orange .text-2xl, .dark .kpi-card.kpi-orange [id^="kpi-"] {
             color: #ffffff !important;
         }
 
         .kpi-card.kpi-indigo {
-            background: linear-gradient(135deg, #c7d2fe 0%, #f5f3ff 100%) !important;
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%) !important;
             border-left: 5px solid #4f46e5 !important;
-            border-top: 1px solid #a5b4fc !important;
-            border-right: 1px solid #a5b4fc !important;
-            border-bottom: 1px solid #a5b4fc !important;
-            box-shadow: 0 4px 12px rgba(99,102,241,0.08);
+            border-top: 1px solid rgba(99,102,241,0.15) !important;
+            border-right: 1px solid rgba(99,102,241,0.15) !important;
+            border-bottom: 1px solid rgba(99,102,241,0.15) !important;
+            box-shadow: 0 4px 12px rgba(99,102,241,0.15);
         }
         .kpi-card.kpi-indigo p, .kpi-card.kpi-indigo span {
-            color: #3730a3 !important;
+            color: #c7d2fe !important;
         }
-        .kpi-card.kpi-indigo .text-3xl {
-            color: #312e81 !important;
+        .kpi-card.kpi-indigo .text-3xl, .kpi-card.kpi-indigo .text-2xl, .kpi-card.kpi-indigo [id^="kpi-"] {
+            color: #ffffff !important;
         }
         .dark .kpi-card.kpi-indigo {
-            background: linear-gradient(135deg, rgba(55,48,163,0.3) 0%, rgba(15,23,42,0.95) 100%) !important;
-            border-left: 5px solid #818cf8 !important;
-            border-color: rgba(129,140,248,0.3) rgba(129,140,248,0.2) rgba(129,140,248,0.2) rgba(129,140,248,0.2) !important;
+            background: linear-gradient(135deg, #1e1b4b 0%, #3730a3 100%) !important;
+            border-left: 5px solid #4338ca !important;
+            border-top: 1px solid rgba(99,102,241,0.1) !important;
+            border-right: 1px solid rgba(99,102,241,0.1) !important;
+            border-bottom: 1px solid rgba(99,102,241,0.1) !important;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
         .dark .kpi-card.kpi-indigo p, .dark .kpi-card.kpi-indigo span {
             color: #a5b4fc !important;
         }
-        .dark .kpi-card.kpi-indigo .text-3xl {
+        .dark .kpi-card.kpi-indigo .text-3xl, .dark .kpi-card.kpi-indigo .text-2xl, .dark .kpi-card.kpi-indigo [id^="kpi-"] {
             color: #ffffff !important;
         }
 

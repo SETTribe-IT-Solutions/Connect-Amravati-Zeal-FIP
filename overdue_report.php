@@ -1203,6 +1203,14 @@ function buildAllCharts(isDark) {
                             filterReportTable();
                         }
                     }
+                },
+                dropShadow: {
+                    enabled: true,
+                    top: 4,
+                    left: 2,
+                    blur: 6,
+                    color: '#000000',
+                    opacity: isDark ? 0.35 : 0.12
                 }
             },
             labels: [
@@ -1210,7 +1218,24 @@ function buildAllCharts(isDark) {
                 <?= json_encode($t['priority_medium']) ?>, 
                 <?= json_encode($t['priority_low']) ?>
             ],
-            colors: ['#ef4444', '#f57c00', '#64748b'],
+            colors: ['#7f1d1d', '#92400e', '#1e3a8a'],
+            stroke: {
+                show: true,
+                width: 3,
+                colors: [isDark ? '#1e293b' : '#ffffff']
+            },
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    shade: isDark ? 'dark' : 'light',
+                    type: 'radial',
+                    shadeIntensity: 0.15,
+                    inverseColors: false,
+                    opacityFrom: 1.0,
+                    opacityTo: 0.95,
+                    stops: [70, 95, 100]
+                }
+            },
             plotOptions: { pie: { donut: { size: '65%' } } },
             legend: { position: 'bottom', labels: { colors: tc } },
             dataLabels: { enabled: false },
@@ -1244,7 +1269,7 @@ function buildAllCharts(isDark) {
                     }
                 }
             },
-            colors: ['#ef4444'],
+            colors: ['#7f1d1d'],
             plotOptions: { bar: { borderRadius: 4, columnWidth: '40%' } },
             dataLabels: { enabled: false },
             xaxis: {

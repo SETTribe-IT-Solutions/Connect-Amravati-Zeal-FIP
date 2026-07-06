@@ -355,8 +355,10 @@ include 'include/sidebar.php';
                                     data.status_counts.Pending || 0,
                                     data.status_counts.Rejected || 0
                                 ],
-                                backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#64748b', '#ef4444'],
-                                borderWidth: 1
+                                backgroundColor: ['#064e3b', '#1e3a8a', '#334155', '#92400e', '#7f1d1d'],
+                                borderWidth: 3,
+                                borderColor: '#ffffff',
+                                hoverOffset: 8
                             }]
                         },
                         options: {
@@ -379,7 +381,7 @@ include 'include/sidebar.php';
                             datasets: [{
                                 label: 'Tasks Qty',
                                 data: catValues.length ? catValues : [0],
-                                backgroundColor: '#4f46e5',
+                                backgroundColor: '#312e81',
                                 borderRadius: 4
                             }]
                         },

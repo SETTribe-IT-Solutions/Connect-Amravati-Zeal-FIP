@@ -503,16 +503,16 @@ function makeDonut(id, labels, values, colors) {
     if (ctx._chart) ctx._chart.destroy();
     ctx._chart = new Chart(ctx, {
         type: 'doughnut',
-        data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 1 }] },
+        data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 3, borderColor: '#ffffff', hoverOffset: 8 }] },
         options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 10 } } } }
     });
 }
 
 // Render all charts
-makeBarChart('empChart',  empData.map(e=>e.name),  empData.map(e=>e.rate),  '#4f46e5');
-makeBarChart('vilChart',  vilData.map(v=>v.name),  vilData.map(v=>v.rate),  '#10b981');
-makeBarChart('distChart', distData.map(d=>d.name), distData.map(d=>d.rate), '#f59e0b');
-makeDonut('distDonut', ['Completed','In Progress','Pending','On Hold'], [totalDone, totalProg, totalPend, totalHold], ['#10b981','#3b82f6','#f59e0b','#94a3b8']);
+makeBarChart('empChart',  empData.map(e=>e.name),  empData.map(e=>e.rate),  '#312e81');
+makeBarChart('vilChart',  vilData.map(v=>v.name),  vilData.map(v=>v.rate),  '#064e3b');
+makeBarChart('distChart', distData.map(d=>d.name), distData.map(d=>d.rate), '#92400e');
+makeDonut('distDonut', ['Completed','In Progress','Pending','On Hold'], [totalDone, totalProg, totalPend, totalHold], ['#064e3b','#1e3a8a','#92400e','#334155']);
 
 /* ── TABLE SEARCH ─────────────────────────────────────────────── */
 function filterTable(searchId, tbodyId) {
