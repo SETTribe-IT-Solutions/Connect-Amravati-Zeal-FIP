@@ -406,7 +406,7 @@ input{
 button{
     width:100%;
     padding:12px;
-    background:#2563eb;
+    background:#003f7b;
     color:white;
     border:none;
     border-radius:8px;
@@ -416,7 +416,7 @@ button{
 }
 
 button:hover{
-    background:#1d4ed8;
+    background:#002750;
 }
 
 .btn-link {
@@ -424,7 +424,7 @@ button:hover{
     text-align: center;
     width: 100%;
     padding: 12px;
-    background: #2563eb;
+    background: #003f7b;
     color: white;
     border: none;
     border-radius: 8px;
@@ -436,7 +436,7 @@ button:hover{
 }
 
 .btn-link:hover {
-    background: #1d4ed8;
+    background: #002750;
 }
 
 .success{
@@ -464,7 +464,7 @@ button:hover{
     text-align: center;
     margin-top: 20px;
     font-size: 14px;
-    color: #2563eb;
+    color: #003f7b;
     text-decoration: none;
 }
 .back-link:hover {
@@ -475,7 +475,7 @@ button:hover{
     width: 400px;
     margin-top: 20px;
     background: #fff;
-    border: 1px dashed #2563eb;
+    border: 1px dashed #003f7b;
     border-radius: 12px;
     padding: 25px;
     font-size: 13px;
@@ -497,7 +497,7 @@ button:hover{
 }
 .btn-reset-email {
     display: inline-block;
-    background: #2563eb;
+    background: #003f7b;
     color: white !important;
     text-decoration: none;
     padding: 10px 18px;
@@ -507,7 +507,7 @@ button:hover{
     text-align: center;
 }
 .btn-reset-email:hover {
-    background: #1d4ed8;
+    background: #002750;
 }
 
 @media(max-width:480px){

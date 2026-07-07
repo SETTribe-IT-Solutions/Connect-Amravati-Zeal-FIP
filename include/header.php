@@ -312,147 +312,137 @@ if (isset($_SESSION['user_id'])) {
             border-color: rgba(102, 165, 225, 0.3);
         }
 
-        /* Premium Colorful KPI Card Color Palettes */
+        /* Premium Rich Dark Colorful KPI Card Color Palettes */
         .kpi-card.kpi-blue {
-            background: linear-gradient(135deg, #090d16 0%, #172554 100%) !important;
-            border-left: 5px solid #3b82f6 !important;
-            border-top: 1px solid rgba(59,130,246,0.15) !important;
-            border-right: 1px solid rgba(59,130,246,0.15) !important;
-            border-bottom: 1px solid rgba(59,130,246,0.15) !important;
-            box-shadow: 0 4px 12px rgba(37,99,235,0.15);
+            background: linear-gradient(135deg, #dbeafe 0%, #f0f7ff 100%) !important;
+            border-left: 5px solid #1d4ed8 !important;
+            border-top: 1px solid #bfdbfe !important;
+            border-right: 1px solid #bfdbfe !important;
+            border-bottom: 1px solid #bfdbfe !important;
+            box-shadow: 0 4px 12px rgba(37,99,235,0.08);
         }
         .kpi-card.kpi-blue p, .kpi-card.kpi-blue span {
-            color: #93c5fd !important;
+            color: #1e40af !important;
         }
-        .kpi-card.kpi-blue .text-3xl, .kpi-card.kpi-blue .text-2xl, .kpi-card.kpi-blue [id^="kpi-"] {
-            color: #ffffff !important;
+        .kpi-card.kpi-blue .text-3xl {
+            color: #1e3a8a !important;
         }
         .dark .kpi-card.kpi-blue {
-            background: linear-gradient(135deg, #020617 0%, #1e3a8a 100%) !important;
-            border-left: 5px solid #2563eb !important;
-            border-top: 1px solid rgba(59,130,246,0.1) !important;
-            border-right: 1px solid rgba(59,130,246,0.1) !important;
-            border-bottom: 1px solid rgba(59,130,246,0.1) !important;
+            background: linear-gradient(135deg, rgba(30,58,138,0.4) 0%, rgba(15,23,42,0.95) 100%) !important;
+            border-left: 5px solid #3b82f6 !important;
+            border-color: rgba(59,130,246,0.3) rgba(59,130,246,0.2) rgba(59,130,246,0.2) rgba(59,130,246,0.2) !important;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
         .dark .kpi-card.kpi-blue p, .dark .kpi-card.kpi-blue span {
-            color: #60a5fa !important;
+            color: #93c5fd !important;
         }
         .dark .kpi-card.kpi-blue .text-3xl, .dark .kpi-card.kpi-blue .text-2xl, .dark .kpi-card.kpi-blue [id^="kpi-"] {
             color: #ffffff !important;
         }
 
         .kpi-card.kpi-red {
-            background: linear-gradient(135deg, #180505 0%, #450a0a 100%) !important;
-            border-left: 5px solid #ef4444 !important;
-            border-top: 1px solid rgba(239,68,68,0.15) !important;
-            border-right: 1px solid rgba(239,68,68,0.15) !important;
-            border-bottom: 1px solid rgba(239,68,68,0.15) !important;
-            box-shadow: 0 4px 12px rgba(220,38,38,0.15);
+            background: linear-gradient(135deg, #fecaca 0%, #fef2f2 100%) !important;
+            border-left: 5px solid #b91c1c !important;
+            border-top: 1px solid #fca5a5 !important;
+            border-right: 1px solid #fca5a5 !important;
+            border-bottom: 1px solid #fca5a5 !important;
+            box-shadow: 0 4px 12px rgba(220,38,38,0.08);
         }
         .kpi-card.kpi-red p, .kpi-card.kpi-red span {
-            color: #fca5a5 !important;
+            color: #991b1b !important;
         }
-        .kpi-card.kpi-red .text-3xl, .kpi-card.kpi-red .text-2xl, .kpi-card.kpi-red [id^="kpi-"] {
-            color: #ffffff !important;
+        .kpi-card.kpi-red .text-3xl {
+            color: #7f1d1d !important;
         }
         .dark .kpi-card.kpi-red {
-            background: linear-gradient(135deg, #0f0505 0%, #7f1d1d 100%) !important;
-            border-left: 5px solid #dc2626 !important;
-            border-top: 1px solid rgba(239,68,68,0.1) !important;
-            border-right: 1px solid rgba(239,68,68,0.1) !important;
-            border-bottom: 1px solid rgba(239,68,68,0.1) !important;
+            background: linear-gradient(135deg, rgba(127,29,29,0.4) 0%, rgba(15,23,42,0.95) 100%) !important;
+            border-left: 5px solid #ef4444 !important;
+            border-color: rgba(239,68,68,0.3) rgba(239,68,68,0.2) rgba(239,68,68,0.2) rgba(239,68,68,0.2) !important;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
-        .dark .kpi-card.kpi-red p, .dark .kpi-card.kpi-red span {
-            color: #fca5a5 !important;
+        .dark .kpi-card.kpi-red p, .dark .kpi-card.kpi-red span, .dark .kpi-card.kpi-red i {
+            color: rgba(255,255,255,0.9) !important;
         }
-        .dark .kpi-card.kpi-red .text-3xl, .dark .kpi-card.kpi-red .text-2xl, .dark .kpi-card.kpi-red [id^="kpi-"] {
-            color: #ffffff !important;
+        .dark .kpi-card.kpi-red .text-3xl {
+            color: #fca5a5 !important;
         }
 
         .kpi-card.kpi-green {
-            background: linear-gradient(135deg, #022c22 0%, #064e3b 100%) !important;
-            border-left: 5px solid #10b981 !important;
-            border-top: 1px solid rgba(16,185,129,0.15) !important;
-            border-right: 1px solid rgba(16,185,129,0.15) !important;
-            border-bottom: 1px solid rgba(16,185,129,0.15) !important;
-            box-shadow: 0 4px 12px rgba(16,185,129,0.15);
+            background: linear-gradient(135deg, #a7f3d0 0%, #ecfdf5 100%) !important;
+            border-left: 5px solid #047857 !important;
+            border-top: 1px solid #6ee7b7 !important;
+            border-right: 1px solid #6ee7b7 !important;
+            border-bottom: 1px solid #6ee7b7 !important;
+            box-shadow: 0 4px 12px rgba(16,185,129,0.08);
         }
         .kpi-card.kpi-green p, .kpi-card.kpi-green span {
-            color: #6ee7b7 !important;
+            color: #065f46 !important;
         }
-        .kpi-card.kpi-green .text-3xl, .kpi-card.kpi-green .text-2xl, .kpi-card.kpi-green [id^="kpi-"] {
-            color: #ffffff !important;
+        .kpi-card.kpi-green .text-3xl {
+            color: #064e3b !important;
         }
         .dark .kpi-card.kpi-green {
-            background: linear-gradient(135deg, #022c22 0%, #064e3b 100%) !important;
-            border-left: 5px solid #059669 !important;
-            border-top: 1px solid rgba(16,185,129,0.1) !important;
-            border-right: 1px solid rgba(16,185,129,0.1) !important;
-            border-bottom: 1px solid rgba(16,185,129,0.1) !important;
+            background: linear-gradient(135deg, rgba(6,95,70,0.35) 0%, rgba(15,23,42,0.95) 100%) !important;
+            border-left: 5px solid #10b981 !important;
+            border-color: rgba(16,185,129,0.3) rgba(16,185,129,0.2) rgba(16,185,129,0.2) rgba(16,185,129,0.2) !important;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
         .dark .kpi-card.kpi-green p, .dark .kpi-card.kpi-green span {
-            color: #34d399 !important;
+            color: #6ee7b7 !important;
         }
         .dark .kpi-card.kpi-green .text-3xl, .dark .kpi-card.kpi-green .text-2xl, .dark .kpi-card.kpi-green [id^="kpi-"] {
             color: #ffffff !important;
         }
 
         .kpi-card.kpi-orange {
-            background: linear-gradient(135deg, #2d1b02 0%, #78350f 100%) !important;
-            border-left: 5px solid #f59e0b !important;
-            border-top: 1px solid rgba(245,158,11,0.15) !important;
-            border-right: 1px solid rgba(245,158,11,0.15) !important;
-            border-bottom: 1px solid rgba(245,158,11,0.15) !important;
-            box-shadow: 0 4px 12px rgba(245,158,11,0.15);
+            background: linear-gradient(135deg, #fde68a 0%, #fffbeb 100%) !important;
+            border-left: 5px solid #b45309 !important;
+            border-top: 1px solid #fcd34d !important;
+            border-right: 1px solid #fcd34d !important;
+            border-bottom: 1px solid #fcd34d !important;
+            box-shadow: 0 4px 12px rgba(245,158,11,0.08);
         }
         .kpi-card.kpi-orange p, .kpi-card.kpi-orange span {
-            color: #fcd34d !important;
+            color: #92400e !important;
         }
-        .kpi-card.kpi-orange .text-3xl, .kpi-card.kpi-orange .text-2xl, .kpi-card.kpi-orange [id^="kpi-"] {
-            color: #ffffff !important;
+        .kpi-card.kpi-orange .text-3xl {
+            color: #78350f !important;
         }
         .dark .kpi-card.kpi-orange {
-            background: linear-gradient(135deg, #1c0f02 0%, #92400e 100%) !important;
-            border-left: 5px solid #d97706 !important;
-            border-top: 1px solid rgba(245,158,11,0.1) !important;
-            border-right: 1px solid rgba(245,158,11,0.1) !important;
-            border-bottom: 1px solid rgba(245,158,11,0.1) !important;
+            background: linear-gradient(135deg, rgba(146,64,14,0.3) 0%, rgba(15,23,42,0.95) 100%) !important;
+            border-left: 5px solid #f59e0b !important;
+            border-color: rgba(245,158,11,0.3) rgba(245,158,11,0.2) rgba(245,158,11,0.2) rgba(245,158,11,0.2) !important;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
         .dark .kpi-card.kpi-orange p, .dark .kpi-card.kpi-orange span {
-            color: #fbbf24 !important;
+            color: #fcd34d !important;
         }
         .dark .kpi-card.kpi-orange .text-3xl, .dark .kpi-card.kpi-orange .text-2xl, .dark .kpi-card.kpi-orange [id^="kpi-"] {
             color: #ffffff !important;
         }
 
         .kpi-card.kpi-indigo {
-            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%) !important;
+            background: linear-gradient(135deg, #c7d2fe 0%, #f5f3ff 100%) !important;
             border-left: 5px solid #4f46e5 !important;
-            border-top: 1px solid rgba(99,102,241,0.15) !important;
-            border-right: 1px solid rgba(99,102,241,0.15) !important;
-            border-bottom: 1px solid rgba(99,102,241,0.15) !important;
-            box-shadow: 0 4px 12px rgba(99,102,241,0.15);
+            border-top: 1px solid #a5b4fc !important;
+            border-right: 1px solid #a5b4fc !important;
+            border-bottom: 1px solid #a5b4fc !important;
+            box-shadow: 0 4px 12px rgba(99,102,241,0.08);
         }
         .kpi-card.kpi-indigo p, .kpi-card.kpi-indigo span {
-            color: #c7d2fe !important;
+            color: #3730a3 !important;
         }
-        .kpi-card.kpi-indigo .text-3xl, .kpi-card.kpi-indigo .text-2xl, .kpi-card.kpi-indigo [id^="kpi-"] {
-            color: #ffffff !important;
+        .kpi-card.kpi-indigo .text-3xl {
+            color: #312e81 !important;
         }
         .dark .kpi-card.kpi-indigo {
-            background: linear-gradient(135deg, #1e1b4b 0%, #3730a3 100%) !important;
-            border-left: 5px solid #4338ca !important;
-            border-top: 1px solid rgba(99,102,241,0.1) !important;
-            border-right: 1px solid rgba(99,102,241,0.1) !important;
-            border-bottom: 1px solid rgba(99,102,241,0.1) !important;
+            background: linear-gradient(135deg, rgba(55,48,163,0.3) 0%, rgba(15,23,42,0.95) 100%) !important;
+            border-left: 5px solid #818cf8 !important;
+            border-color: rgba(129,140,248,0.3) rgba(129,140,248,0.2) rgba(129,140,248,0.2) rgba(129,140,248,0.2) !important;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
-        .dark .kpi-card.kpi-indigo p, .dark .kpi-card.kpi-indigo span {
-            color: #a5b4fc !important;
+        .dark .kpi-card.kpi-indigo p, .dark .kpi-card.kpi-indigo span, .dark .kpi-card.kpi-indigo i {
+            color: rgba(255,255,255,0.9) !important;
         }
         .dark .kpi-card.kpi-indigo .text-3xl, .dark .kpi-card.kpi-indigo .text-2xl, .dark .kpi-card.kpi-indigo [id^="kpi-"] {
             color: #ffffff !important;
@@ -809,17 +799,69 @@ if (isset($_SESSION['user_id'])) {
         </div>
 
         <!-- Center Search Box -->
-        <div class="hidden lg:flex items-center flex-1 max-w-md mx-8 relative z-10">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <i data-lucide="search" class="h-4 w-4 text-slate-400"></i>
+        <div class="hidden lg:flex items-center flex-1 max-w-md mx-8 relative z-10" id="searchWrapper">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                <i data-lucide="search" class="h-4 w-4 text-slate-300" id="searchIcon"></i>
+                <svg id="searchSpinner" class="hidden h-4 w-4 text-white animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
             </div>
             <?php
             $search_placeholder = $t['search_placeholder'] ?? ($lang === 'en' ? "Search tasks, officers, or circulars (Press '/')" : "कार्ये, अधिकारी किंवा परिपत्रके शोधा (दाबा '/')");
             ?>
-            <input id="globalSearch" type="text"
+            <input id="globalSearch" type="text" autocomplete="off"
                    placeholder="<?= htmlspecialchars($search_placeholder) ?>"
-                   class="block w-full pl-9 pr-3 py-1.5 border border-white/20 rounded-lg text-sm bg-white/10 text-white placeholder-slate-400 focus:outline-none focus:bg-white focus:text-slate-900 focus:border-navy-500 focus:ring-1 focus:ring-navy-500 transition-all">
+                   title="Search tasks, officers or circulars. Press Enter to search."
+                   class="block w-full pl-9 pr-8 py-1.5 border border-white/20 rounded-lg text-sm bg-white/10 text-white placeholder-slate-400 focus:outline-none focus:bg-white focus:text-slate-900 focus:border-navy-500 focus:ring-1 focus:ring-navy-500 transition-all">
+            <!-- Clear button -->
+            <button id="searchClearBtn" class="hidden absolute inset-y-0 right-0 pr-3 flex items-center text-slate-300 hover:text-white focus:outline-none" title="Clear search">
+                <i data-lucide="x" class="h-3.5 w-3.5"></i>
+            </button>
+            <!-- Live Search Dropdown -->
+            <div id="searchDropdown"
+                 class="hidden absolute left-0 top-full mt-1.5 w-full min-w-[340px] bg-white dark:bg-slate-800
+                        border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-50
+                        overflow-hidden" style="max-height:440px;overflow-y:auto;">
+
+                <!-- Section: Tasks -->
+                <div id="sdTasks" class="hidden">
+                    <div class="px-4 pt-3 pb-1 flex items-center text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                        <i data-lucide="check-square" class="w-3 h-3 mr-1.5"></i> Tasks
+                    </div>
+                    <ul id="sdTaskList"></ul>
+                </div>
+
+                <!-- Section: Officers -->
+                <div id="sdOfficers" class="hidden">
+                    <div class="px-4 pt-3 pb-1 flex items-center text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                        <i data-lucide="users" class="w-3 h-3 mr-1.5"></i> Officers
+                    </div>
+                    <ul id="sdOfficerList"></ul>
+                </div>
+
+                <!-- Section: Circulars -->
+                <div id="sdCirculars" class="hidden">
+                    <div class="px-4 pt-3 pb-1 flex items-center text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                        <i data-lucide="megaphone" class="w-3 h-3 mr-1.5"></i> Circulars
+                    </div>
+                    <ul id="sdCircularList"></ul>
+                </div>
+
+                <!-- Empty state -->
+                <div id="sdEmpty" class="hidden py-8 text-center">
+                    <i data-lucide="search-x" class="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600 mb-2"></i>
+                    <p class="text-sm text-slate-400 dark:text-slate-500">No results found</p>
+                </div>
+
+                <!-- Footer hint -->
+                <div class="border-t border-slate-100 dark:border-slate-700 px-4 py-2 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50">
+                    <span class="text-[10px] text-slate-400">Press <kbd class="px-1 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[9px] font-mono">↑↓</kbd> to navigate &nbsp; <kbd class="px-1 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[9px] font-mono">Enter</kbd> to open &nbsp; <kbd class="px-1 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[9px] font-mono">Esc</kbd> to close</span>
+                    <span class="text-[10px] text-slate-400" id="sdResultCount"></span>
+                </div>
+            </div>
         </div>
+
 
         <!-- Right Side: Actions (Language, Theme, Notifications, Profile, Seal) -->
         <div class="flex items-center space-x-3.5 relative z-10 text-right">

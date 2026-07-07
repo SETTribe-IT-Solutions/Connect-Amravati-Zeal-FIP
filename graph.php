@@ -515,11 +515,44 @@ makeBarChart('distChart', distData.map(d=>d.name), distData.map(d=>d.rate), '#92
 makeDonut('distDonut', ['Completed','In Progress','Pending','On Hold'], [totalDone, totalProg, totalPend, totalHold], ['#064e3b','#1e3a8a','#92400e','#334155']);
 
 /* ── TABLE SEARCH ─────────────────────────────────────────────── */
+let _filterTableDebounce = {};
+
 function filterTable(searchId, tbodyId) {
-    const q = document.getElementById(searchId).value.toLowerCase();
+    const inputEl = document.getElementById(searchId);
+    if (!inputEl) return;
+    const q = inputEl.value.trim().toLowerCase();
+
+    // Validation: require at least 2 chars if user has entered something
+    if (q.length > 0 && q.length < 2) {
+        // Don't alert on every keystroke, just silently wait
+        document.querySelectorAll('#' + tbodyId + ' tr').forEach(row => {
+            row.style.display = '';
+        });
+        return;
+    }
+
+    let visibleCount = 0;
     document.querySelectorAll('#' + tbodyId + ' tr').forEach(row => {
-        row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+        const matches = !q || row.textContent.toLowerCase().includes(q);
+        row.style.display = matches ? '' : 'none';
+        if (matches) visibleCount++;
     });
+
+    // Show SweetAlert if no results found (debounce to avoid rapid alerts)
+    clearTimeout(_filterTableDebounce[searchId]);
+    if (q.length >= 2 && visibleCount === 0) {
+        _filterTableDebounce[searchId] = setTimeout(() => {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'No Records Found',
+                    html: `<p>No results found for <strong>"${inputEl.value.trim()}"</strong>.</p><p class="text-sm text-slate-500 mt-1">Please enter correct data and try again.</p>`,
+                    confirmButtonColor: '#4f46e5',
+                    confirmButtonText: 'OK'
+                });
+            }
+        }, 600);
+    }
 }
 
 /* ── PDF DOWNLOAD ─────────────────────────────────────────────── */
