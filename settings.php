@@ -178,11 +178,11 @@ include 'include/sidebar.php';
                             <?= ' (' . htmlspecialchars($headerLocationDisplay) . ')' ?>
                         </span>
                     </div>
-                    <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-sm">
+                    <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border border-amber-500/40 shadow-sm">
                         <?= htmlspecialchars($initials) ?>
                     </div>
                 </button>
-                <div id="profileDropdownMenu" class="hidden absolute right-0 mt-2 w-48 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md z-50">
+                <div id="profileDropdownMenu" class="hidden absolute right-0 top-full mt-2 w-48 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md z-50 text-left">
                     <div class="py-1">
                         <a href="profile_update.php?lang=<?= $lang ?>" class="flex items-center px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100">
                             <i data-lucide="user" class="w-4 h-4 mr-2 text-slate-400"></i><?= $lang==='en'?'User Profile Update':'वापरकर्ता प्रोफाइल अपडेट' ?>
@@ -286,7 +286,7 @@ include 'include/sidebar.php';
                         <label class="block text-sm font-semibold"><?= htmlspecialchars($t['label_data']) ?></label>
                         <span class="text-xs text-slate-400"><?= htmlspecialchars($t['label_data_desc']) ?></span>
                     </div>
-                    <button type="button" onclick="Swal.fire({icon: 'info', title: '<?= htmlspecialchars($t['btn_export_data']) ?>', text: 'Your data archive is being prepared. We will notify you when it is ready to download.', confirmButtonColor: '#0069cd'})" class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors">
+                    <button type="button" onclick="Swal.fire({icon: 'info', title: '<?= htmlspecialchars($t['btn_export_data']) ?>', text: 'Your data archive is being prepared. We will notify you when it is ready to download.', confirmButtonColor: '#003f7b'})" class="px-4 py-2 bg-navy-600 hover:bg-navy-700 text-white dark:bg-navy-700 dark:hover:bg-navy-800 rounded-lg text-sm font-semibold transition-colors">
                         <i data-lucide="download" class="w-4 h-4 inline-block mr-1"></i><?= htmlspecialchars($t['btn_export_data']) ?>
                     </button>
                 </div>

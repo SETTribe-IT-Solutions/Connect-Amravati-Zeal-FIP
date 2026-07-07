@@ -59,6 +59,7 @@ $translations = [
         'lbl_desc' => 'Description',
         'lbl_priority' => 'Priority',
         'lbl_attachment' => 'Attachment File',
+        'lbl_attachment_help' => 'Allowed: PDF, Word, Excel, Images, Audio, Video. Max: 50MB.',
         'lbl_audience' => 'Target Audience',
         'lbl_publish_date' => 'Publish Date',
         'lbl_expiry_date' => 'Expiry Date',
@@ -161,6 +162,7 @@ $translations = [
         'lbl_desc' => 'वर्णन',
         'lbl_priority' => 'प्राधान्यक्रम',
         'lbl_attachment' => 'संलग्न दस्तऐवज',
+        'lbl_attachment_help' => 'परवानगी असलेले स्वरूप: PDF, Word, Excel, फोटो, ऑडिओ, व्हिडिओ. कमाल: ५०MB.',
         'lbl_audience' => 'लक्षित वाचक',
         'lbl_publish_date' => 'प्रकाशन तारीख',
         'lbl_expiry_date' => 'समाप्ती तारीख',
@@ -448,11 +450,11 @@ include 'include/sidebar.php';
                             <?= ' (' . htmlspecialchars($headerLocationDisplay) . ')' ?>
                         </span>
                     </div>
-                    <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-sm">
+                    <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border border-amber-500/40 shadow-sm">
                         <?= htmlspecialchars($initials ?? 'U') ?>
                     </div>
                 </button>
-                <div id="profileDropdownMenu" class="hidden absolute right-0 mt-2 w-48 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md z-50">
+                <div id="profileDropdownMenu" class="hidden absolute right-0 top-full mt-2 w-48 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md z-50 text-left">
                     <div class="py-1">
                         <a href="profile_update.php?lang=<?= $lang ?? 'en' ?>" class="flex items-center px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
                             <i data-lucide="user" class="w-4 h-4 mr-2 text-slate-400"></i><?= ($lang ?? 'en') === 'en' ? 'User Profile Update' : 'वापरकर्ता प्रोफाइल अपडेट' ?>
@@ -512,54 +514,88 @@ include 'include/sidebar.php';
                 </div>
             <?php endif; ?>
 
+            <style>
+                .kpi-card.kpi-purple {
+                    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%) !important;
+                    border: 1px solid #7c3aed !important;
+                    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.2) !important;
+                }
+                .kpi-card.kpi-purple p, .kpi-card.kpi-purple span, .kpi-card.kpi-purple i {
+                    color: rgba(255,255,255,0.95) !important;
+                }
+                .kpi-card.kpi-purple .text-3xl {
+                    color: #ffffff !important;
+                }
+                .dark .kpi-card.kpi-purple {
+                    background: linear-gradient(135deg, #2e1065 0%, #4c1d95 100%) !important;
+                    border: 1px solid #4c1d95 !important;
+                    box-shadow: 0 4px 14px rgba(0,0,0,0.3) !important;
+                }
+                .dark .kpi-card.kpi-purple p, .dark .kpi-card.kpi-purple span, .dark .kpi-card.kpi-purple i {
+                    color: rgba(255,255,255,0.9) !important;
+                }
+            </style>
+
             <!-- DASHBOARD WIDGET CARDS -->
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-5 mb-8">
                 <!-- Card 1 -->
-                <div onclick="switchTab('all_annc')" class="cursor-pointer bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Annc</p>
-                    <div class="flex items-baseline justify-between mt-2">
-                        <span class="text-2xl font-bold text-slate-900 dark:text-white"><?= $totalAnnc ?></span>
-                        <i data-lucide="megaphone" class="w-5 h-5 text-slate-400"></i>
+                <div onclick="switchTab('all_annc')" class="cursor-pointer kpi-card kpi-blue p-5 rounded-xl flex flex-col justify-between hover:scale-[1.03] transition-all duration-200">
+                    <p class="text-xs font-bold uppercase tracking-wider opacity-90">Total Annc</p>
+                    <div class="flex items-baseline justify-between mt-3">
+                        <span class="text-2xl font-extrabold text-white"><?= $totalAnnc ?></span>
+                        <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                            <i data-lucide="megaphone" class="w-4 h-4 text-white"></i>
+                        </div>
                     </div>
                 </div>
                 <!-- Card 2 -->
-                <div onclick="switchTab('all_annc')" class="cursor-pointer bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Active Annc</p>
-                    <div class="flex items-baseline justify-between mt-2">
-                        <span class="text-2xl font-bold text-slate-900 dark:text-white"><?= $activeAnnc ?></span>
-                        <i data-lucide="bell" class="w-5 h-5 text-govgreen-500"></i>
+                <div onclick="switchTab('all_annc')" class="cursor-pointer kpi-card kpi-green p-5 rounded-xl flex flex-col justify-between hover:scale-[1.03] transition-all duration-200">
+                    <p class="text-xs font-bold uppercase tracking-wider opacity-90">Active Annc</p>
+                    <div class="flex items-baseline justify-between mt-3">
+                        <span class="text-2xl font-extrabold text-white"><?= $activeAnnc ?></span>
+                        <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                            <i data-lucide="bell" class="w-4 h-4 text-white"></i>
+                        </div>
                     </div>
                 </div>
                 <!-- Card 3 -->
-                <div onclick="switchTab('meetings')" class="cursor-pointer bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Upcoming Mtgs</p>
-                    <div class="flex items-baseline justify-between mt-2">
-                        <span class="text-2xl font-bold text-slate-900 dark:text-white"><?= $upcomingMeetings ?></span>
-                        <i data-lucide="calendar" class="w-5 h-5 text-saffron-500"></i>
+                <div onclick="switchTab('meetings')" class="cursor-pointer kpi-card kpi-orange p-5 rounded-xl flex flex-col justify-between hover:scale-[1.03] transition-all duration-200">
+                    <p class="text-xs font-bold uppercase tracking-wider opacity-90">Upcoming Mtgs</p>
+                    <div class="flex items-baseline justify-between mt-3">
+                        <span class="text-2xl font-extrabold text-white"><?= $upcomingMeetings ?></span>
+                        <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                            <i data-lucide="calendar" class="w-4 h-4 text-white"></i>
+                        </div>
                     </div>
                 </div>
                 <!-- Card 4 -->
-                <div onclick="switchTab('meetings')" class="cursor-pointer bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Live Meetings</p>
-                    <div class="flex items-baseline justify-between mt-2">
-                        <span class="text-2xl font-bold text-slate-900 dark:text-white"><?= $liveMeetings ?></span>
-                        <i data-lucide="video" class="w-5 h-5 text-red-500"></i>
+                <div onclick="switchTab('meetings')" class="cursor-pointer kpi-card kpi-red p-5 rounded-xl flex flex-col justify-between hover:scale-[1.03] transition-all duration-200">
+                    <p class="text-xs font-bold uppercase tracking-wider opacity-90">Live Meetings</p>
+                    <div class="flex items-baseline justify-between mt-3">
+                        <span class="text-2xl font-extrabold text-white"><?= $liveMeetings ?></span>
+                        <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                            <i data-lucide="video" class="w-4 h-4 text-white"></i>
+                        </div>
                     </div>
                 </div>
                 <!-- Card 5 -->
-                <div onclick="switchTab('shared_msgs')" class="cursor-pointer bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Unread Msgs</p>
-                    <div class="flex items-baseline justify-between mt-2">
-                        <span class="text-2xl font-bold text-slate-900 dark:text-white"><?= $unreadMsgs ?></span>
-                        <i data-lucide="mail" class="w-5 h-5 text-navy-500"></i>
+                <div onclick="switchTab('messages')" class="cursor-pointer kpi-card kpi-indigo p-5 rounded-xl flex flex-col justify-between hover:scale-[1.03] transition-all duration-200">
+                    <p class="text-xs font-bold uppercase tracking-wider opacity-90">Unread Msgs</p>
+                    <div class="flex items-baseline justify-between mt-3">
+                        <span class="text-2xl font-extrabold text-white"><?= $unreadMsgs ?></span>
+                        <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                            <i data-lucide="mail" class="w-4 h-4 text-white"></i>
+                        </div>
                     </div>
                 </div>
                 <!-- Card 6 -->
-                <div class="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
-                    <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Notifications</p>
-                    <div class="flex items-baseline justify-between mt-2">
-                        <span class="text-2xl font-bold text-slate-900 dark:text-white"><?= $unreadNotifs ?></span>
-                        <i data-lucide="bell-ring" class="w-5 h-5 text-saffron-600"></i>
+                <div class="kpi-card kpi-purple p-5 rounded-xl flex flex-col justify-between hover:scale-[1.03] transition-all duration-200">
+                    <p class="text-xs font-bold uppercase tracking-wider opacity-90">Notifications</p>
+                    <div class="flex items-baseline justify-between mt-3">
+                        <span class="text-2xl font-extrabold text-white"><?= $unreadNotifs ?></span>
+                        <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                            <i data-lucide="bell-ring" class="w-4 h-4 text-white"></i>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -567,19 +603,21 @@ include 'include/sidebar.php';
             <!-- QUICK ACTIONS GRID (Collector/L1) -->
             <?php if ($isL1): ?>
                 <div class="mb-8 bg-white dark:bg-slate-800 rounded-xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
-                    <h2 class="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider mb-4">Quick Actions</h2>
+                    <h2 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <i data-lucide="zap" class="w-4 h-4 text-amber-500"></i> Quick Actions
+                    </h2>
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <button onclick="switchTab('create_annc')" class="p-4 bg-navy-50 hover:bg-navy-100 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg flex items-center justify-center text-sm font-semibold text-navy-900 dark:text-white transition-colors">
-                            <i data-lucide="plus-circle" class="w-5 h-5 mr-2 text-navy-600 dark:text-blue-400"></i> Create Announcement
+                        <button onclick="switchTab('create_annc')" class="p-4 bg-blue-50/70 hover:bg-blue-100 border border-blue-100/70 dark:bg-blue-950/20 dark:hover:bg-blue-900/30 dark:border-blue-900/45 rounded-xl flex items-center justify-center text-sm font-semibold text-blue-900 dark:text-blue-300 transition-all duration-200 hover:scale-[1.02]">
+                            <i data-lucide="plus-circle" class="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400"></i> Create Announcement
                         </button>
-                        <button onclick="openScheduleMeetingModal()" class="p-4 bg-navy-50 hover:bg-navy-100 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg flex items-center justify-center text-sm font-semibold text-navy-900 dark:text-white transition-colors">
-                            <i data-lucide="calendar-plus" class="w-5 h-5 mr-2 text-navy-600 dark:text-blue-400"></i> Schedule Meeting
+                        <button onclick="openScheduleMeetingModal()" class="p-4 bg-amber-50/70 hover:bg-amber-100 border border-amber-100/70 dark:bg-amber-950/20 dark:hover:bg-amber-900/30 dark:border-amber-900/45 rounded-xl flex items-center justify-center text-sm font-semibold text-amber-900 dark:text-amber-300 transition-all duration-200 hover:scale-[1.02]">
+                            <i data-lucide="calendar-plus" class="w-5 h-5 mr-2 text-amber-600 dark:text-amber-400"></i> Schedule Meeting
                         </button>
-                        <button onclick="openUploadConfidentialModal()" class="p-4 bg-navy-50 hover:bg-navy-100 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg flex items-center justify-center text-sm font-semibold text-navy-900 dark:text-white transition-colors">
-                            <i data-lucide="file-up" class="w-5 h-5 mr-2 text-navy-600 dark:text-blue-400"></i> Share Confidential Doc
+                        <button onclick="openUploadConfidentialModal()" class="p-4 bg-emerald-50/70 hover:bg-emerald-100 border border-emerald-100/70 dark:bg-emerald-950/20 dark:hover:bg-emerald-900/30 dark:border-emerald-900/45 rounded-xl flex items-center justify-center text-sm font-semibold text-emerald-900 dark:text-emerald-300 transition-all duration-200 hover:scale-[1.02]">
+                            <i data-lucide="file-up" class="w-5 h-5 mr-2 text-emerald-600 dark:text-emerald-400"></i> Share Confidential Doc
                         </button>
-                        <button onclick="openComposeMessageModal()" class="p-4 bg-navy-50 hover:bg-navy-100 dark:bg-slate-700 dark:hover:bg-slate-600 rounded-lg flex items-center justify-center text-sm font-semibold text-navy-900 dark:text-white transition-colors">
-                            <i data-lucide="send" class="w-5 h-5 mr-2 text-navy-600 dark:text-blue-400"></i> Compose Message
+                        <button onclick="openComposeMessageModal()" class="p-4 bg-indigo-50/70 hover:bg-indigo-100 border border-indigo-100/70 dark:bg-indigo-950/20 dark:hover:bg-indigo-900/30 dark:border-indigo-900/45 rounded-xl flex items-center justify-center text-sm font-semibold text-indigo-900 dark:text-indigo-300 transition-all duration-200 hover:scale-[1.02]">
+                            <i data-lucide="send" class="w-5 h-5 mr-2 text-indigo-650 dark:text-indigo-400"></i> Compose Message
                         </button>
                     </div>
                 </div>
@@ -587,22 +625,22 @@ include 'include/sidebar.php';
 
             <!-- CORE SYSTEM TABS NAV -->
             <div class="border-b border-slate-200 dark:border-slate-700 mb-8 overflow-x-auto">
-                <nav class="flex space-x-6 min-w-max">
-                    <button onclick="switchTab('all_annc')" id="tab-btn-all_annc" class="tab-btn border-b-2 py-4 px-1 text-sm font-medium transition-all duration-150 border-navy-500 text-navy-600 font-bold dark:border-blue-400 dark:text-blue-400">
+                <nav class="flex space-x-2 min-w-max pb-px">
+                    <button onclick="switchTab('all_annc')" id="tab-btn-all_annc" class="tab-btn border-b-2 py-3.5 px-5 text-sm font-semibold transition-all duration-150 border-navy-500 text-navy-600 dark:border-blue-400 dark:text-blue-400 bg-navy-100/80 dark:bg-navy-900/50 rounded-t-lg">
                         <?= htmlspecialchars($t['tab_all_annc']) ?>
                     </button>
                     <?php if ($isL1): ?>
-                    <button onclick="switchTab('create_annc')" id="tab-btn-create_annc" class="tab-btn border-b-2 py-4 px-1 text-sm font-medium border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400">
+                    <button onclick="switchTab('create_annc')" id="tab-btn-create_annc" class="tab-btn border-b-2 py-3.5 px-5 text-sm font-medium border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-slate-800/40 rounded-t-lg">
                         <?= htmlspecialchars($t['tab_create_annc']) ?>
                     </button>
                     <?php endif; ?>
-                    <button onclick="switchTab('meetings')" id="tab-btn-meetings" class="tab-btn border-b-2 py-4 px-1 text-sm font-medium border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400">
+                    <button onclick="switchTab('meetings')" id="tab-btn-meetings" class="tab-btn border-b-2 py-3.5 px-5 text-sm font-medium border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-slate-800/40 rounded-t-lg">
                         <?= htmlspecialchars($t['tab_meetings']) ?>
                     </button>
-                    <button onclick="switchTab('confidential')" id="tab-btn-confidential" class="tab-btn border-b-2 py-4 px-1 text-sm font-medium border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400">
+                    <button onclick="switchTab('confidential')" id="tab-btn-confidential" class="tab-btn border-b-2 py-3.5 px-5 text-sm font-medium border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-slate-800/40 rounded-t-lg">
                         <?= htmlspecialchars($t['tab_confidential']) ?>
                     </button>
-                    <button onclick="switchTab('messages')" id="tab-btn-messages" class="tab-btn border-b-2 py-4 px-1 text-sm font-medium border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400">
+                    <button onclick="switchTab('messages')" id="tab-btn-messages" class="tab-btn border-b-2 py-3.5 px-5 text-sm font-medium border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 hover:bg-slate-100/50 dark:hover:bg-slate-800/40 rounded-t-lg">
                         <?= htmlspecialchars($t['tab_messages']) ?>
                     </button>
                 </nav>
@@ -616,14 +654,30 @@ include 'include/sidebar.php';
                     <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
                         <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
                             <!-- Search -->
-                            <div class="relative w-full md:w-64">
-                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <i data-lucide="search" class="w-4 h-4 text-slate-400"></i>
+                            <div class="relative w-full md:w-72" id="anncSearchWrapper">
+                                <!-- Search Icon (Left) -->
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                                    <i data-lucide="search" class="w-4 h-4 text-navy-500 dark:text-blue-400" id="anncSearchIcon"></i>
                                 </span>
-                                <input type="text" id="anncSearch" placeholder="Search Announcements..." class="pl-9 pr-3 py-2 border rounded-lg text-sm w-full bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white border-slate-350 focus:outline-none focus:ring-1 focus:ring-navy-500">
+                                <input type="text" id="anncSearch" 
+                                    placeholder="Search announcements... (Press Enter)"
+                                    autocomplete="off"
+                                    class="pl-9 pr-20 py-2 border-2 rounded-lg text-sm w-full bg-white dark:bg-slate-700 text-slate-900 dark:text-white border-slate-300 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-navy-500 focus:border-navy-500 transition-all duration-200">
+                                <!-- Clear Button -->
+                                <button type="button" id="anncSearchClearBtn"
+                                    class="hidden absolute inset-y-0 right-10 flex items-center px-2 text-slate-400 hover:text-slate-600 dark:hover:text-white focus:outline-none transition-colors"
+                                    title="Clear search" tabindex="-1">
+                                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                                </button>
+                                <!-- Search Submit Button -->
+                                <button type="button" id="anncSearchBtn"
+                                    class="absolute inset-y-0 right-0 px-3 flex items-center bg-navy-500 hover:bg-navy-600 text-white rounded-r-lg transition-colors focus:outline-none"
+                                    title="Search">
+                                    <i data-lucide="search" class="w-3.5 h-3.5"></i>
+                                </button>
                             </div>
                             <!-- Category Filter -->
-                            <select id="anncCategory" class="px-3 py-2 border rounded-lg text-sm bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
+                            <select id="anncCategory" class="px-3 py-2 border rounded-lg text-sm bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-navy-500">
                                 <option value="">All Categories</option>
                                 <option value="General">General</option>
                                 <option value="Administrative">Administrative</option>
@@ -631,7 +685,7 @@ include 'include/sidebar.php';
                                 <option value="Emergency">Emergency</option>
                             </select>
                             <!-- Priority Filter -->
-                            <select id="anncPriority" class="px-3 py-2 border rounded-lg text-sm bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
+                            <select id="anncPriority" class="px-3 py-2 border rounded-lg text-sm bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-navy-500">
                                 <option value="">All Priorities</option>
                                 <option value="Low">Low</option>
                                 <option value="Medium">Medium</option>
@@ -639,6 +693,7 @@ include 'include/sidebar.php';
                                 <option value="Urgent">Urgent</option>
                             </select>
                         </div>
+
                     </div>
 
                     <div class="overflow-x-auto">
@@ -719,8 +774,9 @@ include 'include/sidebar.php';
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-sm font-semibold mb-2"><?= htmlspecialchars($t['lbl_attachment']) ?></label>
-                                <input type="file" name="attachment" class="w-full px-3 py-1.5 border rounded-lg bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
+                                <label class="block text-sm font-semibold mb-1"><?= htmlspecialchars($t['lbl_attachment']) ?></label>
+                                <input type="file" name="attachment" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.mp3,.wav,.ogg,.m4a,.mp4,.webm,.avi,.mov,.mkv" class="w-full px-3 py-1.5 border rounded-lg bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none">
+                                <p class="text-xs text-slate-400 mt-1"><?= htmlspecialchars($t['lbl_attachment_help'] ?? 'Allowed formats: PDF, Word, Excel, Images, Audio, Video. Max size: 50MB.') ?></p>
                             </div>
                         </div>
 
@@ -967,6 +1023,11 @@ include 'include/sidebar.php';
                         <span class="text-sm font-semibold" id="modalAnncAttachmentName">file.pdf</span>
                     </div>
                     <a href="#" id="modalAnncAttachmentDownload" download class="px-4 py-2 bg-navy-500 hover:bg-navy-600 text-white rounded-lg text-xs font-bold transition-colors">Download</a>
+                </div>
+                
+                <div id="modalAnncMediaSection" class="hidden border border-slate-200 dark:border-slate-700 p-4 rounded-xl mt-4">
+                    <span class="text-xs text-slate-400 block mb-2 uppercase tracking-wider font-bold">Media Preview</span>
+                    <div id="modalAnncMediaContainer" class="w-full flex justify-center"></div>
                 </div>
             </div>
         </div>
@@ -1354,13 +1415,136 @@ include 'include/sidebar.php';
             renderCalendarGrid();
             
             fetchNotifications();
+
+            // ── Announcements Search & Filter ───────────────────────────
+            const anncSearchInput = document.getElementById('anncSearch');
+            const anncCategoryFilter = document.getElementById('anncCategory');
+            const anncPriorityFilter = document.getElementById('anncPriority');
+
+            let _anncSearchDebounce = null;
+
+            function filterAnnouncements(showAlert) {
+                const q = anncSearchInput ? anncSearchInput.value.trim().toLowerCase() : '';
+                const cat = anncCategoryFilter ? anncCategoryFilter.value : '';
+                const pri = anncPriorityFilter ? anncPriorityFilter.value : '';
+
+                // Validate search: if user is actively searching, require >= 2 chars
+                if (anncSearchInput && q.length > 0 && q.length < 2) {
+                    if (showAlert) {
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Search Too Short',
+                            text: 'Please enter at least 2 characters to search.',
+                            confirmButtonColor: '#0054a4',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                    return;
+                }
+
+                const tbody = document.getElementById('anncTableBody');
+                if (!tbody) return;
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                if (rows.length === 0) return;
+
+                let visibleCount = 0;
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    const cells = row.querySelectorAll('td');
+                    const rowCategory = cells[1] ? cells[1].textContent.trim() : '';
+                    const rowPriority = cells[2] ? cells[2].textContent.trim() : '';
+
+                    const textMatch  = !q || text.includes(q);
+                    const catMatch   = !cat || rowCategory.toLowerCase() === cat.toLowerCase();
+                    const priMatch   = !pri || rowPriority.toLowerCase() === pri.toLowerCase();
+
+                    if (textMatch && catMatch && priMatch) {
+                        row.style.display = '';
+                        visibleCount++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                if (visibleCount === 0 && (q.length >= 2 || cat || pri)) {
+                    if (showAlert) {
+                        const term = q || cat || pri;
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'No Records Found',
+                            html: `<p>No announcements found for <strong>"${term}"</strong>.</p><p class="text-sm text-slate-500 mt-1">Please enter correct data and try again.</p>`,
+                            confirmButtonColor: '#0054a4',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                }
+            }
+
+            if (anncSearchInput) {
+                anncSearchInput.addEventListener('input', function() {
+                    // Show/hide clear button
+                    const clearBtn = document.getElementById('anncSearchClearBtn');
+                    if (clearBtn) clearBtn.classList.toggle('hidden', this.value.length === 0);
+                    clearTimeout(_anncSearchDebounce);
+                    _anncSearchDebounce = setTimeout(() => filterAnnouncements(false), 300);
+                });
+                anncSearchInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        clearTimeout(_anncSearchDebounce);
+                        filterAnnouncements(true);
+                    }
+                    if (e.key === 'Escape') {
+                        this.value = '';
+                        const clearBtn = document.getElementById('anncSearchClearBtn');
+                        if (clearBtn) clearBtn.classList.add('hidden');
+                        filterAnnouncements(false);
+                        this.blur();
+                    }
+                });
+            }
+            // Search submit button
+            const anncSearchBtn = document.getElementById('anncSearchBtn');
+            if (anncSearchBtn) {
+                anncSearchBtn.addEventListener('click', () => {
+                    clearTimeout(_anncSearchDebounce);
+                    filterAnnouncements(true);
+                });
+            }
+            // Clear button
+            const anncClearBtn = document.getElementById('anncSearchClearBtn');
+            if (anncClearBtn) {
+                anncClearBtn.addEventListener('click', () => {
+                    if (anncSearchInput) {
+                        anncSearchInput.value = '';
+                        anncClearBtn.classList.add('hidden');
+                    }
+                    filterAnnouncements(false);
+                    if (anncSearchInput) anncSearchInput.focus();
+                });
+            }
+            if (anncCategoryFilter) {
+                anncCategoryFilter.addEventListener('change', () => filterAnnouncements(true));
+            }
+            if (anncPriorityFilter) {
+                anncPriorityFilter.addEventListener('change', () => filterAnnouncements(true));
+            }
+
+            // Re-filter after announcements load
+            window._origLoadAnnouncementsList = loadAnnouncementsList;
+            window.loadAnnouncementsList = function() {
+                window._origLoadAnnouncementsList();
+                // Re-apply filter after data is loaded (small delay for fetch)
+                setTimeout(() => filterAnnouncements(false), 600);
+            };
         });
+
 
         // Tab Switching
         function switchTab(tabId) {
             document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('border-navy-500', 'text-navy-600', 'font-bold', 'dark:border-blue-400', 'dark:text-blue-400');
-                btn.classList.add('border-transparent', 'text-slate-500', 'hover:text-slate-700', 'dark:text-slate-400');
+                btn.classList.remove('border-navy-500', 'text-navy-800', 'font-semibold', 'dark:border-blue-400', 'dark:text-blue-300', 'bg-navy-100/80', 'dark:bg-navy-900/50');
+                btn.classList.add('border-transparent', 'text-slate-500', 'hover:text-slate-700', 'dark:text-slate-400', 'hover:bg-slate-100/50', 'dark:hover:bg-slate-800/40');
             });
             document.querySelectorAll('.tab-pane').forEach(pane => {
                 pane.classList.remove('block');
@@ -1369,8 +1553,8 @@ include 'include/sidebar.php';
             
             const btn = document.getElementById('tab-btn-' + tabId);
             if (btn) {
-                btn.classList.add('border-navy-500', 'text-navy-600', 'font-bold', 'dark:border-blue-400', 'dark:text-blue-400');
-                btn.classList.remove('border-transparent', 'text-slate-500', 'hover:text-slate-700', 'dark:text-slate-400');
+                btn.classList.add('border-navy-500', 'text-navy-800', 'font-semibold', 'dark:border-blue-400', 'dark:text-blue-300', 'bg-navy-100/80', 'dark:bg-navy-900/50');
+                btn.classList.remove('border-transparent', 'text-slate-500', 'hover:text-slate-700', 'dark:text-slate-400', 'hover:bg-slate-100/50', 'dark:hover:bg-slate-800/40');
             }
             
             const pane = document.getElementById('tab-content-' + tabId);
@@ -1505,10 +1689,31 @@ include 'include/sidebar.php';
             document.getElementById('modalAnncDescription').innerText = desc;
             
             const attachSection = document.getElementById('modalAnncAttachmentSection');
+            const mediaSection = document.getElementById('modalAnncMediaSection');
+            const mediaContainer = document.getElementById('modalAnncMediaContainer');
+            
+            // Reset media preview section
+            if (mediaSection) mediaSection.classList.add('hidden');
+            if (mediaContainer) mediaContainer.innerHTML = '';
+            
             if (attachment) {
                 attachSection.classList.remove('hidden');
-                document.getElementById('modalAnncAttachmentName').innerText = attachment.split('/').pop();
+                const fileName = attachment.split('/').pop();
+                document.getElementById('modalAnncAttachmentName').innerText = fileName;
                 document.getElementById('modalAnncAttachmentDownload').href = attachment;
+                
+                // Render media player dynamically for audio/video files
+                const ext = fileName.split('.').pop().toLowerCase();
+                const audioExts = ['mp3', 'wav', 'ogg', 'm4a'];
+                const videoExts = ['mp4', 'webm', 'avi', 'mov', 'mkv'];
+                
+                if (audioExts.includes(ext) && mediaSection && mediaContainer) {
+                    mediaSection.classList.remove('hidden');
+                    mediaContainer.innerHTML = `<audio controls class="w-full mt-1"><source src="${attachment}" type="audio/${ext === 'mp3' ? 'mpeg' : (ext === 'm4a' ? 'mp4' : ext)}">Your browser does not support the audio element.</audio>`;
+                } else if (videoExts.includes(ext) && mediaSection && mediaContainer) {
+                    mediaSection.classList.remove('hidden');
+                    mediaContainer.innerHTML = `<video controls class="w-full max-h-64 rounded-lg bg-black mt-1"><source src="${attachment}" type="video/${ext === 'mov' ? 'quicktime' : (ext === 'mkv' ? 'x-matroska' : ext)}">Your browser does not support the video element.</video>`;
+                }
             } else {
                 attachSection.classList.add('hidden');
             }
@@ -1523,6 +1728,36 @@ include 'include/sidebar.php';
         function submitAnnouncement(e) {
             e.preventDefault();
             const form = document.getElementById('createAnncForm');
+            
+            // Client-side file validation
+            const fileInput = form.querySelector('input[name="attachment"]');
+            if (fileInput && fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const allowedExts = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'gif', 'mp3', 'wav', 'ogg', 'm4a', 'mp4', 'webm', 'avi', 'mov', 'mkv'];
+                const fileExt = file.name.split('.').pop().toLowerCase();
+                
+                if (!allowedExts.includes(fileExt)) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid File Type',
+                        text: 'Allowed file types are: PDF, Word, Excel, Images, Audio, and Video.',
+                        confirmButtonColor: '#0054a4'
+                    });
+                    return;
+                }
+                
+                const maxSize = 50 * 1024 * 1024; // 50MB
+                if (file.size > maxSize) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'File Too Large',
+                        text: 'The attachment size exceeds the maximum limit of 50MB.',
+                        confirmButtonColor: '#0054a4'
+                    });
+                    return;
+                }
+            }
+
             const fd = new FormData(form);
             fd.append('action', 'create');
             fd.append('publish_now', publishStatusVal);
@@ -1974,59 +2209,131 @@ include 'include/sidebar.php';
         }
 
         function openSecureViewer(docId, subject, filePath, allowView, allowDownload) {
-            activeConfidentialDocId = docId;
-            document.getElementById('viewerSubject').innerText = subject;
-            
-            // Build diagonal watermarking grid
-            const overlay = document.getElementById('viewerWatermarkOverlay');
-            overlay.innerHTML = '';
-            
-            const dateStr = new Date().toISOString().split('T')[0];
-            const watermarkText = `CONFIDENTIAL - ${USER_NAME} - ${dateStr} - Localhost`;
-            
-            // Create repeating diagonal watermarks
-            for (let i = 0; i < 20; i++) {
-                overlay.insertAdjacentHTML('beforeend', `<div class="watermark-text">${watermarkText}</div>`);
-            }
-            
-            const frame = document.getElementById('viewerContentFrame');
-            if (allowView == 0) {
-                frame.innerHTML = `
-                    <div class="p-6 text-center text-slate-400">
-                        <i data-lucide="lock" class="w-12 h-12 text-red-500 mx-auto mb-3"></i>
-                        <p class="text-sm font-semibold">Preview access is restricted by the uploader.</p>
-                        <p class="text-xs mt-1">Please use the Download action if enabled.</p>
-                    </div>
-                `;
-            } else {
-                // If it is an image, preview image. Otherwise pdf preview notice
-                const ext = filePath.split('.').pop().toLowerCase();
-                if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) {
-                    frame.innerHTML = `<img src="${filePath}" class="max-h-[50vh] max-w-full rounded shadow border-2 border-red-500" alt="Preview">`;
-                } else {
-                    frame.innerHTML = `
-                        <div class="p-6 text-center text-slate-300">
-                            <i data-lucide="file-text" class="w-16 h-16 text-navy-500 mx-auto mb-3"></i>
-                            <h4 class="font-bold text-base mb-2">${filePath.split('/').pop()}</h4>
-                            <p class="text-xs text-slate-400">Secure sandboxed PDF viewer loaded inside the encrypted partition.</p>
-                        </div>
-                    `;
+            // First, trigger sending code to email
+            Swal.fire({
+                title: 'Security Verification Required',
+                text: 'Sending secure access passcode to your registered email...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
                 }
-            }
+            });
             
-            const dlBtn = document.getElementById('viewerDownloadBtn');
-            if (allowDownload == 1) {
-                dlBtn.classList.remove('hidden');
-                dlBtn.href = filePath;
-            } else {
-                dlBtn.classList.add('hidden');
-            }
-            
-            // Log access
-            fetch(`api/confidential_actions.php?action=log_access&document_id=${docId}&action_type=View`);
-            
-            document.getElementById('secureViewerModal').classList.remove('hidden');
-            lucide.createIcons();
+            fetch(`api/confidential_actions.php?action=send_otp&document_id=${docId}`)
+                .then(r => r.json())
+                .then(res => {
+                    if (res.status === 'success') {
+                        // Ask user to enter the code
+                        Swal.fire({
+                            title: 'Enter Access Passcode',
+                            text: res.message, // Shows email address where sent (and local fallback passcode if any)
+                            input: 'text',
+                            inputPlaceholder: 'Enter 6-digit passcode',
+                            inputAttributes: {
+                                autocomplete: 'off',
+                                maxlength: 10,
+                                autocapitalize: 'off',
+                                autocorrect: 'off'
+                            },
+                            showCancelButton: true,
+                            confirmButtonText: 'Verify & Open',
+                            confirmButtonColor: '#0054a4',
+                            preConfirm: (otp) => {
+                                if (!otp) {
+                                    Swal.showValidationMessage('Please enter the passcode');
+                                    return false;
+                                }
+                                return fetch(`api/confidential_actions.php?action=verify_otp&document_id=${docId}&otp=${encodeURIComponent(otp)}`)
+                                    .then(r => r.json())
+                                    .then(verifyRes => {
+                                        if (verifyRes.status === 'error') {
+                                            Swal.showValidationMessage(verifyRes.message);
+                                            return false;
+                                        }
+                                        return verifyRes;
+                                    });
+                            }
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                const verifyRes = result.value;
+                                // Now display the viewer!
+                                activeConfidentialDocId = docId;
+                                document.getElementById('viewerSubject').innerText = subject;
+                                
+                                const overlay = document.getElementById('viewerWatermarkOverlay');
+                                overlay.innerHTML = '';
+                                
+                                const dateStr = new Date().toISOString().split('T')[0];
+                                const watermarkText = `CONFIDENTIAL - ${USER_NAME} - ${dateStr} - Localhost`;
+                                
+                                for (let i = 0; i < 20; i++) {
+                                    overlay.insertAdjacentHTML('beforeend', `<div class="watermark-text">${watermarkText}</div>`);
+                                }
+                                
+                                const frame = document.getElementById('viewerContentFrame');
+                                if (verifyRes.allow_view == 0) {
+                                    frame.innerHTML = `
+                                        <div class="p-6 text-center text-slate-400">
+                                            <i data-lucide="lock" class="w-12 h-12 text-red-500 mx-auto mb-3"></i>
+                                            <p class="text-sm font-semibold">Preview access is restricted by the uploader.</p>
+                                            <p class="text-xs mt-1">Please use the Download action if enabled.</p>
+                                        </div>
+                                    `;
+                                } else {
+                                    const ext = verifyRes.file_path.split('.').pop().toLowerCase();
+                                    if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) {
+                                        frame.innerHTML = `<img src="${verifyRes.file_path}" class="max-h-[50vh] max-w-full rounded shadow border-2 border-red-500" alt="Preview">`;
+                                    } else if (['mp3', 'wav', 'ogg', 'm4a'].includes(ext)) {
+                                        frame.innerHTML = `
+                                            <div class="p-6 text-center text-slate-350">
+                                                <i data-lucide="music" class="w-16 h-16 text-navy-500 mx-auto mb-3"></i>
+                                                <h4 class="font-bold text-base mb-3">${verifyRes.file_path.split('/').pop()}</h4>
+                                                <audio controls class="mx-auto mt-2 w-full max-w-md">
+                                                    <source src="${verifyRes.file_path}" type="audio/${ext === 'm4a' ? 'mp4' : ext}">
+                                                    Your browser does not support the audio element.
+                                                </audio>
+                                            </div>
+                                        `;
+                                    } else if (['mp4', 'webm', 'avi', 'mov', 'mkv'].includes(ext)) {
+                                        frame.innerHTML = `
+                                            <div class="p-6 text-center text-slate-355">
+                                                <h4 class="font-bold text-base mb-3 text-white">${verifyRes.file_path.split('/').pop()}</h4>
+                                                <video controls class="mx-auto max-h-[50vh] w-full max-w-lg rounded-lg border-2 border-red-500 shadow-lg">
+                                                    <source src="${verifyRes.file_path}" type="video/${ext === 'mov' ? 'mp4' : (ext === 'mkv' ? 'x-matroska' : ext)}">
+                                                    Your browser does not support the video element.
+                                                </video>
+                                            </div>
+                                        `;
+                                    } else {
+                                        frame.innerHTML = `
+                                            <div class="p-6 text-center text-slate-300">
+                                                <i data-lucide="file-text" class="w-16 h-16 text-navy-500 mx-auto mb-3"></i>
+                                                <h4 class="font-bold text-base mb-2">${verifyRes.file_path.split('/').pop()}</h4>
+                                                <p class="text-xs text-slate-400">Secure sandboxed PDF viewer loaded inside the encrypted partition.</p>
+                                            </div>
+                                        `;
+                                    }
+                                }
+                                
+                                const dlBtn = document.getElementById('viewerDownloadBtn');
+                                if (verifyRes.allow_download == 1) {
+                                    dlBtn.classList.remove('hidden');
+                                    dlBtn.href = verifyRes.file_path;
+                                } else {
+                                    dlBtn.classList.add('hidden');
+                                }
+                                
+                                document.getElementById('secureViewerModal').classList.remove('hidden');
+                                lucide.createIcons();
+                            }
+                        });
+                    } else {
+                        Swal.fire('Error', res.message, 'error');
+                    }
+                })
+                .catch(() => {
+                    Swal.fire('Error', 'Failed to communicate with authentication servers.', 'error');
+                });
         }
 
         function closeSecureViewerModal() {

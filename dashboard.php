@@ -546,8 +546,8 @@ function getDistrictStats(mysqli $conn): array {
               COUNT(DISTINCT CASE WHEN t.status = 'Pending'   THEN t.task_id END) AS pending,
               COUNT(DISTINCT CASE WHEN t.due_date < CURDATE()
                          AND t.status != 'Completed' THEN t.task_id END)   AS overdue,
-              ROUND(COUNT(DISTINCT CASE WHEN t.status='Completed' THEN t.task_id END)
-                    / NULLIF(COUNT(DISTINCT t.task_id),0)*100, 1)          AS rate
+              COALESCE(ROUND(COUNT(DISTINCT CASE WHEN t.status='Completed' THEN t.task_id END)
+                    / NULLIF(COUNT(DISTINCT t.task_id),0)*100, 1), 0.0)    AS rate
             FROM talukas tk
             LEFT JOIN (
                 SELECT t2.task_id, t2.status, t2.due_date, COALESCE(t2.taluka_id, u2.taluka_id) AS eff_taluka_id
@@ -557,7 +557,7 @@ function getDistrictStats(mysqli $conn): array {
             ) t ON t.eff_taluka_id = tk.taluka_id
             WHERE LOWER(tk.taluka_name) != 'unknown'
             GROUP BY tk.taluka_id, tk.taluka_name
-            ORDER BY tk.taluka_name ASC
+            ORDER BY rate DESC, tk.taluka_name ASC
         ");
         if ($res) {
             while ($row = $res->fetch_assoc()) {
@@ -1036,24 +1036,7 @@ include 'include/sidebar.php';
                            dark:hover:text-slate-200 focus:outline-none block lg:hidden">
                 <i data-lucide="menu" class="w-6 h-6"></i>
             </button>
-            <!-- Search -->
-            <div class="w-32 sm:max-w-md sm:w-full relative">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <i data-lucide="search" class="h-4 w-4 text-slate-400"></i>
-                </div>
-                <input id="globalSearch" type="text"
-                       placeholder="<?= htmlspecialchars($t['search_placeholder']) ?>"
-                       class="block w-full pl-8 sm:pl-10 pr-3 py-2 border border-slate-300
-                              dark:border-slate-700 rounded-md leading-5
-                              bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100
-                              placeholder-slate-500 focus:outline-none
-                              focus:ring-1 focus:ring-navy-500 focus:border-navy-500
-                              text-xs sm:text-sm transition-colors">
-                <div class="hidden sm:flex absolute inset-y-0 right-0 pr-3 items-center pointer-events-none">
-                    <span class="text-slate-400 text-xs border border-slate-300
-                                 dark:border-slate-700 rounded px-1.5 py-0.5">⌘K</span>
-                </div>
-            </div>
+            <!-- Search removed to use top banner search -->
         </div>
 
         <div class="flex items-center space-x-2 sm:space-x-4">
@@ -1112,11 +1095,11 @@ include 'include/sidebar.php';
                             <?= ' (' . htmlspecialchars($headerLocationDisplay) . ')' ?>
                         </span>
                     </div>
-                    <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-sm">
+                    <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border border-amber-500/40 shadow-sm">
                         <?= htmlspecialchars($initials ?? 'U') ?>
                     </div>
                 </button>
-                <div id="profileDropdownMenu" class="hidden absolute right-0 mt-2 w-48 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md z-50">
+                <div id="profileDropdownMenu" class="hidden absolute right-0 top-full mt-2 w-48 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md z-50 text-left">
                     <div class="py-1">
                         <a href="profile_update.php?lang=<?= $lang ?? 'en' ?>" class="flex items-center px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
                             <i data-lucide="user" class="w-4 h-4 mr-2 text-slate-400"></i><?= ($lang ?? 'en') === 'en' ? 'User Profile Update' : 'वापरकर्ता प्रोफाइल अपडेट' ?>
@@ -1155,12 +1138,14 @@ include 'include/sidebar.php';
                     <i data-lucide="shield" class="w-3.5 h-3.5"></i>
                     <?= htmlspecialchars($t['badge_level']) ?> <?= $level ?> &middot; <?= htmlspecialchars($roleLabel) ?>
                 </span>
-                <button onclick="exportDashboardPDF()" class="btn-modern bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm">
+                <button onclick="exportDashboardPDF()" class="btn-modern bg-gradient-to-r from-navy-600 to-blue-600 hover:from-navy-700 hover:to-blue-700 text-white shadow-md hover:shadow-glow-navy border-transparent transition-all duration-200">
                     <i data-lucide="download" class="w-4 h-4 mr-2"></i><?= htmlspecialchars($t['btn_export']) ?>
                 </button>
+                <?php if ($level <= 2): ?>
                 <button onclick="window.location.href='create_task.php?lang=<?= $lang ?>'" class="btn-modern btn-primary shadow-official">
                     <i data-lucide="plus" class="w-4 h-4 mr-2"></i><?= htmlspecialchars($t['btn_allocate']) ?>
                 </button>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -1205,13 +1190,19 @@ include 'include/sidebar.php';
 
                     // 2. Status-wise KPIs
                     $statusStyles = [
-                        'Completed'   => ['icon' => 'check-circle', 'color' => 'green'],
-                        'Pending'     => ['icon' => 'clock', 'color' => 'orange'],
-                        'In Progress' => ['icon' => 'activity', 'color' => 'blue'],
-                        'Overdue'     => ['icon' => 'alert-octagon', 'color' => 'red'],
-                        'Escalated'   => ['icon' => 'alert-triangle', 'color' => 'red'],
-                        'Assigned'    => ['icon' => 'user-check', 'color' => 'indigo'],
-                        'Rejected'    => ['icon' => 'x-circle', 'color' => 'red'],
+                        'Completed'          => ['icon' => 'check-circle', 'color' => 'green'],
+                        'Pending'            => ['icon' => 'clock', 'color' => 'orange'],
+                        'In Progress'        => ['icon' => 'activity', 'color' => 'blue'],
+                        'Overdue'            => ['icon' => 'alert-octagon', 'color' => 'red'],
+                        'Escalated'          => ['icon' => 'alert-triangle', 'color' => 'red'],
+                        'Assigned'           => ['icon' => 'user-check', 'color' => 'indigo'],
+                        'Rejected'           => ['icon' => 'x-circle', 'color' => 'red'],
+                        'Reassigned'         => ['icon' => 'corner-down-right', 'color' => 'indigo'],
+                        'Accepted'           => ['icon' => 'thumbs-up', 'color' => 'green'],
+                        'Verified'           => ['icon' => 'shield-check', 'color' => 'blue'],
+                        'Approved Rejection' => ['icon' => 'slash', 'color' => 'red'],
+                        'On Hold'            => ['icon' => 'clock', 'color' => 'orange'],
+                        'Hold'               => ['icon' => 'clock', 'color' => 'orange'],
                     ];
 
                     // Explicitly add Overdue Tasks (uses $overdueTasks calculated earlier)
@@ -1229,7 +1220,7 @@ include 'include/sidebar.php';
                         if ($st === 'Overdue' || $st === 'Escalated') continue; // Handled by consolidated Overdue card
 
                         $val = (int)$row['total'];
-                        $style = $statusStyles[$st] ?? ['icon' => 'layers', 'color' => 'slate'];
+                        $style = $statusStyles[$st] ?? ['icon' => 'layers', 'color' => 'indigo'];
                         
                         $dkpi[] = [
                             'Total ' . $st . ' Tasks',
@@ -1249,8 +1240,7 @@ include 'include/sidebar.php';
                         }
                     ?>
                     <a href="<?= htmlspecialchars($linkUrl) ?>" class="block transition-transform hover:scale-105 cursor-pointer" style="text-decoration: none;">
-                        <div class="kpi-card bg-gradient-to-br from-<?= $clr ?>-50 to-white dark:from-<?= $clr ?>-900/40 dark:to-slate-800 overflow-hidden shadow-sm
-                                    rounded-xl border-l-4 border-l-<?= $clr ?>-500 border-t border-r border-b border-slate-200 dark:border-slate-700 h-full">
+                        <div class="kpi-card kpi-<?= $clr ?> overflow-hidden h-full">
                             <div class="p-5 relative">
                                 <i data-lucide="<?= $icon ?>" class="absolute right-0 bottom-0 w-24 h-24 text-<?= $clr ?>-500 opacity-5 transform translate-x-4 translate-y-4 pointer-events-none"></i>
                                 <div class="flex items-center justify-between">
@@ -1286,35 +1276,40 @@ include 'include/sidebar.php';
                     <?php endforeach; ?>
                 </div>
 
-                <!-- Charts — matching blank_wrushabh.php (Trend and Taluka Bar in same row) -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-                    <!-- Line / Area Chart -->
-                    <div class="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm
-                                border border-slate-200 dark:border-slate-700 p-6">
-                        <div class="flex justify-between items-center mb-4">
+                <!-- Monthly Task Completion Trend Graph (Full Width) -->
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 mb-8 transition-all hover:shadow-md">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
                             <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
                                 <?= htmlspecialchars($t['chart_monthly_trend']) ?>
                             </h2>
-                            <button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                                <i data-lucide="more-vertical" class="w-5 h-5"></i>
-                            </button>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                <?= $lang === 'en' ? 'Track real-time assignment and verification stats across all offices' : 'सर्व कार्यालयांमधील रिअल-टाइम वाटप आणि पडताळणी आकडेवारीचा मागोवा घ्या' ?>
+                            </p>
                         </div>
-                        <div id="chart-dist-trend" class="h-72 w-full"></div>
+                        <button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                            <i data-lucide="more-vertical" class="w-5 h-5"></i>
+                        </button>
                     </div>
-                    
-                    <!-- Top Performing Offices — bar chart -->
-                    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm
-                                border border-slate-200 dark:border-slate-700 p-6">
-                        <div class="flex justify-between items-center mb-4">
+                    <div id="chart-dist-trend" class="h-80 w-full"></div>
+                </div>
+                
+                <!-- Taluka Performance Graph (Full Width, Horizontal Layout Below) -->
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 mb-8 transition-all hover:shadow-md">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
                             <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
                                 <?= htmlspecialchars($t['chart_taluka']) ?>
                             </h2>
-                            <button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                                <i data-lucide="more-vertical" class="w-5 h-5"></i>
-                            </button>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                <?= $lang === 'en' ? 'Performance rating based on completed vs assigned tasks percentage' : 'पूर्ण केलेल्या विरुद्ध वाटप केलेल्या कामांच्या टक्केवारीवर आधारित कामगिरी रेटिंग' ?>
+                            </p>
                         </div>
-                        <div id="chart-dist-bar" class="w-full"></div>
+                        <button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                            <i data-lucide="more-vertical" class="w-5 h-5"></i>
+                        </button>
                     </div>
+                    <div id="chart-dist-bar" class="w-full"></div>
                 </div>
 
                 <!-- Secondary Charts Grid (Status, Priority, Ageing) -->
@@ -1518,8 +1513,7 @@ include 'include/sidebar.php';
                         }
                     ?>
                     <a href="<?= htmlspecialchars($linkUrl) ?>" class="block transition-transform hover:scale-105 cursor-pointer" style="text-decoration: none;">
-                        <div class="kpi-card bg-gradient-to-br from-<?= $clr ?>-50 to-white dark:from-<?= $clr ?>-900/40 dark:to-slate-800 overflow-hidden shadow-sm
-                                    rounded-xl border-l-4 border-l-<?= $clr ?>-500 border-t border-r border-b border-slate-200 dark:border-slate-700 h-full">
+                        <div class="kpi-card kpi-<?= $clr ?> overflow-hidden h-full">
                             <div class="p-5 relative">
                                 <i data-lucide="<?= $icon ?>" class="absolute right-0 bottom-0 w-24 h-24 text-<?= $clr ?>-500 opacity-5 transform translate-x-4 translate-y-4 pointer-events-none"></i>
                                 <div class="flex items-center justify-between">
@@ -1751,8 +1745,7 @@ include 'include/sidebar.php';
                         }
                     ?>
                     <a href="<?= htmlspecialchars($linkUrl) ?>" class="block transition-transform hover:scale-105 cursor-pointer" style="text-decoration: none;">
-                        <div class="kpi-card bg-gradient-to-br from-<?= $clr ?>-50 to-white dark:from-<?= $clr ?>-900/40 dark:to-slate-800 overflow-hidden shadow-sm
-                                    rounded-xl border-l-4 border-l-<?= $clr ?>-500 border-t border-r border-b border-slate-200 dark:border-slate-700 h-full">
+                        <div class="kpi-card kpi-<?= $clr ?> overflow-hidden h-full">
                             <div class="p-5 relative">
                                 <i data-lucide="<?= $icon ?>" class="absolute right-0 bottom-0 w-24 h-24 text-<?= $clr ?>-500 opacity-5 transform translate-x-4 translate-y-4 pointer-events-none"></i>
                                 <div class="flex items-center justify-between">
@@ -2261,25 +2254,29 @@ function updateTaskPaginationControls(totalPages) {
     }
 }
 
+let _lastSearchHadNoRows = false;
+
 function filterRows() {
     updateTaskTablePage(1);
+    // Track whether the current search produced zero task-table rows
+    const searchInput = document.getElementById('globalSearch');
+    const searchVal = searchInput ? searchInput.value.trim() : '';
+    if (searchVal.length >= 2) {
+        const rows = Array.from(document.querySelectorAll('#taskTable .task-row'));
+        const filterSelect = document.getElementById('statusFilter');
+        const selectedStatus = filterSelect ? filterSelect.value : '';
+        const activeRows = rows.filter(r => {
+            const statusMatch = (!selectedStatus || r.dataset.status === selectedStatus);
+            const textMatch = r.textContent.toLowerCase().includes(searchVal.toLowerCase());
+            return statusMatch && textMatch;
+        });
+        _lastSearchHadNoRows = (activeRows.length === 0 && rows.length > 0);
+    } else {
+        _lastSearchHadNoRows = false;
+    }
 }
 
-const globalSearchEl = document.getElementById('globalSearch');
-if (globalSearchEl) {
-    globalSearchEl.addEventListener('input', filterRows);
-    globalSearchEl.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            Swal.fire({
-                icon: 'info',
-                title: 'Coming Soon',
-                text: 'Global Search across all modules is currently under development.',
-                confirmButtonColor: '#0069cd'
-            });
-        }
-    });
-}
+// Local search handler removed. The global search script in footer.php handles dashboard search.
 
 /* ════════════════════════════════════════════════════════════
    APEXCHARTS  —  Data pre-serialized from PHP
@@ -2372,18 +2369,19 @@ function buildArea(el, series, cats, colors, isDark) {
     const gc = isDark ? '#1e3a5f33' : '#e2e8f0';
     return new ApexCharts(el, {
         series, colors,
-        chart:{ height:288, type:'area', fontFamily:'Inter,sans-serif', toolbar:{show:false},
+        chart:{ height:320, type:'area', fontFamily:'Inter,sans-serif', toolbar:{show:false},
                 background: isDark ? '#1e293b' : '#ffffff',
                 animations:{enabled:true,easing:'easeinout',speed:900} },
         dataLabels:{enabled:false},
-        stroke:{curve:'smooth',width:2.5},
-        fill:{type:'gradient',gradient:{shadeIntensity:1,opacityFrom:0.35,opacityTo:0.02,stops:[0,100]}},
+        stroke:{curve:'smooth',width:3.5},
+        fill:{type:'gradient',gradient:{shadeIntensity:1,opacityFrom:0.45,opacityTo:0.02,stops:[0,100]}},
         xaxis:{categories:cats, labels:_ax(tc), axisBorder:{show:false}, axisTicks:{show:false}},
         yaxis:{labels:_ax(tc), min:0},
         grid:{borderColor:gc, strokeDashArray:4, padding:{left:8,right:8}},
-        legend:{position:'top',horizontalAlign:'right',fontFamily:'Inter,sans-serif',fontSize:'12px',
-                labels:{colors:tc}},
+        legend:{position:'top',horizontalAlign:'right',fontFamily:'Inter,sans-serif',fontSize:'12px',fontWeight:500,
+                labels:{colors:tc}, markers:{width:8,height:8,radius:8}, itemMargin:{horizontal:12}},
         tooltip:{theme:isDark?'dark':'light',shared:true,intersect:false},
+        markers:{size:4,strokeWidth:2,hover:{size:6}},
         noData:{text:'No data yet',style:{color:tc,fontSize:'13px',fontFamily:'Inter,sans-serif'}},
         theme:{mode:isDark?'dark':'light'}
     });
@@ -2426,26 +2424,85 @@ function buildDonut(el, series, labels, colors, isDark) {
 function buildHBar(el, data, cats, color, isDark) {
     const tc = isDark ? '#94a3b8' : '#64748b';
     const gc = isDark ? '#1e3a5f33' : '#e2e8f0';
-    const h  = Math.max(240, cats.length * 44 + 60);
+    const h  = Math.max(240, cats.length * 36 + 60);
     return new ApexCharts(el, {
         series:[{name:LBL.rate, data}],
         chart:{height:h, type:'bar', fontFamily:'Inter,sans-serif', toolbar:{show:false},
                background: isDark?'#1e293b':'#ffffff',
                animations:{enabled:true,easing:'easeinout',speed:900}},
-        colors:[color],
-        plotOptions:{bar:{borderRadius:6,horizontal:true,barHeight:'55%',
-            dataLabels:{position:'right'}}},
+        colors:[
+            function({ value }) {
+                if (value >= 85) return '#10b981';
+                if (value >= 70) return '#3b82f6';
+                if (value >= 50) return '#f59e0b';
+                return '#ef4444';
+            }
+        ],
+        plotOptions:{bar:{
+            borderRadius:6,
+            horizontal:true,
+            barHeight:'60%',
+            distributed:true,
+            dataLabels:{position:'right'}
+        }},
         dataLabels:{enabled:true,
             textAnchor: 'start',
             formatter:v=>v>0?v.toFixed(1)+'%':'',
-            style:{fontSize:'11px',fontFamily:'Inter,sans-serif',colors:[isDark?'#94a3b8':'#475569']},
-            offsetX:25},
+            style:{fontSize:'11px',fontWeight:'600',fontFamily:'Inter,sans-serif',colors:[isDark?'#e2e8f0':'#1e293b']},
+            offsetX:10},
         xaxis:{categories:cats, max:100, labels:_ax(tc)},
         yaxis:{labels:{..._ax(tc), maxWidth:160}},
         grid:{borderColor:gc,strokeDashArray:4,xaxis:{lines:{show:true}},yaxis:{lines:{show:false}}},
         tooltip:{theme:isDark?'dark':'light',y:{formatter:v=>v.toFixed(1)+'%'}},
         noData:{text:'No data yet',style:{color:tc,fontSize:'13px',fontFamily:'Inter,sans-serif'}},
-        theme:{mode:isDark?'dark':'light'}
+        theme:{mode:isDark?'dark':'light'},
+        legend:{show:false}
+    });
+}
+
+function buildVBar(el, data, cats, color, isDark) {
+    const tc = isDark ? '#94a3b8' : '#64748b';
+    const gc = isDark ? '#1e3a5f33' : '#e2e8f0';
+    return new ApexCharts(el, {
+        series:[{name:LBL.rate, data}],
+        chart:{height:350, type:'bar', fontFamily:'Inter,sans-serif', toolbar:{show:false},
+               background: isDark?'#1e293b':'#ffffff',
+               animations:{enabled:true,easing:'easeinout',speed:900}},
+        colors:[
+            function({ value }) {
+                if (value >= 85) return '#10b981';
+                if (value >= 70) return '#3b82f6';
+                if (value >= 50) return '#f59e0b';
+                return '#ef4444';
+            }
+        ],
+        plotOptions:{bar:{
+            borderRadius:6,
+            horizontal:false,
+            columnWidth:'50%',
+            distributed:true,
+            dataLabels:{position:'top'}
+        }},
+        dataLabels:{enabled:true,
+            formatter:v=>v>0?v.toFixed(1)+'%':'',
+            style:{fontSize:'10px',fontWeight:'600',fontFamily:'Inter,sans-serif',colors:[isDark?'#e2e8f0':'#1e293b']},
+            offsetY:-20},
+        xaxis:{
+            categories:cats,
+            labels:{
+                ..._ax(tc),
+                rotate:-45,
+                rotateAlways:true,
+                trim:true,
+                maxHeight:80
+            }
+        },
+        yaxis:{max:100, labels:_ax(tc)},
+        grid:{borderColor:gc,strokeDashArray:4,xaxis:{lines:{show:false}},yaxis:{lines:{show:true}}},
+        tooltip:{theme:isDark?'dark':'light',y:{formatter:v=>v.toFixed(1)+'%'}},
+        noData:{text:'No data yet',style:{color:tc,fontSize:'13px',fontFamily:'Inter,sans-serif'}},
+        theme:{mode:isDark?'dark':'light'},
+        legend:{show:false}
     });
 }
 
@@ -2502,7 +2559,7 @@ function buildAllCharts(isDark) {
             charts.dDonut = buildDonut(el('donut'), d.distStatus, sL, sC, isDark);
             charts.dDonut.render();
 
-            charts.dBar = buildHBar(el('bar'), d.distTalukaRates, d.distTalukaNames, '#1a365d', isDark);
+            charts.dBar = buildVBar(el('bar'), d.distTalukaRates, d.distTalukaNames, '#1a365d', isDark);
             charts.dBar.render();
 
             charts.dPriority = buildDonut(el('priority'), d.distPriority, pL, pC, isDark);
@@ -2952,6 +3009,116 @@ function markAllAsRead() {
 
 setInterval(fetchNotifications, 5000);
 fetchNotifications();
+
+function openOfficerDetailsModal(details) {
+    const modal = document.getElementById('officerDetailsModal');
+    const card = document.getElementById('officerModalCard');
+    
+    document.getElementById('offName').innerText = details.full_name;
+    document.getElementById('offDesig').innerText = details.designation;
+    document.getElementById('offCode').innerText = details.employee_code;
+    document.getElementById('offDept').innerText = details.department;
+    document.getElementById('offTaluka').innerText = details.taluka;
+    document.getElementById('offVillage').innerText = details.village;
+    
+    const emailEl = document.getElementById('offEmail');
+    if (details.email && details.email !== 'N/A') {
+        emailEl.innerText = details.email;
+        emailEl.href = 'mailto:' + details.email;
+        emailEl.parentElement.classList.remove('hidden');
+    } else {
+        emailEl.parentElement.classList.add('hidden');
+    }
+    
+    const mobileEl = document.getElementById('offMobile');
+    if (details.mobile && details.mobile !== 'N/A') {
+        mobileEl.innerText = details.mobile;
+        mobileEl.href = 'tel:' + details.mobile;
+        mobileEl.parentElement.classList.remove('hidden');
+    } else {
+        mobileEl.parentElement.classList.add('hidden');
+    }
+    
+    // Set initials
+    const parts = details.full_name.trim().split(' ').filter(x => x);
+    let initials = 'U';
+    if (parts.length > 0) {
+        initials = parts[0].charAt(0).toUpperCase() + (parts[1] ? parts[1].charAt(0).toUpperCase() : '');
+    }
+    document.getElementById('offInitials').innerText = initials;
+    
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        card.classList.remove('scale-95', 'opacity-0');
+        card.classList.add('scale-100', 'opacity-100');
+    }, 10);
+    
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+}
+
+function closeOfficerDetailsModal() {
+    const modal = document.getElementById('officerDetailsModal');
+    const card = document.getElementById('officerModalCard');
+    
+    card.classList.remove('scale-100', 'opacity-100');
+    card.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 150);
+}
+
+function openCircularDetailsModal(details) {
+    const modal = document.getElementById('circularDetailsModal');
+    const card = document.getElementById('circularModalCard');
+    
+    document.getElementById('circTitle').innerText = details.title;
+    document.getElementById('circCategory').innerText = details.category;
+    document.getElementById('circPubDate').innerText = details.publish_date;
+    document.getElementById('circDesc').innerText = details.description;
+    
+    const priorityEl = document.getElementById('circPriority');
+    priorityEl.innerText = details.priority;
+    priorityEl.className = 'px-2 py-0.5 rounded-full text-xs font-bold text-white';
+    if (details.priority === 'Urgent') {
+        priorityEl.classList.add('bg-red-650');
+    } else if (details.priority === 'High') {
+        priorityEl.classList.add('bg-orange-500');
+    } else {
+        priorityEl.classList.add('bg-slate-500');
+    }
+    
+    const attachSec = document.getElementById('circAttachmentSection');
+    if (details.attachment) {
+        attachSec.classList.remove('hidden');
+        document.getElementById('circAttachmentName').innerText = details.attachment.split('/').pop();
+        document.getElementById('circAttachmentDownload').href = details.attachment;
+    } else {
+        attachSec.classList.add('hidden');
+    }
+    
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        card.classList.remove('scale-95', 'opacity-0');
+        card.classList.add('scale-100', 'opacity-100');
+    }, 10);
+    
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+}
+
+function closeCircularDetailsModal() {
+    const modal = document.getElementById('circularDetailsModal');
+    const card = document.getElementById('circularModalCard');
+    
+    card.classList.remove('scale-100', 'opacity-100');
+    card.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 150);
+}
 </script>
 
 <!-- MODALS FOR TASK WORKFLOW ACTIONS -->
@@ -3061,6 +3228,95 @@ fetchNotifications();
         </form>
     </div>
 </div>
-<?php include 'include/tracking_modal.php'; ?>
+<!-- OFFICER DETAILS MODAL -->
+<div id="officerDetailsModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white dark:bg-slate-800 w-full max-w-md rounded-xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-700 m-4 transition-all transform scale-95 opacity-0 duration-300" id="officerModalCard">
+        <div class="px-6 py-4 bg-navy-600 text-white flex justify-between items-center">
+            <h3 class="font-bold text-lg flex items-center gap-2">
+                <i data-lucide="user" class="w-5 h-5"></i> Officer Details
+            </h3>
+            <button onclick="closeOfficerDetailsModal()" class="text-white hover:opacity-85"><i data-lucide="x" class="w-6 h-6"></i></button>
+        </div>
+        <div class="p-6 space-y-4 text-slate-700 dark:text-slate-200">
+            <div class="flex items-center space-x-4 pb-4 border-b border-slate-100 dark:border-slate-700">
+                <div class="w-16 h-16 rounded-full bg-navy-55 dark:bg-navy-900/40 text-navy-650 dark:text-blue-400 flex items-center justify-center text-xl font-bold border-2 border-navy-500" id="offInitials">
+                    -
+                </div>
+                <div>
+                    <h4 class="font-bold text-lg text-slate-900 dark:text-white" id="offName">-</h4>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 font-medium" id="offDesig">-</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                    <span class="block text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Employee Code</span>
+                    <span class="font-semibold text-slate-900 dark:text-white" id="offCode">-</span>
+                </div>
+                <div>
+                    <span class="block text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Department</span>
+                    <span class="font-semibold text-slate-900 dark:text-white" id="offDept">-</span>
+                </div>
+                <div>
+                    <span class="block text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Taluka</span>
+                    <span class="font-semibold text-slate-900 dark:text-white" id="offTaluka">-</span>
+                </div>
+                <div>
+                    <span class="block text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Village</span>
+                    <span class="font-semibold text-slate-900 dark:text-white" id="offVillage">-</span>
+                </div>
+            </div>
+            <div class="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="mail" class="w-4 h-4 text-slate-400"></i>
+                    <a href="#" class="text-sm text-navy-600 dark:text-blue-400 hover:underline" id="offEmail">-</a>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i data-lucide="phone" class="w-4 h-4 text-slate-400"></i>
+                    <a href="#" class="text-sm text-navy-600 dark:text-blue-400 hover:underline" id="offMobile">-</a>
+                </div>
+            </div>
+            <div class="flex justify-end pt-4 border-t border-slate-200 dark:border-slate-700">
+                <button onclick="closeOfficerDetailsModal()" class="px-4 py-2 bg-slate-150 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-650 transition-colors">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CIRCULAR DETAILS MODAL -->
+<div id="circularDetailsModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white dark:bg-slate-800 w-full max-w-lg rounded-xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-700 m-4 transition-all transform scale-95 opacity-0 duration-300" id="circularModalCard">
+        <div class="px-6 py-4 bg-amber-600 text-white flex justify-between items-center">
+            <h3 class="font-bold text-lg flex items-center gap-2">
+                <i data-lucide="megaphone" class="w-5 h-5"></i> Circular Details
+            </h3>
+            <button onclick="closeCircularDetailsModal()" class="text-white hover:opacity-85"><i data-lucide="x" class="w-6 h-6"></i></button>
+        </div>
+        <div class="p-6 space-y-4 text-slate-700 dark:text-slate-200">
+            <div>
+                <span class="px-2 py-0.5 rounded-full text-xs font-bold text-slate-750 bg-slate-100" id="circCategory">-</span>
+                <span class="px-2 py-0.5 rounded-full text-xs font-bold ml-2 text-white bg-slate-500" id="circPriority">-</span>
+            </div>
+            <div>
+                <h4 class="font-bold text-xl text-slate-900 dark:text-white" id="circTitle">-</h4>
+                <p class="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                    <i data-lucide="calendar" class="w-3.5 h-3.5"></i> Published on <span id="circPubDate">-</span>
+                </p>
+            </div>
+            <div class="bg-slate-50 dark:bg-slate-700/30 p-4 rounded-lg border border-slate-100 dark:border-slate-700">
+                <p class="text-sm leading-relaxed whitespace-pre-wrap text-slate-700 dark:text-slate-350" id="circDesc">-</p>
+            </div>
+            <div class="hidden flex items-center gap-2.5 p-3 rounded-lg border border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800" id="circAttachmentSection">
+                <i data-lucide="file-text" class="w-5 h-5 text-slate-400"></i>
+                <div class="flex-1 min-w-0">
+                    <p class="text-xs font-semibold text-slate-950 dark:text-white truncate" id="circAttachmentName">-</p>
+                </div>
+                <a href="#" target="_blank" class="px-3 py-1 bg-navy-500 hover:bg-navy-600 text-white rounded text-xs font-bold transition-colors" id="circAttachmentDownload">Download</a>
+            </div>
+            <div class="flex justify-end pt-4 border-t border-slate-200 dark:border-slate-700">
+                <button onclick="closeCircularDetailsModal()" class="px-4 py-2 bg-slate-150 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-650 transition-colors">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 <?php include 'include/tracking_modal.php'; ?>
 <?php include 'include/footer.php'; ?>
