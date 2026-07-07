@@ -315,10 +315,10 @@
 ════════════════════════════════════════════════════════════════ -->
 <script>
 // ── Config ────────────────────────────────────────────────────────
-const AJAX_BASE = 'task_tracking.php?ajax=timeline&task_id=';
+var AJAX_BASE = 'task_tracking.php?ajax=timeline&task_id=';
 
 // ── Icon map by event_type ────────────────────────────────────────
-const TL_ICONS = {
+var TL_ICONS = {
     created:      { icon:'plus-circle',   bg:'from-slate-500 to-slate-600',  col:'#64748b', label:'Created'     },
     assigned:     { icon:'user-check',    bg:'from-blue-500 to-blue-600',    col:'#3b82f6', label:'Assigned'    },
     acknowledged: { icon:'thumbs-up',     bg:'from-cyan-500 to-cyan-600',    col:'#06b6d4', label:'Acknowledged'},
@@ -334,7 +334,7 @@ const TL_ICONS = {
     activity:     { icon:'zap',           bg:'from-slate-400 to-slate-500',  col:'#94a3b8', label:'Activity'    },
 };
 
-const STATUS_COLORS = {
+var STATUS_COLORS = {
     pending:     'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
     assigned:    'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
     'in progress':'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',

@@ -140,11 +140,11 @@ $totalTalDone  = array_sum(array_column($talukas,   'completed'));
             <span class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($sName) ?></span>
             <span class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($sRole) ?></span>
           </div>
-          <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-sm">
+          <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border border-amber-500/40 shadow-sm">
             <?= strtoupper(substr($sName,0,1)) ?>
           </div>
         </button>
-        <div id="profileDropdownMenu" class="hidden absolute right-0 mt-2 w-48 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 z-50">
+        <div id="profileDropdownMenu" class="hidden absolute right-0 top-full mt-2 w-48 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 z-50 text-left">
           <div class="py-1">
             <a href="profile_update.php" class="flex items-center px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"><i data-lucide="user" class="w-4 h-4 mr-2 text-slate-400"></i>Update Profile</a>
             <a href="logout.php" class="flex items-center px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10"><i data-lucide="log-out" class="w-4 h-4 mr-2 text-red-500"></i>Logout</a>
@@ -486,11 +486,12 @@ function makeBarChart(id, labels, values, color) {
             datasets: [{ label: 'Completion %', data: values.slice(0,15), backgroundColor: color, borderRadius: 6 }]
         },
         options: {
+            indexAxis: 'y',
             responsive: true,
             plugins: { legend: { display: false } },
             scales: {
-                y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: '#e2e8f0' } },
-                x: { ticks: { font: { size: 10 }, maxRotation: 30 }, grid: { display: false } }
+                x: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: '#e2e8f0' } },
+                y: { ticks: { font: { size: 10 } }, grid: { display: false } }
             }
         }
     });
@@ -514,11 +515,44 @@ makeBarChart('distChart', distData.map(d=>d.name), distData.map(d=>d.rate), '#f5
 makeDonut('distDonut', ['Completed','In Progress','Pending','On Hold'], [totalDone, totalProg, totalPend, totalHold], ['#10b981','#3b82f6','#f59e0b','#94a3b8']);
 
 /* ── TABLE SEARCH ─────────────────────────────────────────────── */
+let _filterTableDebounce = {};
+
 function filterTable(searchId, tbodyId) {
-    const q = document.getElementById(searchId).value.toLowerCase();
+    const inputEl = document.getElementById(searchId);
+    if (!inputEl) return;
+    const q = inputEl.value.trim().toLowerCase();
+
+    // Validation: require at least 2 chars if user has entered something
+    if (q.length > 0 && q.length < 2) {
+        // Don't alert on every keystroke, just silently wait
+        document.querySelectorAll('#' + tbodyId + ' tr').forEach(row => {
+            row.style.display = '';
+        });
+        return;
+    }
+
+    let visibleCount = 0;
     document.querySelectorAll('#' + tbodyId + ' tr').forEach(row => {
-        row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+        const matches = !q || row.textContent.toLowerCase().includes(q);
+        row.style.display = matches ? '' : 'none';
+        if (matches) visibleCount++;
     });
+
+    // Show SweetAlert if no results found (debounce to avoid rapid alerts)
+    clearTimeout(_filterTableDebounce[searchId]);
+    if (q.length >= 2 && visibleCount === 0) {
+        _filterTableDebounce[searchId] = setTimeout(() => {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'No Records Found',
+                    html: `<p>No results found for <strong>"${inputEl.value.trim()}"</strong>.</p><p class="text-sm text-slate-500 mt-1">Please enter correct data and try again.</p>`,
+                    confirmButtonColor: '#4f46e5',
+                    confirmButtonText: 'OK'
+                });
+            }
+        }, 600);
+    }
 }
 
 /* ── PDF DOWNLOAD ─────────────────────────────────────────────── */

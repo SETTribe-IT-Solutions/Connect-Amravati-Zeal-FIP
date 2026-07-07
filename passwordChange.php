@@ -152,7 +152,7 @@ button{
     width:100%;
     padding:12px;
     border:none;
-    background:#2563eb;
+    background:#003f7b;
     color:#fff;
     border-radius:8px;
     cursor:pointer;
@@ -160,7 +160,7 @@ button{
 }
 
 button:hover{
-    background:#1d4ed8;
+    background:#002750;
 }
 
 .success{
@@ -186,7 +186,7 @@ button:hover{
 
 .back a{
     text-decoration:none;
-    color:#2563eb;
+    color:#003f7b;
 }
 
 </style>

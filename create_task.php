@@ -143,7 +143,14 @@ $translations = [
         'toast_warning' => 'warning',
         'toast_success' => 'success',
         
-        'char_counter' => '%d / 255 characters'
+        'char_counter' => '%d / 255 characters',
+
+        // Wizard pagination
+        'wizard_step1' => 'Task Details & Allocation',
+        'wizard_step2' => 'Attachments, Schedule & Priority',
+        'btn_next' => 'Next: Schedule & Attachments',
+        'btn_prev' => 'Previous: Task Details',
+        'wizard_step_of' => 'Step %d of %d'
     ],
     'mr' => [
         // Sidebar & Header Menu
@@ -273,7 +280,14 @@ $translations = [
         'toast_warning' => 'चेतावणी',
         'toast_success' => 'यशस्वी',
         
-        'char_counter' => '%d / २५५ अक्षरे'
+        'char_counter' => '%d / २५५ अक्षरे',
+
+        // Wizard pagination
+        'wizard_step1' => 'कार्य तपशील आणि वाटप',
+        'wizard_step2' => 'संलग्नक, वेळापत्रक आणि प्राधान्य',
+        'btn_next' => 'पुढे: वेळापत्रक आणि संलग्नक',
+        'btn_prev' => 'मागे: कार्य तपशील',
+        'wizard_step_of' => 'पायरी %d पैकी %d'
     ]
 ];
 
@@ -306,8 +320,8 @@ $sTalukaId  = (int) ($_SESSION['user_taluka_id']  ?? 1);
 $sVillageId = (int) ($_SESSION['user_village_id'] ?? 1);
 
 // Get user role level and redirect Level 3 users back to dashboard
-$userLevel = $_SESSION['user_level'] ?? null;
-if ($userLevel === null && !empty($sRole)) {
+$user_level = $_SESSION['user_level'] ?? null;
+if ($user_level === null && !empty($sRole)) {
     if (isset($conn) && $conn instanceof mysqli) {
         try {
             $stmt = $conn->prepare("SELECT role_level FROM roles WHERE role_name = ? LIMIT 1");
@@ -316,7 +330,7 @@ if ($userLevel === null && !empty($sRole)) {
                 $stmt->execute();
                 $res = $stmt->get_result();
                 if ($row = $res->fetch_assoc()) {
-                    $userLevel = (int)$row['role_level'];
+                    $user_level = (int)$row['role_level'];
                 }
                 $stmt->close();
             }
@@ -324,7 +338,7 @@ if ($userLevel === null && !empty($sRole)) {
             error_log('create_task role level lookup error: ' . $e->getMessage());
         }
     }
-    if ($userLevel === null) {
+    if ($user_level === null) {
         $roleMap = [
             'Administrator'        => 1,
             'System Administrator' => 1,
@@ -337,16 +351,14 @@ if ($userLevel === null && !empty($sRole)) {
             'Talathi'              => 3,
             'Gramsevak'            => 3,
         ];
-        $userLevel = $roleMap[$sRole] ?? 3;
+        $user_level = $roleMap[$sRole] ?? 3;
     }
 }
 
-if ($userLevel === 3) {
+if ($user_level > 2) {
     header("Location: dashboard.php?lang=" . $lang);
     exit();
 }
-
-$user_level = $userLevel;
 // Avatar initials
 $parts    = array_filter(explode(' ', trim($sName)));
 $initials = strtoupper(substr($parts[0] ?? 'U', 0, 1) . substr($parts[1] ?? '', 0, 1));
@@ -541,7 +553,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $target           = $conn->real_escape_string(trim($_POST['target']           ?? ''));
     $department_id    = !empty($_POST['department_id'])    ? (int)$_POST['department_id']    : null;
     $assigned_role_id = !empty($_POST['assigned_role_id']) ? (int)$_POST['assigned_role_id'] : null;
-    $assigned_user_id = !empty($_POST['assigned_user_id']) ? (int)$_POST['assigned_user_id'] : null;
+    
+    $assigned_user_ids = [];
+    if (isset($_POST['assigned_user_ids']) && is_array($_POST['assigned_user_ids'])) {
+        foreach ($_POST['assigned_user_ids'] as $uid) {
+            $val = (int)$uid;
+            if ($val > 0) $assigned_user_ids[] = $val;
+        }
+    } elseif (!empty($_POST['assigned_user_id'])) {
+        $assigned_user_ids[] = (int)$_POST['assigned_user_id'];
+    }
     $created_by       = $_SESSION['user_id'] ?? 1;
 
     // DB column `due_date` is DATE — strip the time part sent by datetime-local
@@ -586,179 +607,202 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+        // ─────────────────────────────────────────────────────────────────
+    // Build a list of user allocation targets to iterate through
     // ─────────────────────────────────────────────────────────────────
-    // AUTO-POPULATE: Pull department, role, district, taluka, village
-    // from the selected user's own record — admin never types these.
-    // ─────────────────────────────────────────────────────────────────
-    $task_district_id = null;
-    $task_taluka_id   = null;
-    $task_village_id  = null;
-
-    if ($allocation_type === 'by_name' && $assigned_user_id) {
-        $usr_res = $conn->query(
-            "SELECT department_id, role_id, district_id, taluka_id, village_id
-               FROM users
-              WHERE user_id = $assigned_user_id AND status = 'Active'
-              LIMIT 1"
-        );
-        if ($usr_res && $usr_data = $usr_res->fetch_assoc()) {
-            // Use the user's own department (overrides any filter choice)
-            $department_id    = !empty($usr_data['department_id']) ? (int)$usr_data['department_id'] : $department_id;
-            // Sync role so tasks.assigned_role_id matches the user's role
-            $assigned_role_id = !empty($usr_data['role_id'])       ? (int)$usr_data['role_id']       : $assigned_role_id;
-            $task_district_id = !empty($usr_data['district_id'])   ? (int)$usr_data['district_id']   : null;
-            $task_taluka_id   = !empty($usr_data['taluka_id'])     ? (int)$usr_data['taluka_id']     : null;
-            $task_village_id  = !empty($usr_data['village_id'])    ? (int)$usr_data['village_id']    : null;
+    $targets_to_create = [];
+    
+    if ($allocation_type === 'by_name' && !empty($assigned_user_ids)) {
+        foreach ($assigned_user_ids as $uid) {
+            $targets_to_create[] = [
+                'user_id' => $uid,
+                'role_id' => null,
+                'type'    => 'by_name'
+            ];
         }
+    } else {
+        // For by_role or by_village, we create a single master task row first
+        $targets_to_create[] = [
+            'user_id' => null,
+            'role_id' => $assigned_role_id,
+            'type'    => $allocation_type
+        ];
     }
-    // For by_role the task row keeps district/taluka/village NULL;
-    // each user's own context is tracked via task_assignments.
 
-    // ── Insert task into `tasks` table ────────────────────────────
     if (empty($error_msg)) {
-
-        // Build nullable SQL literals
-        $dept_sql     = $department_id    ? (int)$department_id    : 'NULL';
-        $role_sql     = $assigned_role_id ? (int)$assigned_role_id : 'NULL';
-        $user_sql     = ($allocation_type === 'by_name' && $assigned_user_id) ? (int)$assigned_user_id : 'NULL';
-        $district_sql = $task_district_id ? (int)$task_district_id : 'NULL';
-        $taluka_sql   = $task_taluka_id   ? (int)$task_taluka_id   : 'NULL';
-        $village_sql  = $task_village_id  ? (int)$task_village_id  : 'NULL';
-        $cat_sql      = !empty($task_category) ? "'" . $conn->real_escape_string($task_category) . "'" : 'NULL';
-        $tgt_sql      = !empty($target)        ? "'" . $conn->real_escape_string($target)        . "'" : 'NULL';
-        $due_sql      = !empty($due_date)      ? "'" . $due_date . "'"                                  : 'NULL';
-
-        $tmp_task_no = 'TASK_TMP_' . time();
-
-        $sql = "INSERT INTO tasks
-                    (task_no, task_title, task_description, priority, task_category,
-                     department_id, created_by, assigned_role_id, assigned_user_id,
-                     district_id, taluka_id, village_id,
-                     due_date, status, remarks)
-                VALUES
-                    ('" . $conn->real_escape_string($tmp_task_no) . "',
-                     '$task_title', '$task_description', '$priority', $cat_sql,
-                     $dept_sql, $created_by, $role_sql, $user_sql,
-                     $district_sql, $taluka_sql, $village_sql,
-                     $due_sql, 'Pending', $tgt_sql)";
-
-        if ($conn->query($sql)) {
-            $new_task_id = $conn->insert_id;
-            // Use actual row count for sequential task_no (no gaps from failed inserts)
-            $seq_result  = $conn->query("SELECT COUNT(*) AS cnt FROM tasks WHERE task_id <= $new_task_id");
-            $seq_row     = $seq_result ? $seq_result->fetch_assoc() : null;
-            $seq_num     = (int)($seq_row['cnt'] ?? $new_task_id);
-            $task_id_str = 'TASK_' . str_pad($seq_num, 3, '0', STR_PAD_LEFT);
-
-            // Update task_no with the sequential number
-            $conn->query("UPDATE tasks SET task_no = '" . $conn->real_escape_string($task_id_str) . "' WHERE task_id = $new_task_id");
-
-            // ── task_activity_logs ─────────────────────────────────
-            $activity_desc = $conn->real_escape_string("Task created and assigned.");
-            $conn->query("INSERT INTO task_activity_logs (task_id, user_id, activity_type, description, activity_time) VALUES ($new_task_id, $created_by, 'Task Created', '$activity_desc', NOW())");
-
-            // ── task_remarks ───────────────────────────────────────
-            if (!empty($target)) {
-                $conn->query("INSERT INTO task_remarks (task_id, user_id, remark_text, status_after_remark, created_at) VALUES ($new_task_id, $created_by, $tgt_sql, 'Pending', NOW())");
-            }
-
-            // ── Attachment record ──────────────────────────────────
-            if ($attachment_path && $file_mime) {
-                $safe_path = $conn->real_escape_string($attachment_path);
-                $orig_name = $conn->real_escape_string($_FILES['attachment']['name']);
-                $conn->query(
-                    "INSERT INTO task_documents
-                         (task_id, file_name, file_path, uploaded_by)
-                     VALUES
-                         ($new_task_id, '$orig_name', '$safe_path', $created_by)"
-                );
-            }
-
-            // ── task_assignments: allocate to users ────────────────
-            if ($allocation_type === 'by_role' && $assigned_role_id) {
-                // Fetch every active user with this role INCLUDING their location data
-                $role_users = $conn->query(
-                    "SELECT user_id, department_id, district_id, taluka_id, village_id
+        $task_id_str = ''; // will hold the last created task no string
+        
+        foreach ($targets_to_create as $tgt_item) {
+            $curr_user_id = $tgt_item['user_id'];
+            $curr_role_id = $tgt_item['role_id'];
+            $curr_type    = $tgt_item['type'];
+            
+            $task_district_id = null;
+            $task_taluka_id   = null;
+            $task_village_id  = null;
+            $curr_dept_id     = $department_id;
+            $curr_assigned_role_id = $curr_role_id ?: $assigned_role_id;
+            
+            if ($curr_type === 'by_name' && $curr_user_id) {
+                $usr_res = $conn->query(
+                    "SELECT department_id, role_id, district_id, taluka_id, village_id
                        FROM users
-                      WHERE role_id = $assigned_role_id AND status = 'Active'"
+                      WHERE user_id = $curr_user_id AND status = 'Active'
+                      LIMIT 1"
                 );
-                if ($role_users && $role_users->num_rows > 0) {
-                    while ($ru = $role_users->fetch_assoc()) {
-                        $uid = (int)$ru['user_id'];
-                        $conn->query(
-                            "INSERT INTO task_assignments
-                                 (task_id, assigned_from_user, assigned_to_user, assigned_to_role, assigned_date, status)
-                             VALUES ($new_task_id, $created_by, $uid, $assigned_role_id, NOW(), 'Pending')"
-                        );
-                        $assigned_count++;
+                if ($usr_res && $usr_data = $usr_res->fetch_assoc()) {
+                    $curr_dept_id          = !empty($usr_data['department_id']) ? (int)$usr_data['department_id'] : $curr_dept_id;
+                    $curr_assigned_role_id = !empty($usr_data['role_id'])       ? (int)$usr_data['role_id']       : $curr_assigned_role_id;
+                    $task_district_id      = !empty($usr_data['district_id'])   ? (int)$usr_data['district_id']   : null;
+                    $task_taluka_id        = !empty($usr_data['taluka_id'])     ? (int)$usr_data['taluka_id']     : null;
+                    $task_village_id       = !empty($usr_data['village_id'])    ? (int)$usr_data['village_id']    : null;
+                }
+            }
+            
+            // Build nullable SQL literals
+            $dept_sql     = $curr_dept_id          ? (int)$curr_dept_id          : 'NULL';
+            $role_sql     = $curr_assigned_role_id ? (int)$curr_assigned_role_id : 'NULL';
+            $user_sql     = ($curr_type === 'by_name' && $curr_user_id) ? (int)$curr_user_id : 'NULL';
+            $district_sql = $task_district_id ? (int)$task_district_id : 'NULL';
+            $taluka_sql   = $task_taluka_id   ? (int)$task_taluka_id   : 'NULL';
+            $village_sql  = $task_village_id  ? (int)$task_village_id  : 'NULL';
+            $cat_sql      = !empty($task_category) ? "'" . $conn->real_escape_string($task_category) . "'" : 'NULL';
+            $tgt_sql      = !empty($target)        ? "'" . $conn->real_escape_string($target)        . "'" : 'NULL';
+            $due_sql      = !empty($due_date)      ? "'" . $due_date . "'"                                  : 'NULL';
 
-                        // ── Notification per role-based assigned user ──
+            $tmp_task_no = 'TASK_TMP_' . time() . '_' . rand(100, 999);
+
+            $sql = "INSERT INTO tasks
+                        (task_no, task_title, task_description, priority, task_category,
+                         department_id, created_by, assigned_role_id, assigned_user_id,
+                         district_id, taluka_id, village_id,
+                         due_date, status, remarks)
+                    VALUES
+                        ('" . $conn->real_escape_string($tmp_task_no) . "',
+                         '$task_title', '$task_description', '$priority', $cat_sql,
+                         $dept_sql, $created_by, $role_sql, $user_sql,
+                         $district_sql, $taluka_sql, $village_sql,
+                         $due_sql, 'Pending', $tgt_sql)";
+
+            if ($conn->query($sql)) {
+                $new_task_id = $conn->insert_id;
+                
+                // Use actual row count for sequential task_no (no gaps from failed inserts)
+                $seq_result  = $conn->query("SELECT COUNT(*) AS cnt FROM tasks WHERE task_id <= $new_task_id");
+                $seq_row     = $seq_result ? $seq_result->fetch_assoc() : null;
+                $seq_num     = (int)($seq_row['cnt'] ?? $new_task_id);
+                $task_id_str = 'TASK_' . str_pad($seq_num, 3, '0', STR_PAD_LEFT);
+
+                // Update task_no with the sequential number
+                $conn->query("UPDATE tasks SET task_no = '" . $conn->real_escape_string($task_id_str) . "' WHERE task_id = $new_task_id");
+
+                // ── task_activity_logs ─────────────────────────────────
+                $activity_desc = $conn->real_escape_string("Task created and assigned.");
+                $conn->query("INSERT INTO task_activity_logs (task_id, user_id, activity_type, description, activity_time) VALUES ($new_task_id, $created_by, 'Task Created', '$activity_desc', NOW())");
+
+                // ── task_remarks ───────────────────────────────────────
+                if (!empty($target)) {
+                    $conn->query("INSERT INTO task_remarks (task_id, user_id, remark_text, status_after_remark, created_at) VALUES ($new_task_id, $created_by, $tgt_sql, 'Pending', NOW())");
+                }
+
+                // ── Attachment record ──────────────────────────────────
+                if ($attachment_path && $file_mime) {
+                    $safe_path = $conn->real_escape_string($attachment_path);
+                    $orig_name = $conn->real_escape_string($_FILES['attachment']['name']);
+                    $conn->query(
+                        "INSERT INTO task_documents
+                             (task_id, file_name, file_path, uploaded_by)
+                         VALUES
+                             ($new_task_id, '$orig_name', '$safe_path', $created_by)"
+                    );
+                }
+
+                // ── task_assignments: allocate to users ────────────────
+                if ($curr_type === 'by_role' && $curr_assigned_role_id) {
+                    $role_users = $conn->query(
+                        "SELECT user_id, department_id, district_id, taluka_id, village_id
+                           FROM users
+                          WHERE role_id = $curr_assigned_role_id AND status = 'Active'"
+                    );
+                    if ($role_users && $role_users->num_rows > 0) {
+                        while ($ru = $role_users->fetch_assoc()) {
+                            $uid = (int)$ru['user_id'];
+                            $conn->query(
+                                "INSERT INTO task_assignments
+                                     (task_id, assigned_from_user, assigned_to_user, assigned_to_role, assigned_date, status)
+                                 VALUES ($new_task_id, $created_by, $uid, $curr_assigned_role_id, NOW(), 'Pending')"
+                            );
+                            $assigned_count++;
+
+                            // ── Notification per role-based assigned user ──
+                            createTaskNotification(
+                                $conn,
+                                $new_task_id,
+                                $task_title,
+                                $due_date,
+                                $uid,
+                                $created_by
+                            );
+                        }
+                    }
+                } elseif ($curr_type === 'by_name' && $curr_user_id) {
+                    // Single user assignment inside the loop
+                    $role_to_assign = $curr_assigned_role_id ? (int)$curr_assigned_role_id : 'NULL';
+                    $conn->query(
+                        "INSERT INTO task_assignments (task_id, assigned_from_user, assigned_to_user, assigned_to_role, assigned_date, status)
+                         VALUES ($new_task_id, $created_by, $curr_user_id, $role_to_assign, NOW(), 'Pending')"
+                    );
+                    $assigned_this_item = $conn->affected_rows > 0 ? 1 : 0;
+                    $assigned_count += $assigned_this_item;
+
+                    // ── Notification for single assigned user ──────────
+                    if ($assigned_this_item > 0) {
                         createTaskNotification(
                             $conn,
                             $new_task_id,
                             $task_title,
                             $due_date,
-                            $uid,
+                            (int)$curr_user_id,
                             $created_by
                         );
                     }
-                }
-            } elseif ($allocation_type === 'by_name' && $assigned_user_id) {
-                // Single user assignment
-                $role_to_assign = $assigned_role_id ? (int)$assigned_role_id : 'NULL';
-                $conn->query(
-                    "INSERT INTO task_assignments (task_id, assigned_from_user, assigned_to_user, assigned_to_role, assigned_date, status)
-                     VALUES ($new_task_id, $created_by, $assigned_user_id, $role_to_assign, NOW(), 'Pending')"
-                );
-                $assigned_count = $conn->affected_rows > 0 ? 1 : 0;
-
-                // ── Notification for single assigned user ──────────
-                if ($assigned_count > 0) {
-                    createTaskNotification(
-                        $conn,
-                        $new_task_id,
-                        $task_title,
-                        $due_date,
-                        (int)$assigned_user_id,
-                        $created_by
-                    );
-                }
-            } elseif ($allocation_type === 'by_village') {
-                // Village-wise: assign to all eligible employees in the selected village
-                $assigned_village_id = !empty($_POST['assigned_village_id']) ? (int)$_POST['assigned_village_id'] : 0;
-                if ($assigned_village_id > 0) {
-                    $village_users = $conn->query(
-                        "SELECT u.user_id, u.department_id, u.district_id, u.taluka_id, u.village_id
-                           FROM users u
-                           JOIN roles r ON u.role_id = r.role_id
-                          WHERE u.village_id = $assigned_village_id AND u.status = 'Active' AND r.role_level >= $user_level"
-                    );
-                    if ($village_users && $village_users->num_rows > 0) {
-                        while ($vu = $village_users->fetch_assoc()) {
-                            $vuid = (int)$vu['user_id'];
-                            $conn->query(
-                                "INSERT INTO task_assignments
-                                     (task_id, assigned_from_user, assigned_to_user, assigned_to_role, assigned_date, status)
-                                 VALUES ($new_task_id, $created_by, $vuid, NULL, NOW(), 'Pending')"
-                            );
-                            if ($conn->affected_rows > 0) {
-                                $assigned_count++;
-                                createTaskNotification(
-                                    $conn,
-                                    $new_task_id,
-                                    $task_title,
-                                    $due_date,
-                                    $vuid,
-                                    $created_by
+                } elseif ($curr_type === 'by_village') {
+                    // Village-wise: assign to all eligible employees in the selected village
+                    $assigned_village_id = !empty($_POST['assigned_village_id']) ? (int)$_POST['assigned_village_id'] : 0;
+                    if ($assigned_village_id > 0) {
+                        $village_users = $conn->query(
+                            "SELECT u.user_id, u.department_id, u.district_id, u.taluka_id, u.village_id
+                               FROM users u
+                               JOIN roles r ON u.role_id = r.role_id
+                              WHERE u.village_id = $assigned_village_id AND u.status = 'Active' AND r.role_level >= $user_level"
+                        );
+                        if ($village_users && $village_users->num_rows > 0) {
+                            while ($vu = $village_users->fetch_assoc()) {
+                                $vuid = (int)$vu['user_id'];
+                                $conn->query(
+                                    "INSERT INTO task_assignments
+                                         (task_id, assigned_from_user, assigned_to_user, assigned_to_role, assigned_date, status)
+                                     VALUES ($new_task_id, $created_by, $vuid, NULL, NOW(), 'Pending')"
                                 );
+                                if ($conn->affected_rows > 0) {
+                                    $assigned_count++;
+                                    createTaskNotification(
+                                        $conn,
+                                        $new_task_id,
+                                        $task_title,
+                                        $due_date,
+                                        $vuid,
+                                        $created_by
+                                    );
+                                }
                             }
+                            // Store village on the task row
+                            $conn->query("UPDATE tasks SET village_id = $assigned_village_id WHERE task_id = $new_task_id");
                         }
-                        // Store village on the task row
-                        $conn->query("UPDATE tasks SET village_id = $assigned_village_id WHERE task_id = $new_task_id");
                     }
                 }
             }
-
+        }
             $count_label = $assigned_count > 0
                 ? ($lang === 'mr'
                     ? " <strong>$assigned_count</strong> कर्मचाऱ्यास नियुक्त केले."
@@ -774,7 +818,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     } // End of if(!$conn) check
-}
 
 // ── Handle success redirect ────────────────────────────────────────────
 $success_msg = '';
@@ -846,6 +889,125 @@ $extraHead = <<<'EOT'
         }
         .step-dot.active { background: #1a365d; }
 
+        /* ── Wizard Page Stepper ── */
+        .wizard-stepper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 2rem;
+        }
+        .wizard-step {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            padding: 0.625rem 1.25rem;
+            border-radius: 0.75rem;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .wizard-step .ws-num {
+            width: 2rem; height: 2rem;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.8rem; font-weight: 700;
+            border: 2px solid #cbd5e1;
+            color: #94a3b8;
+            background: #fff;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+        .dark .wizard-step .ws-num { background: #1e293b; border-color: #475569; color: #64748b; }
+        .wizard-step.active .ws-num {
+            background: linear-gradient(135deg, #1a365d, #2563eb);
+            border-color: #2563eb;
+            color: #fff;
+            box-shadow: 0 0 0 4px rgba(37,99,235,0.15);
+        }
+        .wizard-step.completed .ws-num {
+            background: linear-gradient(135deg, #059669, #10b981);
+            border-color: #10b981;
+            color: #fff;
+        }
+        .wizard-step .ws-label {
+            font-size: 0.8125rem; font-weight: 600;
+            color: #94a3b8;
+            transition: color 0.3s;
+            white-space: nowrap;
+        }
+        .wizard-step.active .ws-label { color: #1e293b; }
+        .dark .wizard-step.active .ws-label { color: #f1f5f9; }
+        .wizard-step.completed .ws-label { color: #059669; }
+        .wizard-connector {
+            width: 4rem; height: 2px;
+            background: #e2e8f0;
+            transition: background 0.3s;
+            flex-shrink: 0;
+        }
+        .dark .wizard-connector { background: #334155; }
+        .wizard-connector.done { background: linear-gradient(90deg, #10b981, #2563eb); }
+
+        /* Wizard pages */
+        .wizard-page { display: none; animation: wizardFadeIn 0.35s ease both; }
+        .wizard-page.active { display: block; }
+        @keyframes wizardFadeIn {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Wizard nav buttons */
+        .wizard-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1.5rem;
+            gap: 1rem;
+        }
+        .wizard-nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.75rem;
+            border-radius: 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+        .wizard-nav-btn:hover { transform: translateY(-1px); }
+        .wizard-nav-btn:active { transform: translateY(0); }
+        .wizard-nav-btn.btn-next {
+            background: linear-gradient(135deg, #1a365d, #2563eb);
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(37,99,235,0.25);
+        }
+        .wizard-nav-btn.btn-next:hover {
+            box-shadow: 0 6px 20px rgba(37,99,235,0.35);
+        }
+        .wizard-nav-btn.btn-prev {
+            background: #fff;
+            color: #475569;
+            border: 1.5px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+        .dark .wizard-nav-btn.btn-prev {
+            background: #1e293b;
+            color: #cbd5e1;
+            border-color: #475569;
+        }
+        .wizard-nav-btn.btn-prev:hover {
+            border-color: #94a3b8;
+            background: #f8fafc;
+        }
+        .dark .wizard-nav-btn.btn-prev:hover { background: #334155; }
+        .wizard-page-indicator {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: #94a3b8;
+        }
+
         /* Animate in */
         @keyframes fadeSlideIn {
             from { opacity: 0; transform: translateY(12px); }
@@ -915,11 +1077,11 @@ include 'include/sidebar.php';
                             <?= ' (' . htmlspecialchars($headerLocationDisplay) . ')' ?>
                         </span>
                     </div>
-                    <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-sm">
+                    <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border border-amber-500/40 shadow-sm">
                         <?= htmlspecialchars($initials ?? 'U') ?>
                     </div>
                 </button>
-                <div id="profileDropdownMenu" class="hidden absolute right-0 mt-2 w-48 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md z-50">
+                <div id="profileDropdownMenu" class="hidden absolute right-0 top-full mt-2 w-48 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md z-50 text-left">
                     <div class="py-1">
                         <a href="profile_update.php?lang=<?= $lang ?? 'en' ?>" class="flex items-center px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
                             <i data-lucide="user" class="w-4 h-4 mr-2 text-slate-400"></i><?= htmlspecialchars($t['profile_update'] ?? 'User Profile Update') ?>
@@ -1012,6 +1174,21 @@ include 'include/sidebar.php';
         <?php endif; ?>
         <form method="POST" enctype="multipart/form-data" id="createTaskForm" novalidate>
 
+            <!-- ── Wizard Stepper ── -->
+            <div class="wizard-stepper" id="wizardStepper">
+                <div class="wizard-step active" id="ws1" onclick="goToWizardPage(1)">
+                    <span class="ws-num">1</span>
+                    <span class="ws-label"><?= htmlspecialchars($t['wizard_step1'] ?? 'Task Details & Allocation') ?></span>
+                </div>
+                <div class="wizard-connector" id="wc1"></div>
+                <div class="wizard-step" id="ws2" onclick="goToWizardPage(2)">
+                    <span class="ws-num">2</span>
+                    <span class="ws-label"><?= htmlspecialchars($t['wizard_step2'] ?? 'Attachments, Schedule & Priority') ?></span>
+                </div>
+            </div>
+
+            <!-- ═══════ WIZARD PAGE 1: Task Details & Allocation ═══════ -->
+            <div class="wizard-page active" id="wizardPage1">
 
             <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
 
@@ -1186,36 +1363,28 @@ include 'include/sidebar.php';
                             <!-- By Name: Employee Dropdown -->
                             <div id="byNameSection" class="space-y-4 transition-all">
                                 <div>
-                                    <label class="form-label" for="assigned_user_id">
+                                    <label class="form-label mb-2 block">
                                         <?= htmlspecialchars($t['lbl_select_employee'] ?? 'Select Employee') ?> <span class="text-red-500">*</span>
                                     </label>
-                                    <div class="relative">
-                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <i data-lucide="user-search" class="w-4 h-4 text-slate-400"></i>
-                                        </div>
-                                        <select id="assigned_user_id" name="assigned_user_id"
-                                                class="w-full pl-10 pr-10 py-2.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg
-                                                       bg-white dark:bg-slate-800 text-slate-900 dark:text-white
-                                                       focus:outline-none focus:ring-2 focus:ring-navy-500 focus:border-navy-500
-                                                       transition-colors appearance-none">
-                                            <option value=""><?= htmlspecialchars($t['opt_select_employee'] ?? '— Select an employee —') ?></option>
-                                            <?php
-                                            if ($users_result && $users_result->num_rows > 0) {
-                                                $users_result->data_seek(0);
-                                                while ($u = $users_result->fetch_assoc()):
-                                                    $sel = (isset($_POST['assigned_user_id']) && $_POST['assigned_user_id'] == $u['user_id']) ? 'selected' : '';
-                                            ?>
-                                            <option value="<?= (int)$u['user_id'] ?>" data-designation="<?= htmlspecialchars($u['designation'] ?? '') ?>" <?= $sel ?>>
+                                    <div class="max-h-60 overflow-y-auto p-3 rounded-lg border border-slate-300 dark:border-slate-650 bg-white dark:bg-slate-800 space-y-1" id="employee_checkboxes_container">
+                                        <?php
+                                        if ($users_result && $users_result->num_rows > 0) {
+                                            $users_result->data_seek(0);
+                                            $selected_ids = $_POST['assigned_user_ids'] ?? (isset($_POST['assigned_user_id']) ? [$_POST['assigned_user_id']] : []);
+                                            while ($u = $users_result->fetch_assoc()):
+                                                $checked = in_array($u['user_id'], $selected_ids) ? 'checked' : '';
+                                        ?>
+                                        <label class="flex items-center space-x-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/30 cursor-pointer transition-colors">
+                                            <input type="checkbox" name="assigned_user_ids[]" value="<?= (int)$u['user_id'] ?>" <?= $checked ?> class="w-4 h-4 text-navy-600 dark:text-blue-500 border-slate-300 dark:border-slate-600 rounded focus:ring-navy-500">
+                                            <span class="text-sm text-slate-750 dark:text-slate-200">
                                                 <?= htmlspecialchars($u['full_name']) ?><?= !empty($u['designation']) ? ' — ' . htmlspecialchars($u['designation']) : '' ?>
-                                            </option>
-                                            <?php endwhile; } else { ?>
-                                            <option value="" disabled><?= htmlspecialchars($t['opt_no_employees'] ?? 'No active employees found in database') ?></option>
-                                            <?php } ?>
-                                        </select>
-                                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
-                                        </div>
+                                            </span>
+                                        </label>
+                                        <?php endwhile; } else { ?>
+                                        <p class="text-xs text-slate-500 dark:text-slate-400 p-2"><?= htmlspecialchars($t['opt_no_employees'] ?? 'No active employees found in database') ?></p>
+                                        <?php } ?>
                                     </div>
+                                    <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">Select one or more employees from the list above.</p>
                                 </div>
                             </div>
 
@@ -2028,8 +2197,11 @@ include 'include/sidebar.php';
         if (!title) { showToast(jsTranslations.toast_title_req, 'warning'); e.preventDefault(); return; }
         if (!due)   { showToast(jsTranslations.toast_due_req,   'warning'); e.preventDefault(); return; }
 
-        if (alloc === 'by_name' && !document.getElementById('assigned_user_id').value) {
-            showToast(jsTranslations.toast_employee_req, 'warning'); e.preventDefault(); return;
+        if (alloc === 'by_name') {
+            const checkedBoxes = document.querySelectorAll('input[name="assigned_user_ids[]"]:checked');
+            if (checkedBoxes.length === 0) {
+                showToast(jsTranslations.toast_employee_req, 'warning'); e.preventDefault(); return;
+            }
         }
         if (alloc === 'by_role' && !document.getElementById('assigned_role_id').value) {
             showToast(jsTranslations.toast_role_req, 'warning'); e.preventDefault(); return;
