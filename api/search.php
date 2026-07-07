@@ -2,7 +2,7 @@
 /**
  * api/search.php
  * Global Live Search API — Tasks, Officers, Circulars/Announcements
- * Returns JSON results for the dashboard search bar
+ * Returns JSON results for the global search bar (works on all pages)
  */
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -16,7 +16,7 @@ require_once __DIR__ . '/../include/dbConfig.php';
 
 $q = trim($_GET['q'] ?? '');
 if (mb_strlen($q) < 2) {
-    echo json_encode(['status' => 'ok', 'results' => []]);
+    echo json_encode(['status' => 'ok', 'results' => [], 'total' => 0]);
     exit;
 }
 
@@ -34,8 +34,20 @@ $roleLevelMap = [
 ];
 $userLevel = $roleLevelMap[$userRole] ?? 3;
 
-$like = '%' . $q . '%';
+$like    = '%' . $q . '%';
 $results = [];
+
+// ── Task-specific validation ──────────────────────────────────────────────
+// Detect if user is searching for a specific task ID or task number pattern
+// e.g. "task_200", "TASK200", "#200", "200" (pure numeric), "task-200"
+$isTaskSpecificSearch = false;
+$extractedTaskId      = null;
+
+// Match patterns like: task_200, task200, TASK-200, #200, or pure numeric like 200
+if (preg_match('/^(?:task[_\-\s]?)?#?(\d+)$/i', $q, $m)) {
+    $isTaskSpecificSearch = true;
+    $extractedTaskId      = (int)$m[1];
+}
 
 try {
     /* ────────────────────────────────────────────────
@@ -53,7 +65,6 @@ try {
 
     // Scope by user level — L1 sees all, L2/L3 see tasks assigned to them OR in their area
     if ($userLevel === 2 && $talukaId > 0) {
-        // L2: tasks in their taluka, OR directly assigned to them, OR created by them
         $taskSql .= " AND (
             t.taluka_id = ?
             OR t.assigned_user_id = ?
@@ -63,7 +74,6 @@ try {
         $taskParams = array_merge($taskParams, [$talukaId, $userId, $userId, $userId]);
         $taskTypes .= 'iiii';
     } elseif ($userLevel === 3) {
-        // L3: tasks assigned to them, OR in their village, OR created by them
         $taskSql .= " AND (
             t.assigned_user_id = ?
             OR t.created_by = ?
@@ -101,15 +111,44 @@ try {
         $stmt->close();
     }
 
+    // ── Task-specific validation: if searching for task_N but N doesn't exist ──
+    if ($isTaskSpecificSearch && $extractedTaskId > 0 && empty($results)) {
+        // Check total task count so we can give a meaningful error message
+        $countStmt  = $conn->prepare("SELECT COUNT(*) AS total FROM tasks");
+        $totalTasks = 0;
+        if ($countStmt) {
+            $countStmt->execute();
+            $countRes = $countStmt->get_result();
+            if ($countRow = $countRes->fetch_assoc()) {
+                $totalTasks = (int)$countRow['total'];
+            }
+            $countStmt->close();
+        }
+
+        if ($totalTasks > 0 && $extractedTaskId > $totalTasks) {
+            // The searched task ID is beyond the total count of existing tasks
+            echo json_encode([
+                'status'      => 'not_found',
+                'results'     => [],
+                'total'       => 0,
+                'query'       => $q,
+                'message'     => "Task #$extractedTaskId not found. Only $totalTasks tasks exist in the system.",
+                'total_tasks' => $totalTasks,
+                'searched_id' => $extractedTaskId,
+            ]);
+            exit;
+        }
+    }
+
     /* ────────────────────────────────────────────────
-       2. OFFICERS / USERS (Available to all logged-in roles)
+       2. OFFICERS / USERS
     ──────────────────────────────────────────────── */
     $officerSql = "SELECT u.user_id, u.full_name, u.designation, u.employee_code, u.email, u.mobile, u.status,
-                          r.role_name, d.department_name, t.taluka_name, v.village_name
+                          r.role_name, d.department_name, tk.taluka_name, v.village_name
                    FROM users u
                    LEFT JOIN roles r ON u.role_id = r.role_id
                    LEFT JOIN departments d ON u.department_id = d.department_id
-                   LEFT JOIN talukas t ON u.taluka_id = t.taluka_id
+                   LEFT JOIN talukas tk ON u.taluka_id = tk.taluka_id
                    LEFT JOIN villages v ON u.village_id = v.village_id
                    WHERE u.status = 'Active'
                      AND (u.full_name LIKE ? OR u.employee_code LIKE ? OR u.designation LIKE ?)";
@@ -118,9 +157,9 @@ try {
     $officerTypes  = 'sss';
 
     if ($userLevel === 2 && $talukaId > 0) {
-        $officerSql   .= " AND u.taluka_id = ?";
+        $officerSql    .= " AND u.taluka_id = ?";
         $officerParams[] = $talukaId;
-        $officerTypes .= 'i';
+        $officerTypes  .= 'i';
     }
 
     $officerSql .= " ORDER BY u.full_name ASC LIMIT 4";
@@ -192,7 +231,12 @@ try {
         $stmt->close();
     }
 
-    echo json_encode(['status' => 'ok', 'results' => $results, 'query' => $q]);
+    echo json_encode([
+        'status'  => 'ok',
+        'results' => $results,
+        'total'   => count($results),
+        'query'   => $q,
+    ]);
 
 } catch (Throwable $e) {
     error_log('search.php error: ' . $e->getMessage());

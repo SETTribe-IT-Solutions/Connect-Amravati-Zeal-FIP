@@ -816,11 +816,167 @@ function masterEventBg(string $event_type, string $status): string {
     return 'from-slate-400 to-slate-500';
 }
 
+
 close_db_connection();
 ?>
 <?php
-$pageTitle = 'Task Tracking — Amravati Connect';
-$pageDesc = 'Admin: Track the complete journey and all activity changes of any task on the Amravati Connect platform.';
+/* ─── Language + Translations ───────────────────────────────── */
+$lang = isset($_GET['lang']) && $_GET['lang'] === 'mr' ? 'mr' : 'en';
+
+$translations = [
+    'en' => [
+        'title'             => 'Task Tracking — Amravati Connect',
+        'page_title'        => 'Task Tracking',
+        'page_subtitle'     => 'Track the complete lifecycle and activity history of every task.',
+        'brand_name'        => 'Amravati Connect',
+        'menu_main_modules' => 'Main Modules',
+        'menu_dashboard'    => 'Executive Dashboard',
+        'menu_task_alloc'   => 'Task Allocation',
+        'menu_announcements'=> 'Announcements',
+        'menu_announcement_center' => 'Announcement Center',
+        'menu_notifications'=> 'Notification Center',
+        'menu_appreciation' => 'Appreciation',
+        'menu_analytics'    => 'Analytics & Data',
+        'menu_reports'      => 'Reports & Analytics',
+        'menu_gis'          => 'Performance Report',
+        'menu_docs'         => 'Document Management',
+        'menu_admin'        => 'Administration',
+        'menu_users'        => 'User Management',
+        'menu_hierarchy'    => 'Location Hierarchy',
+        'menu_audit'        => 'Audit Logs',
+        'menu_settings'     => 'Settings',
+        'menu_logout'       => 'Logout',
+        'btn_ask_ai'        => 'Ask Amravati AI',
+        'badge_level'       => 'Level',
+        'search_placeholder'=> 'Search by Task No or Task Title...',
+        'lbl_search_type'   => 'Search By',
+        'opt_all'           => 'All Fields',
+        'opt_task_no'       => 'Task No',
+        'opt_task_title'    => 'Task Title',
+        'lbl_filter_status' => 'Filter by Status',
+        'opt_all_status'    => 'All Statuses',
+        'btn_search'        => 'Search',
+        'btn_clear'         => 'Clear',
+        'col_task_no'       => 'Task No',
+        'col_title'         => 'Task Title',
+        'col_assigned'      => 'Assigned To',
+        'col_status'        => 'Status',
+        'col_priority'      => 'Priority',
+        'col_due'           => 'Due Date',
+        'col_actions'       => 'Actions',
+        'btn_view_timeline' => 'View Timeline',
+        'lbl_task_details'  => 'Task Details',
+        'lbl_timeline'      => 'Task Activity Timeline',
+        'lbl_add_tracking'  => 'Add Manual Tracking Entry',
+        'lbl_new_status'    => 'New Status',
+        'lbl_remarks'       => 'Remarks / Notes',
+        'lbl_updated_by'    => 'Updated By',
+        'btn_save'          => 'Save Entry',
+        'btn_cancel'        => 'Cancel',
+        'no_tasks'          => 'No tasks found matching your search.',
+        'no_timeline'       => 'No activity events recorded yet.',
+        'status_pending'    => 'Pending',
+        'status_in_progress'=> 'In Progress',
+        'status_completed'  => 'Completed',
+        'status_rejected'   => 'Rejected',
+        'status_on_hold'    => 'On Hold',
+        'status_overdue'    => 'Overdue',
+        'status_escalated'  => 'Escalated',
+        'status_assigned'   => 'Assigned',
+        'status_verified'   => 'Verified',
+        'status_accepted'   => 'Accepted',
+        'status_reassigned' => 'Reassigned',
+        'priority_critical' => 'Critical',
+        'priority_high'     => 'High',
+        'priority_medium'   => 'Medium',
+        'priority_low'      => 'Low',
+        'lbl_assigned_to'   => 'Assigned To',
+        'lbl_department'    => 'Department',
+        'lbl_created_by'    => 'Created By',
+        'lbl_due_date'      => 'Due Date',
+        'lbl_created_on'    => 'Created On',
+        'lbl_documents'     => 'Documents',
+    ],
+    'mr' => [
+        'title'             => 'कार्य मागोवा — अमरावती कनेक्ट',
+        'page_title'        => 'कार्य मागोवा',
+        'page_subtitle'     => 'प्रत्येक कार्याचे संपूर्ण जीवनचक्र आणि क्रियाकलाप इतिहास मागोवा घ्या.',
+        'brand_name'        => 'अमरावती कनेक्ट',
+        'menu_main_modules' => 'मुख्य मॉड्युल्स',
+        'menu_dashboard'    => 'कार्यकारी डॅशबोर्ड',
+        'menu_task_alloc'   => 'कार्य वाटप',
+        'menu_announcements'=> 'घोषणा',
+        'menu_announcement_center' => 'घोषणा केंद्र',
+        'menu_notifications'=> 'सूचना केंद्र',
+        'menu_appreciation' => 'कौतुक',
+        'menu_analytics'    => 'विश्लेषण आणि डेटा',
+        'menu_reports'      => 'अहवाल आणि विश्लेषण',
+        'menu_gis'          => 'कामगिरी अहवाल',
+        'menu_docs'         => 'दस्तऐवज व्यवस्थापन',
+        'menu_admin'        => 'प्रशासन',
+        'menu_users'        => 'वापरकर्ता व्यवस्थापन',
+        'menu_hierarchy'    => 'स्थान उतरंड',
+        'menu_audit'        => 'ऑडिट लॉग्स',
+        'menu_settings'     => 'सेटिंग्ज',
+        'menu_logout'       => 'लॉगआउट',
+        'btn_ask_ai'        => 'अमरावती एआय विचारा',
+        'badge_level'       => 'स्तर',
+        'search_placeholder'=> 'कार्य क्र. किंवा कार्याचे शीर्षकाद्वारे शोधा...',
+        'lbl_search_type'   => 'यानुसार शोधा',
+        'opt_all'           => 'सर्व क्षेत्रे',
+        'opt_task_no'       => 'कार्य क्र.',
+        'opt_task_title'    => 'कार्याचे शीर्षक',
+        'lbl_filter_status' => 'स्थितीनुसार गाळा',
+        'opt_all_status'    => 'सर्व स्थिती',
+        'btn_search'        => 'शोधा',
+        'btn_clear'         => 'साफ करा',
+        'col_task_no'       => 'कार्य क्र.',
+        'col_title'         => 'कार्याचे शीर्षक',
+        'col_assigned'      => 'नियुक्त अधिकारी',
+        'col_status'        => 'स्थिती',
+        'col_priority'      => 'प्राधान्य',
+        'col_due'           => 'नियत तारीख',
+        'col_actions'       => 'कृती',
+        'btn_view_timeline' => 'टाइमलाइन पहा',
+        'lbl_task_details'  => 'कार्याचा तपशील',
+        'lbl_timeline'      => 'कार्य क्रियाकलाप टाइमलाइन',
+        'lbl_add_tracking'  => 'व्यक्तिचलित मागोवा नोंद जोडा',
+        'lbl_new_status'    => 'नवीन स्थिती',
+        'lbl_remarks'       => 'शेरे / नोंदी',
+        'lbl_updated_by'    => 'अद्यतनकर्ता',
+        'btn_save'          => 'नोंद जतन करा',
+        'btn_cancel'        => 'रद्द करा',
+        'no_tasks'          => 'आपल्या शोधाशी जुळणारे कोणतेही कार्य आढळले नाही.',
+        'no_timeline'       => 'अद्याप कोणत्याही क्रियाकलाप घटना नोंदवलेल्या नाहीत.',
+        'status_pending'    => 'प्रलंबित',
+        'status_in_progress'=> 'प्रगतीपथावर',
+        'status_completed'  => 'पूर्ण',
+        'status_rejected'   => 'नाकारलेले',
+        'status_on_hold'    => 'स्थगित',
+        'status_overdue'    => 'थकीत',
+        'status_escalated'  => 'वाढवलेले',
+        'status_assigned'   => 'नियुक्त',
+        'status_verified'   => 'सत्यापित',
+        'status_accepted'   => 'स्वीकृत',
+        'status_reassigned' => 'पुन्हा नियुक्त',
+        'priority_critical' => 'गंभीर',
+        'priority_high'     => 'उच्च',
+        'priority_medium'   => 'मध्यम',
+        'priority_low'      => 'कमी',
+        'lbl_assigned_to'   => 'नियुक्त अधिकारी',
+        'lbl_department'    => 'विभाग',
+        'lbl_created_by'    => 'तयार केले',
+        'lbl_due_date'      => 'नियत तारीख',
+        'lbl_created_on'    => 'तयार तारीख',
+        'lbl_documents'     => 'दस्तऐवज',
+    ]
+];
+$t = $translations[$lang];
+
+$pageTitle = $t['title'];
+$pageDesc = $lang === 'mr'
+    ? 'प्रशासक: अमरावती कनेक्ट प्लॅटफॉर्मवर कोणत्याही कार्याचा संपूर्ण प्रवास आणि सर्व क्रियाकलाप बदल मागोवा घ्या.'
+    : 'Admin: Track the complete journey and all activity changes of any task on the Amravati Connect platform.';
 $extraHead = <<<'EOT'
     <style>
         .glass-panel {
@@ -925,9 +1081,9 @@ include 'include/sidebar.php';
                 <i data-lucide="menu" class="w-5 h-5"></i>
             </button>
             <nav class="flex items-center text-sm gap-1.5">
-                <a href="dashboard.php?lang=<?= $lang ?>" class="text-slate-500 dark:text-slate-400 hover:text-navy-600 transition-colors">Dashboard</a>
+                <a href="dashboard.php?lang=<?= $lang ?>" class="text-slate-500 dark:text-slate-400 hover:text-navy-600 transition-colors"><?= $lang === 'mr' ? 'डॅशबोर्ड' : 'Dashboard' ?></a>
                 <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-400"></i>
-                <a href="task_tracking.php" class="text-slate-500 dark:text-slate-400 hover:text-navy-600 transition-colors">Task Tracking</a>
+                <a href="task_tracking.php?lang=<?= $lang ?>" class="text-slate-500 dark:text-slate-400 hover:text-navy-600 transition-colors"><?= htmlspecialchars($t['page_title']) ?></a>
                 <?php if ($task): ?>
                 <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-400"></i>
                 <span class="font-semibold text-slate-800 dark:text-white"><?= htmlspecialchars($task['task_no'] ?? ('#' . $task['task_id'])) ?></span>
@@ -935,9 +1091,14 @@ include 'include/sidebar.php';
             </nav>
         </div>
         <div class="flex items-center gap-3">
-            <button class="text-xs font-medium text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                <i data-lucide="languages" class="w-3.5 h-3.5 inline-block mr-1"></i> EN / MR
-            </button>
+            <?php
+            $langToggleParams = $_GET;
+            $langToggleParams['lang'] = ($lang === 'en' ? 'mr' : 'en');
+            $langToggleUrl = 'task_tracking.php?' . http_build_query($langToggleParams);
+            ?>
+            <a href="<?= htmlspecialchars($langToggleUrl) ?>" class="text-xs font-medium text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                <i data-lucide="languages" class="w-3.5 h-3.5 inline-block mr-1"></i> <?= $lang === 'en' ? 'मराठी (MR)' : 'English (EN)' ?>
+            </a>
             <button id="themeToggle" class="p-2 text-slate-500 dark:text-slate-400 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <i data-lucide="moon" class="w-4.5 h-4.5 dark:hidden"></i>
                 <i data-lucide="sun"  class="w-4.5 h-4.5 hidden dark:block"></i>
@@ -987,20 +1148,20 @@ include 'include/sidebar.php';
                     <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-navy-600 to-navy-500 flex items-center justify-center shadow-lg shadow-navy-500/25">
                         <i data-lucide="route" class="w-5 h-5 text-white"></i>
                     </div>
-                    <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Task Tracking</h1>
+                    <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight"><?= htmlspecialchars($t['page_title']) ?></h1>
                 </div>
                 <p class="text-sm text-slate-500 dark:text-slate-400 ml-[52px]">
-                    Admin: Search and track the complete journey &amp; all changes of any task.
+                    <?= htmlspecialchars($t['page_subtitle']) ?>
                 </p>
             </div>
             <div class="mt-4 md:mt-0 flex items-center gap-3">
-                <a href="create_task.php"
+                <a href="create_task.php?lang=<?= $lang ?>"
                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-navy-600 hover:bg-navy-700 rounded-xl transition-colors shadow-sm">
-                    <i data-lucide="plus" class="w-4 h-4"></i> Create Task
+                    <i data-lucide="plus" class="w-4 h-4"></i> <?= $lang === 'mr' ? 'कार्य तयार करा' : 'Create Task' ?>
                 </a>
                 <a href="dashboard.php?lang=<?= $lang ?>"
                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-colors">
-                    <i data-lucide="arrow-left" class="w-4 h-4"></i> Back
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i> <?= $lang === 'mr' ? 'मागे जा' : 'Back' ?>
                 </a>
             </div>
         </div>
@@ -1025,52 +1186,63 @@ include 'include/sidebar.php';
                     <i data-lucide="search" class="w-4 h-4 text-navy-600 dark:text-blue-400"></i>
                 </div>
                 <div>
-                    <h2 class="text-sm font-semibold text-slate-800 dark:text-white">Search &amp; Filter Tasks</h2>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">Find any task by Task ID (e.g. TASK_001) or Task Name</p>
+                    <h2 class="text-sm font-semibold text-slate-800 dark:text-white"><?= $lang === 'mr' ? 'कार्य शोधा आणि गाळा' : 'Search & Filter Tasks' ?></h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400"><?= $lang === 'mr' ? 'कार्य आयडी (उदा. TASK_001) किंवा कार्याचे नाव वापरून शोधा' : 'Find any task by Task ID (e.g. TASK_001) or Task Name' ?></p>
                 </div>
             </div>
             <div class="p-6">
                 <form method="GET" action="task_tracking.php" id="searchForm">
                     <div class="flex flex-col sm:flex-row gap-3">
                         <div class="sm:w-44">
-                            <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">Search By</label>
+                            <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5"><?= htmlspecialchars($t['lbl_search_type']) ?></label>
                             <select name="search_type"
                                     class="w-full px-3 py-2.5 text-sm border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-navy-500 transition-colors">
-                                <option value="all"        <?= $search_type === 'all'        ? 'selected' : '' ?>>Task ID or Name</option>
-                                <option value="task_no"    <?= $search_type === 'task_no'    ? 'selected' : '' ?>>Task ID</option>
-                                <option value="task_title" <?= $search_type === 'task_title' ? 'selected' : '' ?>>Task Name</option>
+                                <option value="all"        <?= $search_type === 'all'        ? 'selected' : '' ?>><?= htmlspecialchars($t['opt_all']) ?></option>
+                                <option value="task_no"    <?= $search_type === 'task_no'    ? 'selected' : '' ?>><?= htmlspecialchars($t['opt_task_no']) ?></option>
+                                <option value="task_title" <?= $search_type === 'task_title' ? 'selected' : '' ?>><?= htmlspecialchars($t['opt_task_title']) ?></option>
                             </select>
                         </div>
 
                         <div class="flex-1">
-                            <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">Search Query</label>
+                            <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5"><?= $lang === 'mr' ? 'शोध प्रश्न' : 'Search Query' ?></label>
                             <div class="relative">
                                 <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
                                 <input type="text" name="search" id="searchInput"
                                        value="<?= htmlspecialchars($search_query) ?>"
-                                       placeholder="Enter Task ID (TASK_001) or task name…"
+                                       placeholder="<?= htmlspecialchars($t['search_placeholder']) ?>"
                                        class="w-full pl-10 pr-4 py-2.5 text-sm border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-navy-500 transition-colors">
                             </div>
                         </div>
 
                         <div class="sm:w-44">
-                            <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">Filter by Status</label>
+                            <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5"><?= htmlspecialchars($t['lbl_filter_status']) ?></label>
                             <select name="filter_status"
                                     class="w-full px-3 py-2.5 text-sm border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-navy-500 transition-colors">
-                                <option value="">All Statuses</option>
-                                <?php foreach (['Pending','Assigned','In Progress','On Hold','Completed','Rejected','Overdue','Escalated'] as $st): ?>
-                                <option value="<?= $st ?>" <?= $filter_status === $st ? 'selected' : '' ?>><?= $st ?></option>
+                                <option value=""><?= htmlspecialchars($t['opt_all_status']) ?></option>
+                                <?php
+                                $statusMap = [
+                                    'Pending'    => $t['status_pending'],
+                                    'Assigned'   => $t['status_assigned'],
+                                    'In Progress'=> $t['status_in_progress'],
+                                    'On Hold'    => $t['status_on_hold'],
+                                    'Completed'  => $t['status_completed'],
+                                    'Rejected'   => $t['status_rejected'],
+                                    'Overdue'    => $t['status_overdue'],
+                                    'Escalated'  => $t['status_escalated'],
+                                ];
+                                foreach ($statusMap as $val => $label): ?>
+                                <option value="<?= $val ?>" <?= $filter_status === $val ? 'selected' : '' ?>><?= htmlspecialchars($label) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
 
                         <div class="flex items-end gap-2">
                             <button type="submit"
-                                    class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-navy-600 hover:bg-navy-700 rounded-xl shadow-sm transition-colors">
-                                <i data-lucide="search" class="w-4 h-4"></i> Search
+                                    class="btn-modern btn-primary inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white rounded-xl shadow-sm transition-colors">
+                                <i data-lucide="search" class="w-4 h-4"></i> <?= htmlspecialchars($t['btn_search']) ?>
                             </button>
                             <?php if ($search_query || $filter_status): ?>
-                            <a href="task_tracking.php"
+                            <a href="task_tracking.php?lang=<?= $lang ?>"
                                class="inline-flex items-center px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                                 <i data-lucide="x" class="w-4 h-4"></i>
                             </a>
@@ -1088,8 +1260,8 @@ include 'include/sidebar.php';
             <div class="w-14 h-14 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
                 <i data-lucide="search-x" class="w-7 h-7 text-slate-400"></i>
             </div>
-            <h3 class="text-base font-semibold text-slate-700 dark:text-slate-200 mb-1">No Tasks Found</h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400">No tasks matched your search or filter criteria. Try a different term.</p>
+            <h3 class="text-base font-semibold text-slate-700 dark:text-slate-200 mb-1"><?= $lang === 'mr' ? 'कोणतेही कार्य आढळले नाही' : 'No Tasks Found' ?></h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400"><?= htmlspecialchars($t['no_tasks']) ?></p>
         </div>
         <?php endif; ?>
 
@@ -1100,8 +1272,8 @@ include 'include/sidebar.php';
         <div class="glass-panel rounded-2xl shadow-official border border-slate-200/50 dark:border-slate-700/50 overflow-hidden mb-6 animate-in">
             <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
                 <div>
-                    <h2 class="text-sm font-semibold text-slate-800 dark:text-white">Search Results</h2>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5"><?= count($search_results) ?> task(s) found</p>
+                    <h2 class="text-sm font-semibold text-slate-800 dark:text-white"><?= $lang === 'mr' ? 'शोध निकाल' : 'Search Results' ?></h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5"><?= count($search_results) ?> <?= $lang === 'mr' ? 'कार्य(े) आढळली' : 'task(s) found' ?></p>
                 </div>
                 <span class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                     <?= count($search_results) ?> result<?= count($search_results) !== 1 ? 's' : '' ?>
@@ -1111,8 +1283,18 @@ include 'include/sidebar.php';
                 <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
                     <thead class="bg-slate-50 dark:bg-slate-900/50">
                         <tr>
-                            <?php foreach (['Task ID','Task Title','Assigned To','Due Date','Priority','Status','Action'] as $h): ?>
-                            <th class="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= $h ?></th>
+                            <?php
+                            $headers = [
+                                $t['col_task_no'],
+                                $t['col_title'],
+                                $t['col_assigned'],
+                                $t['col_due'],
+                                $t['col_priority'],
+                                $t['col_status'],
+                                $t['col_actions'],
+                            ];
+                            foreach ($headers as $h): ?>
+                            <th class="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($h) ?></th>
                             <?php endforeach; ?>
                         </tr>
                     </thead>

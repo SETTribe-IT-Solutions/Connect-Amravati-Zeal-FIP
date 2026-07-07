@@ -1036,71 +1036,7 @@ include 'include/sidebar.php';
                            dark:hover:text-slate-200 focus:outline-none block lg:hidden">
                 <i data-lucide="menu" class="w-6 h-6"></i>
             </button>
-            <!-- Search -->
-            <div class="w-32 sm:max-w-md sm:w-full relative" id="searchWrapper">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
-                    <i data-lucide="search" class="h-4 w-4 text-slate-400" id="searchIcon"></i>
-                    <svg id="searchSpinner" class="hidden h-4 w-4 text-navy-500 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                    </svg>
-                </div>
-                <input id="globalSearch" type="text" autocomplete="off"
-                       placeholder="<?= htmlspecialchars($t['search_placeholder']) ?>"
-                       class="block w-full pl-8 sm:pl-10 pr-8 py-2 border border-slate-300
-                              dark:border-slate-700 rounded-md leading-5
-                              bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100
-                              placeholder-slate-500 focus:outline-none
-                              focus:ring-2 focus:ring-navy-500 focus:border-navy-500
-                              text-xs sm:text-sm transition-colors">
-                <!-- Clear button -->
-                <button id="searchClearBtn" class="hidden absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 focus:outline-none" title="Clear search">
-                    <i data-lucide="x" class="h-3.5 w-3.5"></i>
-                </button>
-
-                <!-- Live Search Dropdown -->
-                <div id="searchDropdown"
-                     class="hidden absolute left-0 top-full mt-1.5 w-full min-w-[320px] bg-white dark:bg-slate-800
-                            border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-50
-                            overflow-hidden" style="max-height:440px;overflow-y:auto;">
-
-                    <!-- Section: Tasks -->
-                    <div id="sdTasks" class="hidden">
-                        <div class="px-4 pt-3 pb-1 flex items-center text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                            <i data-lucide="check-square" class="w-3 h-3 mr-1.5"></i> Tasks
-                        </div>
-                        <ul id="sdTaskList"></ul>
-                    </div>
-
-                    <!-- Section: Officers -->
-                    <div id="sdOfficers" class="hidden">
-                        <div class="px-4 pt-3 pb-1 flex items-center text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                            <i data-lucide="users" class="w-3 h-3 mr-1.5"></i> Officers
-                        </div>
-                        <ul id="sdOfficerList"></ul>
-                    </div>
-
-                    <!-- Section: Circulars -->
-                    <div id="sdCirculars" class="hidden">
-                        <div class="px-4 pt-3 pb-1 flex items-center text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                            <i data-lucide="megaphone" class="w-3 h-3 mr-1.5"></i> Circulars
-                        </div>
-                        <ul id="sdCircularList"></ul>
-                    </div>
-
-                    <!-- Empty state -->
-                    <div id="sdEmpty" class="hidden py-8 text-center">
-                        <i data-lucide="search-x" class="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600 mb-2"></i>
-                        <p class="text-sm text-slate-400 dark:text-slate-500">No results found</p>
-                    </div>
-
-                    <!-- Footer hint -->
-                    <div class="border-t border-slate-100 dark:border-slate-700 px-4 py-2 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50">
-                        <span class="text-[10px] text-slate-400">Press <kbd class="px-1 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[9px] font-mono">↑↓</kbd> to navigate &nbsp; <kbd class="px-1 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[9px] font-mono">Enter</kbd> to open &nbsp; <kbd class="px-1 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[9px] font-mono">Esc</kbd> to close</span>
-                        <span class="text-[10px] text-slate-400" id="sdResultCount"></span>
-                    </div>
-                </div>
-            </div>
+            <!-- Search removed to use top banner search -->
         </div>
 
         <div class="flex items-center space-x-2 sm:space-x-4">
@@ -1202,7 +1138,7 @@ include 'include/sidebar.php';
                     <i data-lucide="shield" class="w-3.5 h-3.5"></i>
                     <?= htmlspecialchars($t['badge_level']) ?> <?= $level ?> &middot; <?= htmlspecialchars($roleLabel) ?>
                 </span>
-                <button onclick="exportDashboardPDF()" class="btn-modern bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm">
+                <button onclick="exportDashboardPDF()" class="btn-modern bg-gradient-to-r from-navy-600 to-blue-600 hover:from-navy-700 hover:to-blue-700 text-white shadow-md hover:shadow-glow-navy border-transparent transition-all duration-200">
                     <i data-lucide="download" class="w-4 h-4 mr-2"></i><?= htmlspecialchars($t['btn_export']) ?>
                 </button>
                 <?php if ($level <= 2): ?>
@@ -2318,249 +2254,29 @@ function updateTaskPaginationControls(totalPages) {
     }
 }
 
+let _lastSearchHadNoRows = false;
+
 function filterRows() {
     updateTaskTablePage(1);
+    // Track whether the current search produced zero task-table rows
+    const searchInput = document.getElementById('globalSearch');
+    const searchVal = searchInput ? searchInput.value.trim() : '';
+    if (searchVal.length >= 2) {
+        const rows = Array.from(document.querySelectorAll('#taskTable .task-row'));
+        const filterSelect = document.getElementById('statusFilter');
+        const selectedStatus = filterSelect ? filterSelect.value : '';
+        const activeRows = rows.filter(r => {
+            const statusMatch = (!selectedStatus || r.dataset.status === selectedStatus);
+            const textMatch = r.textContent.toLowerCase().includes(searchVal.toLowerCase());
+            return statusMatch && textMatch;
+        });
+        _lastSearchHadNoRows = (activeRows.length === 0 && rows.length > 0);
+    } else {
+        _lastSearchHadNoRows = false;
+    }
 }
 
-/* ══════════════════════════════════════════════════════════
-   ACTIVE GLOBAL SEARCH  —  Live AJAX across Tasks, Officers
-   & Circulars/Announcements
-══════════════════════════════════════════════════════════ */
-(function () {
-    const input       = document.getElementById('globalSearch');
-    const dropdown    = document.getElementById('searchDropdown');
-    const spinner     = document.getElementById('searchSpinner');
-    const searchIcon  = document.getElementById('searchIcon');
-    const clearBtn    = document.getElementById('searchClearBtn');
-    const sdEmpty     = document.getElementById('sdEmpty');
-    const sdResultCnt = document.getElementById('sdResultCount');
-
-    if (!input) return;
-
-    let debounceTimer = null;
-    let currentFocusIdx = -1;
-    let allItems = [];
-
-    /* ── Status badge colours ───────────────────────── */
-    function badgeClass(badge, type) {
-        if (type === 'task') {
-            const map = {
-                'Completed':   'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-                'Pending':     'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-                'In Progress': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-                'Overdue':     'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-                'Escalated':   'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-            };
-            return map[badge] || 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300';
-        }
-        if (type === 'circular') {
-            const map = {
-                'High':   'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-                'Medium': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-                'Low':    'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300',
-            };
-            return map[badge] || 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300';
-        }
-        return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400';
-    }
-
-    /* ── Highlight matching text ────────────────────── */
-    function highlight(text, q) {
-        if (!q) return escHtml(text);
-        const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        return escHtml(text).replace(new RegExp('(' + escaped + ')', 'gi'),
-            '<mark class="bg-yellow-200 dark:bg-yellow-800/60 rounded px-0.5">$1</mark>');
-    }
-    function escHtml(s) {
-        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
-
-    /* ── Build one result row ───────────────────────── */
-    function buildItem(r, q) {
-        const li = document.createElement('li');
-        li.className = 'search-result-item group flex items-start gap-3 px-4 py-2.5 cursor-pointer ' +
-                       'hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors outline-none';
-        li.setAttribute('tabindex', '-1');
-        li.dataset.url = r.url;
-
-        const iconMap = { task: 'check-square', officer: 'user', circular: 'megaphone' };
-        const icon = iconMap[r.type] || 'search';
-
-        const typeColorMap = {
-            task:    'bg-navy-50 dark:bg-navy-900/40 text-navy-600 dark:text-blue-400',
-            officer: 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400',
-            circular:'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400',
-        };
-
-        li.innerHTML = `
-            <span class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${typeColorMap[r.type] || ''}">
-                <i data-lucide="${icon}" class="w-4 h-4"></i>
-            </span>
-            <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-slate-900 dark:text-white truncate">${highlight(r.title, q)}</p>
-                <p class="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">${escHtml(r.subtitle)}</p>
-            </div>
-            ${r.badge ? `<span class="flex-shrink-0 self-center text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${badgeClass(r.badge, r.type)}">${escHtml(r.badge)}</span>` : ''}
-        `;
-
-        li.addEventListener('click', () => {
-            if (r.type === 'officer' && r.details) {
-                closeDropdown();
-                openOfficerDetailsModal(r.details);
-            } else if (r.type === 'circular' && r.details) {
-                closeDropdown();
-                openCircularDetailsModal(r.details);
-            } else {
-                navigate(r.url);
-            }
-        });
-        li.addEventListener('keydown', handleItemKeydown);
-        return li;
-    }
-
-    /* ── Render all results ─────────────────────────── */
-    function renderResults(results, q) {
-        const tasks    = results.filter(r => r.type === 'task');
-        const officers = results.filter(r => r.type === 'officer');
-        const circs    = results.filter(r => r.type === 'circular');
-
-        const sdTasks    = document.getElementById('sdTasks');
-        const sdOfficers = document.getElementById('sdOfficers');
-        const sdCircs    = document.getElementById('sdCirculars');
-        const listT      = document.getElementById('sdTaskList');
-        const listO      = document.getElementById('sdOfficerList');
-        const listC      = document.getElementById('sdCircularList');
-
-        listT.innerHTML = '';
-        listO.innerHTML = '';
-        listC.innerHTML = '';
-        allItems = [];
-
-        if (tasks.length) {
-            sdTasks.classList.remove('hidden');
-            tasks.forEach(r => { const li = buildItem(r, q); listT.appendChild(li); allItems.push(li); });
-        } else { sdTasks.classList.add('hidden'); }
-
-        if (officers.length) {
-            sdOfficers.classList.remove('hidden');
-            officers.forEach(r => { const li = buildItem(r, q); listO.appendChild(li); allItems.push(li); });
-        } else { sdOfficers.classList.add('hidden'); }
-
-        if (circs.length) {
-            sdCircs.classList.remove('hidden');
-            circs.forEach(r => { const li = buildItem(r, q); listC.appendChild(li); allItems.push(li); });
-        } else { sdCircs.classList.add('hidden'); }
-
-        const total = results.length;
-        sdEmpty.classList.toggle('hidden', total > 0);
-        sdResultCnt.textContent = total > 0 ? total + ' result' + (total !== 1 ? 's' : '') : '';
-
-        lucide.createIcons(); // re-render lucide icons in dropdown
-        currentFocusIdx = -1;
-    }
-
-    /* ── Navigate to URL ────────────────────────────── */
-    function navigate(url) {
-        if (url) window.location.href = url;
-    }
-
-    /* ── Open / close dropdown ──────────────────────── */
-    function openDropdown() {
-        dropdown.classList.remove('hidden');
-    }
-    function closeDropdown() {
-        dropdown.classList.add('hidden');
-        currentFocusIdx = -1;
-    }
-
-    /* ── Show/hide spinner ──────────────────────────── */
-    function setLoading(on) {
-        spinner.classList.toggle('hidden', !on);
-        searchIcon.classList.toggle('hidden', on);
-    }
-
-    /* ── Keyboard navigation inside dropdown ────────── */
-    function handleItemKeydown(e) {
-        if (e.key === 'Enter') { e.preventDefault(); navigate(e.currentTarget.dataset.url); }
-        if (e.key === 'ArrowDown') { e.preventDefault(); focusItem(currentFocusIdx + 1); }
-        if (e.key === 'ArrowUp')   { e.preventDefault(); focusItem(currentFocusIdx - 1); }
-        if (e.key === 'Escape')    { e.preventDefault(); closeDropdown(); input.focus(); }
-    }
-
-    function focusItem(idx) {
-        if (!allItems.length) return;
-        currentFocusIdx = Math.max(0, Math.min(idx, allItems.length - 1));
-        allItems[currentFocusIdx].focus();
-    }
-
-    /* ── Fetch from API ─────────────────────────────── */
-    function doSearch(q) {
-        if (q.length < 2) { closeDropdown(); setLoading(false); return; }
-        setLoading(true);
-        fetch('api/search.php?q=' + encodeURIComponent(q))
-            .then(r => r.json())
-            .then(data => {
-                setLoading(false);
-                if (data.status === 'ok') {
-                    renderResults(data.results, q);
-                    openDropdown();
-                }
-            })
-            .catch(() => { setLoading(false); });
-    }
-
-    /* ── Wire up input events ───────────────────────── */
-    input.addEventListener('input', function () {
-        const q = this.value.trim();
-        clearBtn.classList.toggle('hidden', q.length === 0);
-
-        // Also filter table rows inline (existing behaviour)
-        filterRows();
-
-        clearTimeout(debounceTimer);
-        if (q.length < 2) { closeDropdown(); setLoading(false); return; }
-        debounceTimer = setTimeout(() => doSearch(q), 280);
-    });
-
-    input.addEventListener('keydown', function (e) {
-        if (e.key === 'ArrowDown' && !dropdown.classList.contains('hidden')) {
-            e.preventDefault(); focusItem(0);
-        }
-        if (e.key === 'Escape') { closeDropdown(); }
-        if (e.key === 'Enter' && !dropdown.classList.contains('hidden')) {
-            e.preventDefault();
-            if (allItems.length) allItems[0].click();
-        }
-    });
-
-    /* ── Clear button ───────────────────────────────── */
-    clearBtn.addEventListener('click', function () {
-        input.value = '';
-        clearBtn.classList.add('hidden');
-        closeDropdown();
-        filterRows();
-        input.focus();
-    });
-
-    /* ── Close on outside click ─────────────────────── */
-    document.addEventListener('click', function (e) {
-        if (!document.getElementById('searchWrapper').contains(e.target)) {
-            closeDropdown();
-        }
-        const offModal = document.getElementById('officerDetailsModal');
-        if (offModal && !offModal.classList.contains('hidden') && e.target === offModal) {
-            closeOfficerDetailsModal();
-        }
-        const circModal = document.getElementById('circularDetailsModal');
-        if (circModal && !circModal.classList.contains('hidden') && e.target === circModal) {
-            closeCircularDetailsModal();
-        }
-    });
-
-    /* ── Keyboard shortcut '/' to focus ─────────────── */
-    // (existing listener at line ~2069 already handles this)
-
-})();
+// Local search handler removed. The global search script in footer.php handles dashboard search.
 
 /* ════════════════════════════════════════════════════════════
    APEXCHARTS  —  Data pre-serialized from PHP

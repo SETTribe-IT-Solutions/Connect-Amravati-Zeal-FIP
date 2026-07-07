@@ -286,7 +286,7 @@ include 'include/sidebar.php';
                         <label class="block text-sm font-semibold"><?= htmlspecialchars($t['label_data']) ?></label>
                         <span class="text-xs text-slate-400"><?= htmlspecialchars($t['label_data_desc']) ?></span>
                     </div>
-                    <button type="button" onclick="Swal.fire({icon: 'info', title: '<?= htmlspecialchars($t['btn_export_data']) ?>', text: 'Your data archive is being prepared. We will notify you when it is ready to download.', confirmButtonColor: '#0069cd'})" class="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors">
+                    <button type="button" onclick="Swal.fire({icon: 'info', title: '<?= htmlspecialchars($t['btn_export_data']) ?>', text: 'Your data archive is being prepared. We will notify you when it is ready to download.', confirmButtonColor: '#003f7b'})" class="px-4 py-2 bg-navy-600 hover:bg-navy-700 text-white dark:bg-navy-700 dark:hover:bg-navy-800 rounded-lg text-sm font-semibold transition-colors">
                         <i data-lucide="download" class="w-4 h-4 inline-block mr-1"></i><?= htmlspecialchars($t['btn_export_data']) ?>
                     </button>
                 </div>
