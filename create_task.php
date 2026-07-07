@@ -2215,9 +2215,6 @@ include 'include/sidebar.php';
         if (alloc === 'by_role' && !document.getElementById('assigned_role_id').value) {
             showToast(jsTranslations.toast_role_req, 'warning'); e.preventDefault(); return;
         }
-        if (alloc === 'by_village' && !document.getElementById('assigned_village_id').value) {
-            showToast(jsTranslations.toast_village_req, 'warning'); e.preventDefault(); return;
-        }
 
         const btn  = document.getElementById('submitBtn');
         const text = document.getElementById('submitBtnText');
@@ -2248,11 +2245,6 @@ include 'include/sidebar.php';
         clearFile();
         selectPriority('Medium');
         setAllocationUI('by_name');
-        // Reset all selects in village section
-        if (talukaSelect)  talukaSelect.value  = '';
-        if (villageSelect) villageSelect.value = '';
-        if (villagePanel)  villagePanel.classList.add('hidden');
-        if (rolePanel)     rolePanel.classList.add('hidden');
         document.getElementById('prevTitle').textContent  = '—';
         document.getElementById('prevDue').textContent    = '—';
         const charTemplate = '<?= $t['char_counter'] ?? "%d / 255 characters" ?>';
