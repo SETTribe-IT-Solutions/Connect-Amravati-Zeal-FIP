@@ -216,15 +216,61 @@ $cleanQueries = [
       `is_delivered` TINYINT(1) DEFAULT 0,
       `delivered_at` DATETIME NULL,
       FOREIGN KEY (`message_id`) REFERENCES `shared_messages`(`message_id`) ON DELETE CASCADE
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+    "CREATE TABLE IF NOT EXISTS `user_registration_requests` (
+      `id` INT AUTO_INCREMENT PRIMARY KEY,
+      `employee_code` VARCHAR(50) NOT NULL UNIQUE,
+      `first_name` VARCHAR(100) NOT NULL,
+      `middle_name` VARCHAR(100) NULL,
+      `last_name` VARCHAR(100) NOT NULL,
+      `applicant_name` VARCHAR(255) NOT NULL,
+      `gender` VARCHAR(20) NOT NULL,
+      `dob` DATE NOT NULL,
+      `mobile` VARCHAR(20) NOT NULL,
+      `alternate_mobile` VARCHAR(20) NULL,
+      `email` VARCHAR(100) NOT NULL UNIQUE,
+      `aadhaar` VARCHAR(50) NULL,
+      `profile_photo` VARCHAR(255) NULL,
+      `department_id` INT NULL,
+      `role_id` INT NULL,
+      `taluka_id` INT NULL,
+      `village_id` INT NULL,
+      `joining_date` DATE NULL,
+      `reporting_office` VARCHAR(255) NULL,
+      `username` VARCHAR(100) NOT NULL UNIQUE,
+      `password_hash` VARCHAR(255) NOT NULL,
+      `current_address` TEXT NULL,
+      `permanent_address` TEXT NULL,
+      `state` VARCHAR(100) DEFAULT 'Maharashtra',
+      `district` VARCHAR(100) DEFAULT 'Amravati',
+      `taluka_name` VARCHAR(100) NULL,
+      `village_or_city` VARCHAR(100) NULL,
+      `pincode` VARCHAR(10) NULL,
+      `verify_status` VARCHAR(50) DEFAULT 'Unverified',
+      `request_status` ENUM('Pending', 'Approved', 'Rejected') DEFAULT 'Pending',
+      `rejection_reason` TEXT NULL,
+      `registration_source` VARCHAR(50) DEFAULT 'Self Registration',
+      `submitted_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      `approved_by` INT NULL,
+      `approved_at` DATETIME NULL,
+      `rejected_by` INT NULL,
+      `rejected_at` DATETIME NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+    "ALTER TABLE `users` ADD COLUMN `approved_by` INT NULL DEFAULT NULL",
+    "ALTER TABLE `users` ADD COLUMN `approved_at` DATETIME NULL DEFAULT NULL",
+    "ALTER TABLE `notifications` ADD COLUMN `redirect_url` VARCHAR(255) NULL DEFAULT NULL"
 ];
 
 foreach ($cleanQueries as $index => $sql) {
     echo "Executing query #$index...\n";
-    if ($conn->query($sql)) {
-        echo " -> Success!\n";
-    } else {
-        echo " -> Error: " . $conn->error . "\n";
+    try {
+        if ($conn->query($sql)) {
+            echo " -> Success!\n";
+        } else {
+            echo " -> Error: " . $conn->error . "\n";
+        }
+    } catch (Exception $e) {
+        echo " -> Error: " . $e->getMessage() . "\n";
     }
     echo "-------------------------------------\n";
 }

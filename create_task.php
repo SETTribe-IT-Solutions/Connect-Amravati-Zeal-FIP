@@ -475,56 +475,101 @@ function createTaskNotification(
 // ═══════════════════════════════════════════════════════════════════
 // AJAX: Return users for a given role_id (called by JS fetch)
 // ═══════════════════════════════════════════════════════════════════
-if (isset($_GET['ajax']) && $_GET['ajax'] === 'role_users' && isset($_GET['role_id'])) {
+// AJAX: Return users for a given list of role_ids
+if (isset($_GET['ajax']) && $_GET['ajax'] === 'role_users' && (isset($_GET['role_id']) || isset($_GET['role_ids']))) {
     header('Content-Type: application/json');
     if (!$conn) {
         echo json_encode(['users' => [], 'count' => 0, 'error' => 'Database connection unavailable']);
         exit;
     }
-    $role_id = (int)$_GET['role_id'];
-    $res = $conn->query(
-        "SELECT u.user_id, u.full_name, u.designation, u.department_id
-           FROM users u
-           JOIN roles r ON u.role_id = r.role_id
-          WHERE u.role_id = $role_id AND u.status = 'Active' AND r.role_level >= $user_level
-          ORDER BY u.full_name"
-    );
+    $role_ids_str = $_GET['role_ids'] ?? $_GET['role_id'];
+    $role_ids = array_filter(array_map('intval', explode(',', $role_ids_str)));
+    
     $users_list = [];
-    if ($res) {
-        while ($row = $res->fetch_assoc()) {
-            $users_list[] = [
-                'id'          => (int)$row['user_id'],
-                'full_name'   => $row['full_name'],
-                'designation' => $row['designation'] ?? '',
-            ];
+    if (!empty($role_ids)) {
+        $ids_in = implode(',', $role_ids);
+        $res = $conn->query(
+            "SELECT u.user_id, u.full_name, u.designation, u.department_id
+               FROM users u
+               JOIN roles r ON u.role_id = r.role_id
+              WHERE u.role_id IN ($ids_in) AND u.status = 'Active' AND r.role_level >= $user_level
+              ORDER BY u.full_name"
+        );
+        if ($res) {
+            while ($row = $res->fetch_assoc()) {
+                $users_list[] = [
+                    'id'          => (int)$row['user_id'],
+                    'full_name'   => $row['full_name'],
+                    'designation' => $row['designation'] ?? '',
+                ];
+            }
         }
     }
     echo json_encode(['users' => $users_list, 'count' => count($users_list)]);
     exit;
 }
 
-if (isset($_GET['ajax']) && $_GET['ajax'] === 'village_users' && isset($_GET['village_id'])) {
+// AJAX: Return users for a given list of taluka_ids
+if (isset($_GET['ajax']) && $_GET['ajax'] === 'taluka_users' && isset($_GET['taluka_ids'])) {
     header('Content-Type: application/json');
     if (!$conn) {
         echo json_encode(['users' => [], 'count' => 0, 'error' => 'Database connection unavailable']);
         exit;
     }
-    $village_id = (int)$_GET['village_id'];
-    $res = $conn->query(
-        "SELECT u.user_id, u.full_name, u.designation, u.department_id
-           FROM users u
-           JOIN roles r ON u.role_id = r.role_id
-          WHERE u.village_id = $village_id AND u.status = 'Active' AND r.role_level >= $user_level
-          ORDER BY u.full_name"
-    );
+    $taluka_ids = array_filter(array_map('intval', explode(',', $_GET['taluka_ids'])));
+    
     $users_list = [];
-    if ($res) {
-        while ($row = $res->fetch_assoc()) {
-            $users_list[] = [
-                'id'          => (int)$row['user_id'],
-                'full_name'   => $row['full_name'],
-                'designation' => $row['designation'] ?? '',
-            ];
+    if (!empty($taluka_ids)) {
+        $ids_in = implode(',', $taluka_ids);
+        $res = $conn->query(
+            "SELECT u.user_id, u.full_name, u.designation, u.department_id
+               FROM users u
+               JOIN roles r ON u.role_id = r.role_id
+              WHERE u.taluka_id IN ($ids_in) AND u.status = 'Active' AND r.role_level >= $user_level
+              ORDER BY u.full_name"
+        );
+        if ($res) {
+            while ($row = $res->fetch_assoc()) {
+                $users_list[] = [
+                    'id'          => (int)$row['user_id'],
+                    'full_name'   => $row['full_name'],
+                    'designation' => $row['designation'] ?? '',
+                ];
+            }
+        }
+    }
+    echo json_encode(['users' => $users_list, 'count' => count($users_list)]);
+    exit;
+}
+
+// AJAX: Return users for a given list of village_ids
+if (isset($_GET['ajax']) && $_GET['ajax'] === 'village_users' && (isset($_GET['village_id']) || isset($_GET['village_ids']))) {
+    header('Content-Type: application/json');
+    if (!$conn) {
+        echo json_encode(['users' => [], 'count' => 0, 'error' => 'Database connection unavailable']);
+        exit;
+    }
+    $village_ids_str = $_GET['village_ids'] ?? $_GET['village_id'];
+    $village_ids = array_filter(array_map('intval', explode(',', $village_ids_str)));
+    
+    $users_list = [];
+    if (!empty($village_ids)) {
+        $ids_in = implode(',', $village_ids);
+        $res = $conn->query(
+            "SELECT u.user_id, u.full_name, u.designation, u.department_id
+               FROM users u
+               JOIN roles r ON u.role_id = r.role_id
+              WHERE u.village_id IN ($ids_in) AND u.status = 'Active' AND r.role_level >= $user_level
+              ORDER BY u.full_name"
+        );
+        if ($res) {
+            while ($row = $res->fetch_assoc()) {
+                $users_list[] = [
+                    'id'          => (int)$row['user_id'],
+                    'full_name'   => $row['full_name'],
+                    'designation' => $row['designation'] ?? '',
+                ];
+            }
         }
     }
     echo json_encode(['users' => $users_list, 'count' => count($users_list)]);
@@ -635,7 +680,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-        // ─────────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────
     // Build a list of user allocation targets to iterate through
     // ─────────────────────────────────────────────────────────────────
     $targets_to_create = [];
@@ -648,13 +693,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'type'    => 'by_name'
             ];
         }
-    } else {
-        // For by_role or by_village, we create a single master task row first
-        $targets_to_create[] = [
-            'user_id' => null,
-            'role_id' => $assigned_role_id,
-            'type'    => $allocation_type
-        ];
+    } elseif ($allocation_type === 'by_role' && !empty($_POST['assigned_role_ids'])) {
+        foreach ($_POST['assigned_role_ids'] as $rid) {
+            $val = (int)$rid;
+            if ($val > 0) {
+                $targets_to_create[] = [
+                    'user_id' => null,
+                    'role_id' => $val,
+                    'type'    => 'by_role'
+                ];
+            }
+        }
+    } elseif ($allocation_type === 'by_taluka' && !empty($_POST['assigned_taluka_ids'])) {
+        foreach ($_POST['assigned_taluka_ids'] as $tid) {
+            $val = (int)$tid;
+            if ($val > 0) {
+                $targets_to_create[] = [
+                    'user_id'   => null,
+                    'role_id'   => null,
+                    'taluka_id' => $val,
+                    'type'      => 'by_taluka'
+                ];
+            }
+        }
+    } elseif ($allocation_type === 'by_village' && !empty($_POST['assigned_village_ids'])) {
+        foreach ($_POST['assigned_village_ids'] as $vid) {
+            $val = (int)$vid;
+            if ($val > 0) {
+                $targets_to_create[] = [
+                    'user_id'    => null,
+                    'role_id'    => null,
+                    'village_id' => $val,
+                    'type'       => 'by_village'
+                ];
+            }
+        }
+    }
+
+    if (empty($targets_to_create) && empty($error_msg)) {
+        $error_msg = $lang === 'mr' ? 'कृपया कार्य नियुक्त करण्यासाठी किमान एक लक्ष्य निवडा.' : 'Please select at least one assignment target.';
     }
 
     if (empty($error_msg)) {
@@ -663,13 +740,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         foreach ($targets_to_create as $tgt_item) {
             $curr_user_id = $tgt_item['user_id'];
             $curr_role_id = $tgt_item['role_id'];
+            $curr_taluka_id = $tgt_item['taluka_id'] ?? null;
+            $curr_village_id = $tgt_item['village_id'] ?? null;
             $curr_type    = $tgt_item['type'];
             
             $task_district_id = null;
-            $task_taluka_id   = null;
-            $task_village_id  = null;
+            $task_taluka_id   = $curr_taluka_id;
+            $task_village_id  = $curr_village_id;
             $curr_dept_id     = $department_id;
-            $curr_assigned_role_id = $curr_role_id ?: $assigned_role_id;
+            $curr_assigned_role_id = $curr_role_id;
             
             if ($curr_type === 'by_name' && $curr_user_id) {
                 $usr_res = $conn->query(
@@ -684,6 +763,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $task_district_id      = !empty($usr_data['district_id'])   ? (int)$usr_data['district_id']   : null;
                     $task_taluka_id        = !empty($usr_data['taluka_id'])     ? (int)$usr_data['taluka_id']     : null;
                     $task_village_id       = !empty($usr_data['village_id'])    ? (int)$usr_data['village_id']    : null;
+                }
+            }
+
+            if ($curr_type === 'by_village' && $curr_village_id) {
+                $vil_res = $conn->query("SELECT taluka_id FROM villages WHERE village_id = $curr_village_id LIMIT 1");
+                if ($vil_res && $vil_data = $vil_res->fetch_assoc()) {
+                    $task_taluka_id = (int)$vil_data['taluka_id'];
                 }
             }
             
@@ -794,38 +880,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $created_by
                         );
                     }
-                } elseif ($curr_type === 'by_village') {
-                    // Village-wise: assign to all eligible employees in the selected village
-                    $assigned_village_id = !empty($_POST['assigned_village_id']) ? (int)$_POST['assigned_village_id'] : 0;
-                    if ($assigned_village_id > 0) {
-                        $village_users = $conn->query(
-                            "SELECT u.user_id, u.department_id, u.district_id, u.taluka_id, u.village_id
-                               FROM users u
-                               JOIN roles r ON u.role_id = r.role_id
-                              WHERE u.village_id = $assigned_village_id AND u.status = 'Active' AND r.role_level >= $user_level"
-                        );
-                        if ($village_users && $village_users->num_rows > 0) {
-                            while ($vu = $village_users->fetch_assoc()) {
-                                $vuid = (int)$vu['user_id'];
-                                $conn->query(
-                                    "INSERT INTO task_assignments
-                                         (task_id, assigned_from_user, assigned_to_user, assigned_to_role, assigned_date, status)
-                                     VALUES ($new_task_id, $created_by, $vuid, NULL, NOW(), 'Pending')"
+                } elseif ($curr_type === 'by_taluka' && $task_taluka_id) {
+                    // Taluka-wise assignment
+                    $taluka_users = $conn->query(
+                        "SELECT u.user_id, u.department_id, u.district_id, u.taluka_id, u.village_id
+                           FROM users u
+                           JOIN roles r ON u.role_id = r.role_id
+                          WHERE u.taluka_id = $task_taluka_id AND u.status = 'Active' AND r.role_level >= $user_level"
+                    );
+                    if ($taluka_users && $taluka_users->num_rows > 0) {
+                        while ($tu = $taluka_users->fetch_assoc()) {
+                            $tuid = (int)$tu['user_id'];
+                            $conn->query(
+                                "INSERT INTO task_assignments
+                                     (task_id, assigned_from_user, assigned_to_user, assigned_to_role, assigned_date, status)
+                                 VALUES ($new_task_id, $created_by, $tuid, NULL, NOW(), 'Pending')"
+                            );
+                            if ($conn->affected_rows > 0) {
+                                $assigned_count++;
+                                createTaskNotification(
+                                    $conn,
+                                    $new_task_id,
+                                    $task_title,
+                                    $due_date,
+                                    $tuid,
+                                    $created_by
                                 );
-                                if ($conn->affected_rows > 0) {
-                                    $assigned_count++;
-                                    createTaskNotification(
-                                        $conn,
-                                        $new_task_id,
-                                        $task_title,
-                                        $due_date,
-                                        $vuid,
-                                        $created_by
-                                    );
-                                }
                             }
-                            // Store village on the task row
-                            $conn->query("UPDATE tasks SET village_id = $assigned_village_id WHERE task_id = $new_task_id");
+                        }
+                    }
+                } elseif ($curr_type === 'by_village' && $curr_village_id) {
+                    // Village-wise: assign to all eligible employees in the selected village
+                    $village_users = $conn->query(
+                        "SELECT u.user_id, u.department_id, u.district_id, u.taluka_id, u.village_id
+                           FROM users u
+                           JOIN roles r ON u.role_id = r.role_id
+                          WHERE u.village_id = $curr_village_id AND u.status = 'Active' AND r.role_level >= $user_level"
+                    );
+                    if ($village_users && $village_users->num_rows > 0) {
+                        while ($vu = $village_users->fetch_assoc()) {
+                            $vuid = (int)$vu['user_id'];
+                            $conn->query(
+                                "INSERT INTO task_assignments
+                                     (task_id, assigned_from_user, assigned_to_user, assigned_to_role, assigned_date, status)
+                                 VALUES ($new_task_id, $created_by, $vuid, NULL, NOW(), 'Pending')"
+                            );
+                            if ($conn->affected_rows > 0) {
+                                $assigned_count++;
+                                createTaskNotification(
+                                    $conn,
+                                    $new_task_id,
+                                    $task_title,
+                                    $due_date,
+                                    $vuid,
+                                    $created_by
+                                );
+                            }
                         }
                     }
                 }
@@ -1339,7 +1449,7 @@ include 'include/sidebar.php';
                                 <label class="form-label">
                                     <?= htmlspecialchars($t['lbl_alloc_type'] ?? 'Allocation Type') ?> <span class="text-red-500">*</span>
                                 </label>
-                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3" id="allocationTypeGroup">
+                                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3" id="allocationTypeGroup">
                                     <!-- By Name -->
                                     <label class="allocation-card cursor-pointer" id="card-byname">
                                         <input type="radio" name="allocation_type" value="by_name"
@@ -1370,6 +1480,21 @@ include 'include/sidebar.php';
                                             </div>
                                         </div>
                                     </label>
+                                    <!-- By Taluka -->
+                                    <label class="allocation-card cursor-pointer" id="card-bytaluka">
+                                        <input type="radio" name="allocation_type" value="by_taluka"
+                                               id="alloc_by_taluka" class="sr-only"
+                                               <?= (($_POST['allocation_type'] ?? '') === 'by_taluka') ? 'checked' : '' ?>>
+                                        <div class="flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-600 hover:border-sky-400 bg-white dark:bg-slate-800 transition-all" id="box-bytaluka">
+                                            <div class="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center flex-shrink-0">
+                                                <i data-lucide="map" class="w-4 h-4 text-slate-500 dark:text-slate-400"></i>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-semibold text-slate-700 dark:text-white">By Taluka</p>
+                                                <p class="text-xs text-slate-500 dark:text-slate-400">Assign all in a Taluka</p>
+                                            </div>
+                                        </div>
+                                    </label>
                                     <!-- By Village -->
                                     <label class="allocation-card cursor-pointer" id="card-byvillage">
                                         <input type="radio" name="allocation_type" value="by_village"
@@ -1388,7 +1513,7 @@ include 'include/sidebar.php';
                                 </div>
                             </div>
 
-                            <!-- By Name: Employee Dropdown -->
+                            <!-- By Name: Employee Checkbox List -->
                             <div id="byNameSection" class="space-y-4 transition-all">
                                 <div>
                                     <label class="form-label mb-2 block">
@@ -1416,127 +1541,33 @@ include 'include/sidebar.php';
                                 </div>
                             </div>
 
-                            <!-- By Village: Taluka → Village cascade -->
-                            <div id="byVillageSection" class="space-y-4 hidden transition-all">
-                                <!-- Taluka -->
-                                <div>
-                                    <label class="form-label" for="filter_taluka_id">Select Taluka <span class="text-red-500">*</span></label>
-                                    <div class="relative">
-                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <i data-lucide="map" class="w-4 h-4 text-slate-400"></i>
-                                        </div>
-                                        <select id="filter_taluka_id" name="filter_taluka_id"
-                                                class="w-full pl-10 pr-10 py-2.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg
-                                                       bg-white dark:bg-slate-800 text-slate-900 dark:text-white
-                                                       focus:outline-none focus:ring-2 focus:ring-govgreen-500 focus:border-govgreen-500
-                                                       transition-colors appearance-none">
-                                            <option value="">— Select Taluka —</option>
-                                            <?php
-                                            if ($talukas_result && $talukas_result->num_rows > 0) {
-                                                $talukas_result->data_seek(0);
-                                                while ($tk = $talukas_result->fetch_assoc()):
-                                                    $sel = (isset($_POST['filter_taluka_id']) && $_POST['filter_taluka_id'] == $tk['taluka_id']) ? 'selected' : '';
-                                            ?>
-                                            <option value="<?= (int)$tk['taluka_id'] ?>" <?= $sel ?>>
-                                                <?= htmlspecialchars($tk['taluka_name']) ?>
-                                            </option>
-                                            <?php endwhile; } ?>
-                                        </select>
-                                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Village -->
-                                <div>
-                                    <label class="form-label" for="assigned_village_id">Select Village <span class="text-red-500">*</span></label>
-                                    <div class="relative">
-                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <i data-lucide="map-pin" class="w-4 h-4 text-slate-400"></i>
-                                        </div>
-                                        <select id="assigned_village_id" name="assigned_village_id"
-                                                class="w-full pl-10 pr-10 py-2.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg
-                                                       bg-white dark:bg-slate-800 text-slate-900 dark:text-white
-                                                       focus:outline-none focus:ring-2 focus:ring-govgreen-500 focus:border-govgreen-500
-                                                       transition-colors appearance-none">
-                                            <option value="">— Select Village —</option>
-                                            <?php
-                                            // Pre-populate villages for selected taluka
-                                            if ($villages_result && $villages_result->num_rows > 0) {
-                                                $villages_result->data_seek(0);
-                                                while ($vl = $villages_result->fetch_assoc()):
-                                                    $sel = (isset($_POST['assigned_village_id']) && $_POST['assigned_village_id'] == $vl['village_id']) ? 'selected' : '';
-                                                    $dat = 'data-taluka="' . (int)$vl['taluka_id'] . '"';
-                                            ?>
-                                            <option value="<?= (int)$vl['village_id'] ?>" <?= $dat ?> <?= $sel ?> class="village-opt">
-                                                <?= htmlspecialchars($vl['village_name']) ?>
-                                            </option>
-                                            <?php endwhile; } ?>
-                                        </select>
-                                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Village user preview panel -->
-                                <div id="villageUsersPanel" class="hidden space-y-3">
-                                    <div id="villageUsersLoading" class="hidden flex items-center gap-2 text-xs text-slate-500">
-                                        <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Fetching employees in this village…
-                                    </div>
-                                    <div id="villageUsersBadge" class="hidden flex items-center justify-between">
-                                        <span class="text-xs text-slate-600 dark:text-slate-400">
-                                            <span id="villageUserCount">0</span> employee(s) will receive this task
-                                        </span>
-                                        <button type="button" onclick="toggleVillageUsersList()" id="toggleVillageUsersBtn"
-                                                class="text-xs font-medium text-govgreen-600 dark:text-green-400 hover:underline">
-                                            Show all
-                                        </button>
-                                    </div>
-                                    <div id="villageUsersNone" class="hidden flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-600 dark:text-red-400">
-                                        <i data-lucide="alert-circle" class="w-4 h-4"></i>
-                                        No eligible employees found in this village.
-                                    </div>
-                                    <div id="villageUsersList" class="hidden mt-2 max-h-48 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- By Role: Role + Department Dropdowns -->
+                            <!-- By Role: Multiple Roles Selection -->
                             <div id="byRoleSection" class="space-y-4 hidden transition-all">
-                                <!-- Role -->
                                 <div>
-                                    <label class="form-label" for="assigned_role_id">
-                                        <?= htmlspecialchars($t['lbl_select_role'] ?? 'Select Role') ?> <span class="text-red-500">*</span>
+                                    <label class="form-label mb-2 block">
+                                        Select Roles <span class="text-red-500">*</span>
                                     </label>
-                                    <div class="relative">
-                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <i data-lucide="shield" class="w-4 h-4 text-slate-400"></i>
-                                        </div>
-                                        <select id="assigned_role_id" name="assigned_role_id"
-                                                class="w-full pl-10 pr-10 py-2.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg
-                                                       bg-white dark:bg-slate-800 text-slate-900 dark:text-white
-                                                       focus:outline-none focus:ring-2 focus:ring-navy-500 focus:border-navy-500
-                                                       transition-colors appearance-none">
-                                            <option value=""><?= htmlspecialchars($t['opt_select_role'] ?? '— Select a role —') ?></option>
-                                            <?php
-                                            if ($roles_result && $roles_result->num_rows > 0) {
-                                                $roles_result->data_seek(0);
-                                                while ($r = $roles_result->fetch_assoc()):
-                                                    $sel = (isset($_POST['assigned_role_id']) && $_POST['assigned_role_id'] == $r['role_id']) ? 'selected' : '';
-                                                    $role_key = 'role_' . strtolower(str_replace(' ', '_', trim($r['role_name'])));
-                                                    $role_name_display = $t[$role_key] ?? $r['role_name'];
-                                            ?>
-                                            <option value="<?= (int)$r['role_id'] ?>" data-level="<?= (int)($r['role_level'] ?? 0) ?>" <?= $sel ?>>
+                                    <div class="max-h-60 overflow-y-auto p-3 rounded-lg border border-slate-300 dark:border-slate-650 bg-white dark:bg-slate-800 space-y-1">
+                                        <?php
+                                        if ($roles_result && $roles_result->num_rows > 0) {
+                                            $roles_result->data_seek(0);
+                                            $selected_role_ids = $_POST['assigned_role_ids'] ?? [];
+                                            while ($r = $roles_result->fetch_assoc()):
+                                                $checked = in_array($r['role_id'], $selected_role_ids) ? 'checked' : '';
+                                                $role_key = 'role_' . strtolower(str_replace(' ', '_', trim($r['role_name'])));
+                                                $role_name_display = $t[$role_key] ?? $r['role_name'];
+                                        ?>
+                                        <label class="flex items-center space-x-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/30 cursor-pointer transition-colors">
+                                            <input type="checkbox" name="assigned_role_ids[]" value="<?= (int)$r['role_id'] ?>" <?= $checked ?> class="w-4 h-4 text-navy-600 dark:text-blue-500 border-slate-300 dark:border-slate-600 rounded focus:ring-navy-500 role-checkbox">
+                                            <span class="text-sm text-slate-750 dark:text-slate-200">
                                                 <?= htmlspecialchars($role_name_display) ?>
-                                            </option>
-                                            <?php endwhile; } else { ?>
-                                            <option value="" disabled><?= htmlspecialchars($t['opt_no_roles'] ?? 'No active roles found in database') ?></option>
-                                            <?php } ?>
-                                        </select>
-                                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
-                                        </div>
+                                            </span>
+                                        </label>
+                                        <?php endwhile; } else { ?>
+                                        <p class="text-xs text-slate-500 dark:text-slate-400 p-2"><?= htmlspecialchars($t['opt_no_roles'] ?? 'No active roles found in database') ?></p>
+                                        <?php } ?>
                                     </div>
+                                    <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">Select one or more roles from the list above.</p>
                                 </div>
 
                                 <!-- Live: users-for-role preview panel -->
@@ -1612,30 +1643,83 @@ include 'include/sidebar.php';
                                 </div>
                             </div>
 
-                            <!-- By Village: Taluka + Village Dropdowns -->
-                            <div id="byVillageSection" class="space-y-4 hidden transition-all">
-                                <!-- Taluka -->
+                            <!-- By Taluka: Multiple Talukas Selection -->
+                            <div id="byTalukaSection" class="space-y-4 hidden transition-all">
                                 <div>
-                                    <label class="form-label" for="task_taluka_id">
-                                        <?= htmlspecialchars($t['lbl_select_taluka'] ?? 'Select Taluka') ?> <span class="text-red-500">*</span>
+                                    <label class="form-label mb-2 block">
+                                        Select Talukas <span class="text-red-500">*</span>
                                     </label>
+                                    <div class="max-h-60 overflow-y-auto p-3 rounded-lg border border-slate-300 dark:border-slate-650 bg-white dark:bg-slate-800 space-y-1">
+                                        <?php
+                                        if ($talukas_result && $talukas_result->num_rows > 0) {
+                                            $talukas_result->data_seek(0);
+                                            $selected_taluka_ids = $_POST['assigned_taluka_ids'] ?? [];
+                                            while ($tk = $talukas_result->fetch_assoc()):
+                                                $checked = in_array($tk['taluka_id'], $selected_taluka_ids) ? 'checked' : '';
+                                        ?>
+                                        <label class="flex items-center space-x-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/30 cursor-pointer transition-colors">
+                                            <input type="checkbox" name="assigned_taluka_ids[]" value="<?= (int)$tk['taluka_id'] ?>" <?= $checked ?> class="w-4 h-4 text-navy-600 dark:text-blue-500 border-slate-300 dark:border-slate-600 rounded focus:ring-navy-500 taluka-checkbox">
+                                            <span class="text-sm text-slate-750 dark:text-slate-200">
+                                                <?= htmlspecialchars($tk['taluka_name']) ?>
+                                            </span>
+                                        </label>
+                                        <?php endwhile; } else { ?>
+                                        <p class="text-xs text-slate-500 dark:text-slate-400 p-2">No active talukas found in database</p>
+                                        <?php } ?>
+                                    </div>
+                                    <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">Select one or more talukas from the list above.</p>
+                                </div>
+
+                                <!-- Live: users-for-taluka preview panel -->
+                                <div id="talukaUsersPanel" class="hidden">
+                                    <div id="talukaUsersLoading" class="hidden flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 py-2">
+                                        <svg class="animate-spin w-4 h-4 text-navy-500" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                                        </svg>
+                                        Fetching employees in selected taluka(s)…
+                                    </div>
+                                    <div id="talukaUsersBadge" class="hidden flex items-center justify-between p-3 bg-sky-50 dark:bg-sky-950/20 border border-sky-100 dark:border-sky-900 rounded-xl">
+                                        <div class="flex items-center gap-2">
+                                            <i data-lucide="users" class="w-4 h-4 text-sky-600 dark:text-sky-400"></i>
+                                            <span class="text-sm font-medium text-sky-700 dark:text-sky-300">
+                                                <span id="talukaUserCount">0</span> employee(s) will receive this task
+                                            </span>
+                                        </div>
+                                        <button type="button" onclick="toggleTalukaUsersList()" id="toggleTalukaUsersBtn"
+                                                class="text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline">
+                                            Show all
+                                        </button>
+                                    </div>
+                                    <div id="talukaUsersNone" class="hidden flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-600 dark:text-red-400">
+                                        <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                                        No active employees found in selected taluka(s).
+                                    </div>
+                                    <div id="talukaUsersList" class="hidden mt-2 max-h-48 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- By Village: Filter by Taluka + Multiple Villages Selection -->
+                            <div id="byVillageSection" class="space-y-4 hidden transition-all">
+                                <!-- Taluka filter dropdown -->
+                                <div>
+                                    <label class="form-label" for="filter_taluka_id_village">Filter Villages by Taluka</label>
                                     <div class="relative">
                                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                             <i data-lucide="map" class="w-4 h-4 text-slate-400"></i>
                                         </div>
-                                        <select id="task_taluka_id" name="task_taluka_id"
-                                                class="w-full pl-10 pr-10 py-2.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg
-                                                       bg-white dark:bg-slate-800 text-slate-900 dark:text-white
-                                                       focus:outline-none focus:ring-2 focus:ring-navy-500 focus:border-navy-500
-                                                       transition-colors appearance-none">
-                                            <option value=""><?= htmlspecialchars($t['opt_select_taluka'] ?? '— Select a taluka —') ?></option>
+                                        <select id="filter_taluka_id_village" class="w-full pl-10 pr-10 py-2.5 text-sm border border-slate-300 dark:border-slate-650 rounded-lg
+                                                               bg-white dark:bg-slate-800 text-slate-900 dark:text-white
+                                                               focus:outline-none focus:ring-2 focus:ring-govgreen-500 focus:border-govgreen-500
+                                                               transition-colors appearance-none">
+                                            <option value="">— Show All Talukas —</option>
                                             <?php
                                             if ($talukas_result && $talukas_result->num_rows > 0) {
                                                 $talukas_result->data_seek(0);
                                                 while ($tk = $talukas_result->fetch_assoc()):
-                                                    $sel = (isset($_POST['task_taluka_id']) && $_POST['task_taluka_id'] == $tk['taluka_id']) ? 'selected' : '';
                                             ?>
-                                            <option value="<?= (int)$tk['taluka_id'] ?>" <?= $sel ?>>
+                                            <option value="<?= (int)$tk['taluka_id'] ?>">
                                                 <?= htmlspecialchars($tk['taluka_name']) ?>
                                             </option>
                                             <?php endwhile; } ?>
@@ -1646,72 +1730,53 @@ include 'include/sidebar.php';
                                     </div>
                                 </div>
 
-                                <!-- Village -->
+                                <!-- Village selection checkboxes -->
                                 <div>
-                                    <label class="form-label" for="task_village_id">
-                                        <?= htmlspecialchars($t['lbl_select_village'] ?? 'Select Village') ?> <span class="text-red-500">*</span>
+                                    <label class="form-label mb-2 block">
+                                        Select Villages <span class="text-red-500">*</span>
                                     </label>
-                                    <div class="relative">
-                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <i data-lucide="map-pin" class="w-4 h-4 text-slate-400"></i>
-                                        </div>
-                                        <select id="task_village_id" name="task_village_id"
-                                                class="w-full pl-10 pr-10 py-2.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg
-                                                       bg-white dark:bg-slate-800 text-slate-900 dark:text-white
-                                                       focus:outline-none focus:ring-2 focus:ring-navy-500 focus:border-navy-500
-                                                       transition-colors appearance-none">
-                                            <option value=""><?= htmlspecialchars($t['opt_select_village'] ?? '— Select a village —') ?></option>
-                                            <?php
-                                            if (!empty($task_taluka_id)) {
-                                                $villages_res = $conn->query("SELECT village_id, village_name FROM villages WHERE taluka_id = $task_taluka_id ORDER BY village_name");
-                                                if ($villages_res && $villages_res->num_rows > 0) {
-                                                    while ($vg = $villages_res->fetch_assoc()) {
-                                                        $sel = (isset($_POST['task_village_id']) && $_POST['task_village_id'] == $vg['village_id']) ? 'selected' : '';
-                                                        echo '<option value="' . (int)$vg['village_id'] . '" ' . $sel . '>' . htmlspecialchars($vg['village_name']) . '</option>';
-                                                    }
-                                                }
-                                            }
-                                            ?>
-                                        </select>
-                                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                            <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400"></i>
-                                        </div>
+                                    <div class="max-h-60 overflow-y-auto p-3 rounded-lg border border-slate-300 dark:border-slate-650 bg-white dark:bg-slate-800 space-y-1">
+                                        <?php
+                                        if ($villages_result && $villages_result->num_rows > 0) {
+                                            $villages_result->data_seek(0);
+                                            $selected_village_ids = $_POST['assigned_village_ids'] ?? [];
+                                            while ($vl = $villages_result->fetch_assoc()):
+                                                $checked = in_array($vl['village_id'], $selected_village_ids) ? 'checked' : '';
+                                        ?>
+                                        <label class="flex items-center space-x-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/30 cursor-pointer transition-colors village-checkbox-label" data-taluka="<?= (int)$vl['taluka_id'] ?>">
+                                            <input type="checkbox" name="assigned_village_ids[]" value="<?= (int)$vl['village_id'] ?>" <?= $checked ?> class="w-4 h-4 text-navy-600 dark:text-blue-500 border-slate-300 dark:border-slate-600 rounded focus:ring-navy-500 village-checkbox">
+                                            <span class="text-sm text-slate-750 dark:text-slate-200">
+                                                <?= htmlspecialchars($vl['village_name']) ?>
+                                            </span>
+                                        </label>
+                                        <?php endwhile; } else { ?>
+                                        <p class="text-xs text-slate-500 dark:text-slate-400 p-2">No active villages found in database</p>
+                                        <?php } ?>
                                     </div>
+                                    <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">Select one or more villages from the list above.</p>
                                 </div>
 
-                                <!-- Live: users-for-village preview panel -->
-                                <div id="villageUsersPanel" class="hidden mt-2">
-                                    <!-- Loading state -->
-                                    <div id="villageUsersLoading" class="hidden flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 py-2">
-                                        <svg class="animate-spin w-4 h-4 text-navy-500" fill="none" viewBox="0 0 24 24">
-                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-                                        </svg>
-                                        <span id="villageUsersLoadingText"><?= htmlspecialchars($t['msg_fetching_village_employees'] ?? 'Fetching mapped employees for this village…') ?></span>
+                                <!-- Village user preview panel -->
+                                <div id="villageUsersPanel" class="hidden space-y-3">
+                                    <div id="villageUsersLoading" class="hidden flex items-center gap-2 text-xs text-slate-500">
+                                        <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Fetching employees in selected village(s)…
                                     </div>
-
-                                    <!-- Responsible User badge -->
-                                    <div id="villageUsersBadge" class="hidden p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-800 rounded-xl">
-                                        <div class="flex items-start gap-2.5">
-                                            <i data-lucide="user-check" class="w-5 h-5 text-emerald-600 dark:text-emerald-400 mt-0.5"></i>
-                                            <div class="text-sm">
-                                                <span class="font-medium text-emerald-700 dark:text-emerald-300 block">
-                                                    <?= htmlspecialchars($t['msg_responsible_identified'] ?? 'Responsible person identified:') ?>
-                                                </span>
-                                                <div id="responsibleUserDetails" class="mt-1 font-semibold text-slate-800 dark:text-white">
-                                                    <!-- Filled dynamically -->
-                                                </div>
-                                            </div>
-                                        </div>
+                                    <div id="villageUsersBadge" class="hidden flex items-center justify-between">
+                                        <span class="text-xs text-slate-600 dark:text-slate-400">
+                                            <span id="villageUserCount">0</span> employee(s) will receive this task
+                                        </span>
+                                        <button type="button" onclick="toggleVillageUsersList()" id="toggleVillageUsersBtn"
+                                                class="text-xs font-medium text-govgreen-600 dark:text-green-400 hover:underline">
+                                            Show all
+                                        </button>
                                     </div>
-
-                                    <!-- No users warning -->
                                     <div id="villageUsersNone" class="hidden flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-600 dark:text-red-400">
-                                        <i data-lucide="alert-circle" class="w-4 h-4 text-red-500"></i>
-                                        <span id="villageUsersNoneText"><?= htmlspecialchars($t['msg_no_employees_village'] ?? 'No active employees mapped to this village.') ?></span>
+                                        <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                                        No active employees found with selected village(s).
+                                    </div>
+                                    <div id="villageUsersList" class="hidden mt-2 max-h-48 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700">
                                     </div>
                                 </div>
-
                             </div>
 
                         </div>
@@ -1966,30 +2031,45 @@ include 'include/sidebar.php';
     // ── Allocation Type Toggle ───────────────────────────────────
     const byNameRadio      = document.getElementById('alloc_by_name');
     const byRoleRadio      = document.getElementById('alloc_by_role');
+    const byTalukaRadio    = document.getElementById('alloc_by_taluka');
     const byVillageRadio   = document.getElementById('alloc_by_village');
     const byNameSection    = document.getElementById('byNameSection');
     const byRoleSection    = document.getElementById('byRoleSection');
+    const byTalukaSection  = document.getElementById('byTalukaSection');
     const byVillageSection = document.getElementById('byVillageSection');
     const boxByName        = document.getElementById('box-byname');
     const boxByRole        = document.getElementById('box-byrole');
+    const boxByTaluka      = document.getElementById('box-bytaluka');
     const boxByVillage     = document.getElementById('box-byvillage');
     const prevAllocation   = document.getElementById('prevAllocation');
-    const roleSelect       = document.getElementById('assigned_role_id');
+
+    // Role section preview elements
     const rolePanel        = document.getElementById('roleUsersPanel');
     const roleBadge        = document.getElementById('roleUsersBadge');
     const roleNone         = document.getElementById('roleUsersNone');
     const roleLoading      = document.getElementById('roleUsersLoading');
     const roleList         = document.getElementById('roleUsersList');
     const roleCountEl      = document.getElementById('roleUserCount');
+
+    // Taluka section preview elements
+    const talukaPanel      = document.getElementById('talukaUsersPanel');
+    const talukaBadge      = document.getElementById('talukaUsersBadge');
+    const talukaNone       = document.getElementById('talukaUsersNone');
+    const talukaLoading    = document.getElementById('talukaUsersLoading');
+    const talukaList       = document.getElementById('talukaUsersList');
+    const talukaCountEl    = document.getElementById('talukaUserCount');
+
+    // Village section preview elements
     const villagePanel     = document.getElementById('villageUsersPanel');
     const villageBadge     = document.getElementById('villageUsersBadge');
     const villageNone      = document.getElementById('villageUsersNone');
     const villageLoading   = document.getElementById('villageUsersLoading');
     const villageList      = document.getElementById('villageUsersList');
     const villageCountEl   = document.getElementById('villageUserCount');
-    const talukaSelect     = document.getElementById('filter_taluka_id');
-    const villageSelect    = document.getElementById('assigned_village_id');
+    const talukaSelectVillage = document.getElementById('filter_taluka_id_village');
+
     let roleUsersListVisible    = false;
+    let talukaUsersListVisible  = false;
     let villageUsersListVisible = false;
 
     // Dynamic translations for JS
@@ -1997,8 +2077,10 @@ include 'include/sidebar.php';
     const jsTranslations = {
         ByName:    '<?= addslashes($t['lbl_by_name'] ?? 'By Name') ?>',
         ByRole:    '<?= addslashes($t['lbl_by_role'] ?? 'By Role') ?>',
+        ByTaluka:  'By Taluka',
         ByVillage: 'By Village',
         ByRoleUsers:    '<?= addslashes($t['lbl_by_role'] ?? 'By Role') ?> (%count%)',
+        ByTalukaUsers:  'By Taluka (%count%)',
         ByVillageUsers: 'By Village (%count%)',
         Low:      '<?= addslashes($t['priority_low'] ?? 'Low') ?>',
         Medium:   '<?= addslashes($t['priority_medium'] ?? 'Medium') ?>',
@@ -2009,6 +2091,7 @@ include 'include/sidebar.php';
         toast_due_req:      '<?= addslashes($t['toast_due_req'] ?? 'Please select a due date & time.') ?>',
         toast_employee_req: '<?= addslashes($t['toast_employee_req'] ?? 'Please select an employee to assign.') ?>',
         toast_role_req:     '<?= addslashes($t['toast_role_req'] ?? 'Please select a role to assign.') ?>',
+        toast_taluka_req:   'Please select a taluka to assign.',
         toast_village_req:  'Please select a village to assign.',
         btn_submitting: '<?= addslashes($t['btn_submitting'] ?? 'Creating Task…') ?>',
         btn_show_all:   '<?= addslashes($t['btn_show_all'] ?? 'Show all') ?>',
@@ -2023,10 +2106,12 @@ include 'include/sidebar.php';
         // Hide all sections
         byNameSection.classList.add('hidden');
         byRoleSection.classList.add('hidden');
+        byTalukaSection.classList.add('hidden');
         byVillageSection.classList.add('hidden');
         // Reset all card borders
         boxByName.className    = clsInactive;
         boxByRole.className    = clsInactive;
+        boxByTaluka.className  = clsInactive;
         boxByVillage.className = clsInactive;
 
         if (type === 'by_name') {
@@ -2037,28 +2122,30 @@ include 'include/sidebar.php';
             byRoleSection.classList.remove('hidden');
             boxByRole.className = clsActive + ' border-saffron-500 bg-saffron-50 dark:bg-orange-900/20';
             prevAllocation.textContent = jsTranslations.ByRole;
-            if (roleSelect.value) fetchRoleUsers(roleSelect.value);
+            updateRoleUsersPreview();
+        } else if (type === 'by_taluka') {
+            byTalukaSection.classList.remove('hidden');
+            boxByTaluka.className = clsActive + ' border-sky-550 bg-sky-50 dark:bg-sky-900/20';
+            prevAllocation.textContent = jsTranslations.ByTaluka;
+            updateTalukaUsersPreview();
         } else if (type === 'by_village') {
             byVillageSection.classList.remove('hidden');
             boxByVillage.className = clsActive + ' border-govgreen-500 bg-green-50 dark:bg-green-900/20';
             prevAllocation.textContent = jsTranslations.ByVillage;
-            filterVillagesByTaluka(talukaSelect.value);
+            filterVillagesByTaluka(talukaSelectVillage.value);
+            updateVillageUsersPreview();
         }
         lucide.createIcons();
     }
 
-    function updateVillagePreview() {
-        if (villageSelect && villageSelect.value) {
-            const selectedText = villageSelect.options[villageSelect.selectedIndex].text;
-            prevAllocation.textContent = jsTranslations.ByVillage + ': ' + selectedText;
-        } else {
-            prevAllocation.textContent = jsTranslations.ByVillage;
+    // ── AJAX: fetch users for the selected roles ──────────────────
+    function updateRoleUsersPreview() {
+        const checkedRoles = Array.from(document.querySelectorAll('.role-checkbox:checked')).map(cb => cb.value);
+        if (checkedRoles.length === 0) {
+            rolePanel.classList.add('hidden');
+            prevAllocation.textContent = jsTranslations.ByRole;
+            return;
         }
-    }
-
-    // ── AJAX: fetch users for the selected role ──────────────────
-    function fetchRoleUsers(roleId) {
-        if (!roleId) { rolePanel.classList.add('hidden'); return; }
         rolePanel.classList.remove('hidden');
         roleLoading.classList.remove('hidden');
         roleBadge.classList.add('hidden');
@@ -2069,7 +2156,8 @@ include 'include/sidebar.php';
         const btn = document.getElementById('toggleUsersBtn');
         if (btn) btn.textContent = jsTranslations.btn_show_all;
 
-        fetch(`create_task.php?ajax=role_users&role_id=${roleId}`)
+        const roleIdsParam = checkedRoles.join(',');
+        fetch(`create_task.php?ajax=role_users&role_ids=${roleIdsParam}`)
             .then(r => r.json())
             .then(data => {
                 roleLoading.classList.add('hidden');
@@ -2092,30 +2180,72 @@ include 'include/sidebar.php';
         document.getElementById('toggleUsersBtn').textContent = roleUsersListVisible ? jsTranslations.btn_hide : jsTranslations.btn_show_all;
     }
 
-    // ── Taluka → Village cascade filter ────────────────────────
-    function filterVillagesByTaluka(talukaId) {
-        const opts = villageSelect.querySelectorAll('.village-opt');
-        let visible = 0;
-        opts.forEach(opt => {
-            if (!talukaId || opt.dataset.taluka === talukaId) {
-                opt.style.display = '';
-                visible++;
-            } else {
-                opt.style.display = 'none';
-            }
-        });
-        // Reset village selection
-        villageSelect.value = '';
-        villagePanel.classList.add('hidden');
+    // ── AJAX: fetch users for selected talukas ────────────────────
+    function updateTalukaUsersPreview() {
+        const checkedTalukas = Array.from(document.querySelectorAll('.taluka-checkbox:checked')).map(cb => cb.value);
+        if (checkedTalukas.length === 0) {
+            talukaPanel.classList.add('hidden');
+            prevAllocation.textContent = jsTranslations.ByTaluka;
+            return;
+        }
+        talukaPanel.classList.remove('hidden');
+        talukaLoading.classList.remove('hidden');
+        talukaBadge.classList.add('hidden');
+        talukaNone.classList.add('hidden');
+        talukaList.classList.add('hidden');
+        talukaList.innerHTML = '';
+        talukaUsersListVisible = false;
+        const btn = document.getElementById('toggleTalukaUsersBtn');
+        if (btn) btn.textContent = jsTranslations.btn_show_all;
+
+        const talukaIdsParam = checkedTalukas.join(',');
+        fetch(`create_task.php?ajax=taluka_users&taluka_ids=${talukaIdsParam}`)
+            .then(r => r.json())
+            .then(data => {
+                talukaLoading.classList.add('hidden');
+                if (data.count === 0) {
+                    talukaNone.classList.remove('hidden');
+                } else {
+                    talukaBadge.classList.remove('hidden');
+                    talukaCountEl.textContent = data.count;
+                    talukaList.innerHTML = buildUserListHTML(data.users);
+                    lucide.createIcons();
+                }
+                prevAllocation.textContent = jsTranslations.ByTalukaUsers.replace('%count%', data.count);
+            })
+            .catch(() => { talukaLoading.classList.add('hidden'); talukaNone.classList.remove('hidden'); });
     }
 
-    talukaSelect.addEventListener('change', () => {
-        filterVillagesByTaluka(talukaSelect.value);
+    function toggleTalukaUsersList() {
+        talukaUsersListVisible = !talukaUsersListVisible;
+        talukaList.classList.toggle('hidden', !talukaUsersListVisible);
+        document.getElementById('toggleTalukaUsersBtn').textContent = talukaUsersListVisible ? jsTranslations.btn_hide : jsTranslations.btn_show_all;
+    }
+
+    // ── Taluka → Village cascade filter ────────────────────────
+    function filterVillagesByTaluka(talukaId) {
+        const labels = document.querySelectorAll('.village-checkbox-label');
+        labels.forEach(label => {
+            if (!talukaId || label.dataset.taluka === talukaId) {
+                label.style.display = '';
+            } else {
+                label.style.display = 'none';
+            }
+        });
+    }
+
+    talukaSelectVillage.addEventListener('change', () => {
+        filterVillagesByTaluka(talukaSelectVillage.value);
     });
 
-    // ── AJAX: fetch users for the selected village ───────────────
-    function fetchVillageUsers(villageId) {
-        if (!villageId) { villagePanel.classList.add('hidden'); return; }
+    // ── AJAX: fetch users for the selected villages ───────────────
+    function updateVillageUsersPreview() {
+        const checkedVillages = Array.from(document.querySelectorAll('.village-checkbox:checked')).map(cb => cb.value);
+        if (checkedVillages.length === 0) {
+            villagePanel.classList.add('hidden');
+            prevAllocation.textContent = jsTranslations.ByVillage;
+            return;
+        }
         villagePanel.classList.remove('hidden');
         villageLoading.classList.remove('hidden');
         villageBadge.classList.add('hidden');
@@ -2126,7 +2256,8 @@ include 'include/sidebar.php';
         const btn = document.getElementById('toggleVillageUsersBtn');
         if (btn) btn.textContent = jsTranslations.btn_show_all;
 
-        fetch(`create_task.php?ajax=village_users&village_id=${villageId}`)
+        const villageIdsParam = checkedVillages.join(',');
+        fetch(`create_task.php?ajax=village_users&village_ids=${villageIdsParam}`)
             .then(r => r.json())
             .then(data => {
                 villageLoading.classList.add('hidden');
@@ -2149,8 +2280,6 @@ include 'include/sidebar.php';
         document.getElementById('toggleVillageUsersBtn').textContent = villageUsersListVisible ? jsTranslations.btn_hide : jsTranslations.btn_show_all;
     }
 
-    villageSelect.addEventListener('change', () => fetchVillageUsers(villageSelect.value));
-
     // ── Shared: build user row HTML ──────────────────────────────
     function buildUserListHTML(users) {
         return users.map(u => `
@@ -2167,10 +2296,14 @@ include 'include/sidebar.php';
         ).join('');
     }
 
-    roleSelect.addEventListener('change', () => fetchRoleUsers(roleSelect.value));
+    // Bind event listeners to checkbox selections
+    document.querySelectorAll('.role-checkbox').forEach(cb => cb.addEventListener('change', updateRoleUsersPreview));
+    document.querySelectorAll('.taluka-checkbox').forEach(cb => cb.addEventListener('change', updateTalukaUsersPreview));
+    document.querySelectorAll('.village-checkbox').forEach(cb => cb.addEventListener('change', updateVillageUsersPreview));
 
     byNameRadio.addEventListener('change',    () => setAllocationUI('by_name'));
     byRoleRadio.addEventListener('change',    () => setAllocationUI('by_role'));
+    byTalukaRadio.addEventListener('change',  () => setAllocationUI('by_taluka'));
     byVillageRadio.addEventListener('change', () => setAllocationUI('by_village'));
 
     // Initial state
@@ -2342,8 +2475,23 @@ include 'include/sidebar.php';
                 showToast(jsTranslations.toast_employee_req, 'warning'); e.preventDefault(); return;
             }
         }
-        if (alloc === 'by_role' && !document.getElementById('assigned_role_id').value) {
-            showToast(jsTranslations.toast_role_req, 'warning'); e.preventDefault(); return;
+        if (alloc === 'by_role') {
+            const checkedBoxes = document.querySelectorAll('input[name="assigned_role_ids[]"]:checked');
+            if (checkedBoxes.length === 0) {
+                showToast(jsTranslations.toast_role_req, 'warning'); e.preventDefault(); return;
+            }
+        }
+        if (alloc === 'by_taluka') {
+            const checkedBoxes = document.querySelectorAll('input[name="assigned_taluka_ids[]"]:checked');
+            if (checkedBoxes.length === 0) {
+                showToast(jsTranslations.toast_taluka_req, 'warning'); e.preventDefault(); return;
+            }
+        }
+        if (alloc === 'by_village') {
+            const checkedBoxes = document.querySelectorAll('input[name="assigned_village_ids[]"]:checked');
+            if (checkedBoxes.length === 0) {
+                showToast(jsTranslations.toast_village_req, 'warning'); e.preventDefault(); return;
+            }
         }
 
         const btn  = document.getElementById('submitBtn');
@@ -2375,6 +2523,21 @@ include 'include/sidebar.php';
         clearFile();
         selectPriority('Medium');
         setAllocationUI('by_name');
+        
+        // Uncheck all checkboxes
+        document.querySelectorAll('.role-checkbox').forEach(cb => cb.checked = false);
+        document.querySelectorAll('.taluka-checkbox').forEach(cb => cb.checked = false);
+        document.querySelectorAll('.village-checkbox').forEach(cb => cb.checked = false);
+        document.querySelectorAll('input[name="assigned_user_ids[]"]').forEach(cb => cb.checked = false);
+        
+        // Reset selectors
+        if (talukaSelectVillage) talukaSelectVillage.value = '';
+        
+        // Hide all preview panels
+        if (villagePanel) villagePanel.classList.add('hidden');
+        if (rolePanel)    rolePanel.classList.add('hidden');
+        if (talukaPanel)  talukaPanel.classList.add('hidden');
+        
         document.getElementById('prevTitle').textContent  = '—';
         document.getElementById('prevDue').textContent    = '—';
         const charTemplate = '<?= $t['char_counter'] ?? "%d / 255 characters" ?>';

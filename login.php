@@ -80,8 +80,8 @@ $T = [
 $t = $T[$lang];
 
 // ── Constants ──────────────────────────────────────────────────────────────
-if (!defined('MAX_ATTEMPTS'))    define('MAX_ATTEMPTS',    3);
-if (!defined('LOCKOUT_MINUTES')) define('LOCKOUT_MINUTES', 15);
+if (!defined('MAX_ATTEMPTS'))    define('MAX_ATTEMPTS',    5);
+if (!defined('LOCKOUT_MINUTES')) define('LOCKOUT_MINUTES', 2);
 
 // ── State ──────────────────────────────────────────────────────────────────
 $error_message     = '';
@@ -496,6 +496,31 @@ include 'include/header.php';
 
             <!-- Premium Glassmorphic Login Card -->
             <div class="bg-amber-50/60 dark:bg-amber-950/20 backdrop-blur-lg rounded-2xl p-6 sm:p-8 border border-amber-200/50 dark:border-amber-900/30 shadow-[0_8px_30px_rgba(225,144,34,0.04)]">
+
+                <!-- Tab Navigation (Login vs Register) -->
+                <div class="flex border-b border-slate-200 dark:border-slate-700 mb-6 bg-slate-100/55 dark:bg-slate-900/20 p-1 rounded-xl">
+                    <button class="flex-1 text-center py-2 text-sm font-bold bg-white dark:bg-slate-800 rounded-lg text-navy-700 dark:text-blue-400 shadow-sm border border-slate-200/40 dark:border-slate-700/40">
+                        <i data-lucide="log-in" class="w-4 h-4 inline-block mr-1.5 align-text-bottom"></i><?= $lang === 'en' ? 'Login' : 'लॉगिन' ?>
+                    </button>
+                    <a href="register.php?lang=<?= $lang ?>" class="flex-1 text-center py-2 text-sm font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-lg transition-all" style="text-decoration: none;">
+                        <i data-lucide="user-plus" class="w-4 h-4 inline-block mr-1.5 align-text-bottom text-slate-400"></i><?= $lang === 'en' ? 'Register' : 'नोंदणी' ?>
+                    </a>
+                </div>
+
+                <!-- Registration Success Banner -->
+                <?php if (isset($_SESSION['registration_success'])): ?>
+                    <script>
+                        window.addEventListener('DOMContentLoaded', () => {
+                            Swal.fire({
+                                icon: 'success',
+                                title: '<?= $lang === 'en' ? 'Registration Submitted' : 'नोंदणी सबमिट केली' ?>',
+                                text: '<?= htmlspecialchars($_SESSION['registration_success']) ?>',
+                                confirmButtonColor: '#0054a4'
+                            });
+                        });
+                    </script>
+                    <?php unset($_SESSION['registration_success']); ?>
+                <?php endif; ?>
 
             <?php if ($is_locked): ?>
             <!-- ════ LOCKOUT CARD WITH COUNTDOWN ════ -->
