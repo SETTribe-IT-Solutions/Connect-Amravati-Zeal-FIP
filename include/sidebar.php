@@ -5,6 +5,38 @@
 $lang = $lang ?? 'en';
 $activePage = $activePage ?? 'dashboard';
 
+// Determine role level and authorization status
+$sRole_sidebar = $_SESSION['user_role'] ?? 'Collector';
+$level_sidebar = 3;
+if (isset($conn) && $conn instanceof mysqli && !$conn->connect_error) {
+    $lvl_q = $conn->prepare("SELECT role_level FROM roles WHERE role_name = ? LIMIT 1");
+    if ($lvl_q) {
+        $lvl_q->bind_param("s", $sRole_sidebar);
+        $lvl_q->execute();
+        $lvl_res = $lvl_q->get_result();
+        if ($lvl_row = $lvl_res->fetch_assoc()) {
+            $level_sidebar = (int)$lvl_row['role_level'];
+        }
+        $lvl_q->close();
+    }
+} else {
+    $sidebar_map = [
+        'Administrator'        => 1,
+        'System Administrator' => 1,
+        'Collector'            => 1,
+        'Additional Collector' => 1,
+        'Deputy Collector'     => 1,
+        'SDO'                  => 2,
+        'Tehsildar'            => 2,
+        'BDO'                  => 2,
+        'Talathi'              => 3,
+        'Gramsevak'            => 3,
+    ];
+    $level_sidebar = $sidebar_map[$sRole_sidebar] ?? 3;
+}
+
+$isCollectorOrAdmin = in_array($sRole_sidebar, ['Collector', 'System Administrator', 'Administrator']);
+
 // Simple translation fallback for sidebar if $t is not fully populated
 $brand_name = $t['brand_name'] ?? 'AMRAVATI CONNECT';
 $menu_main = $t['menu_main_modules'] ?? 'Main Modules';
@@ -135,7 +167,7 @@ if (!empty($sRole)) {
                 <?= htmlspecialchars($t['menu_admin'] ?? 'Administration') ?>
             </p>
             
-            <?php if ($userLevel === 1): ?>
+            <?php if ($isCollectorOrAdmin): ?>
             <a href="user_creation.php?lang=<?= $lang ?>" 
                class="nav-item <?= $activePage === 'users' ? 'nav-active' : '' ?>">
                 <i data-lucide="users" class="w-5 h-5 mr-3 <?= $activePage === 'users' ? '' : 'text-slate-400 dark:text-slate-500' ?>"></i>

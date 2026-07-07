@@ -298,11 +298,11 @@ include 'include/sidebar.php';
                             <?= ' (' . htmlspecialchars($headerLocationDisplay) . ')' ?>
                         </span>
                     </div>
-                    <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-sm">
+                    <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border border-amber-500/40 shadow-sm">
                         <?= htmlspecialchars($initials ?? 'U') ?>
                     </div>
                 </button>
-                <div id="profileDropdownMenu" class="hidden absolute right-0 mt-2 w-48 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md z-50">
+                <div id="profileDropdownMenu" class="hidden absolute right-0 top-full mt-2 w-48 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md z-50 text-left">
                     <div class="py-1">
                         <a href="profile_update.php?lang=<?= $lang ?? 'en' ?>" class="flex items-center px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
                             <i data-lucide="user" class="w-4 h-4 mr-2 text-slate-400"></i><?= ($lang ?? 'en') === 'en' ? 'User Profile Update' : 'वापरकर्ता प्रोफाइल अपडेट' ?>
@@ -645,6 +645,19 @@ include 'include/sidebar.php';
                     if (data.status === 'success') {
                         loadedNotificationsList = data.notifications || [];
                         renderCenterNotifications();
+                        
+                        // Auto-open notification from query param
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const autoNotifId = urlParams.get('notif_id');
+                        if (autoNotifId) {
+                            const found = loadedNotificationsList.find(n => n.id == autoNotifId);
+                            if (found) {
+                                openNotificationDetail(found);
+                                // Remove parameter from URL to prevent reopening on reload
+                                const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + (urlParams.get('lang') ? "?lang=" + urlParams.get('lang') : "");
+                                window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+                            }
+                        }
                     }
                 });
         }
@@ -692,7 +705,15 @@ include 'include/sidebar.php';
             list.forEach(n => {
                 const tr = document.createElement('tr');
                 const readStyle = n.is_read == 0 ? 'bg-blue-50/10 dark:bg-slate-800/40 font-semibold border-l-4 border-blue-500' : 'border-l-4 border-transparent';
-                tr.className = `hover:bg-slate-100/50 dark:hover:bg-slate-700/30 transition-colors ${readStyle}`;
+                tr.className = `hover:bg-slate-100/50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer ${readStyle}`;
+                tr.title = "Click to view details";
+                
+                // Add click listener to show details modal
+                tr.onclick = (e) => {
+                    if (!e.target.closest('button') && !e.target.closest('a')) {
+                        openNotificationDetail(n);
+                    }
+                };
 
                 // Action Buttons Generator
                 let actionsHtml = '';
@@ -877,6 +898,158 @@ include 'include/sidebar.php';
                         loadCenterNotifications();
                     }
                 });
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function openNotificationDetail(n) {
+            // Automatically mark as read if it is unread
+            if (n.is_read == 0) {
+                markAsRead(n.id);
+            }
+
+            let attachmentHtml = '';
+            if (n.attachment_path) {
+                const isMedia = n.attachment_path.match(/\.(mp3|wav|ogg|m4a|mp4|webm|avi|mov|mkv)$/i);
+                if (isMedia) {
+                    const ext = n.attachment_path.split('.').pop().toLowerCase();
+                    const audioExts = ['mp3', 'wav', 'ogg', 'm4a'];
+                    const videoExts = ['mp4', 'webm', 'avi', 'mov', 'mkv'];
+                    if (audioExts.includes(ext)) {
+                        attachmentHtml = `
+                            <div class="mt-4 p-3 bg-slate-50 dark:bg-slate-905 border border-slate-200 dark:border-slate-700 rounded-lg text-left">
+                                <span class="text-xs text-slate-400 font-bold block mb-1">AUDIO ATTACHMENT</span>
+                                <audio controls class="w-full mt-1"><source src="${n.attachment_path}" type="audio/${ext === 'mp3' ? 'mpeg' : (ext === 'm4a' ? 'mp4' : ext)}"></audio>
+                            </div>`;
+                    } else if (videoExts.includes(ext)) {
+                        attachmentHtml = `
+                            <div class="mt-4 p-3 bg-slate-50 dark:bg-slate-905 border border-slate-200 dark:border-slate-700 rounded-lg text-left">
+                                <span class="text-xs text-slate-400 font-bold block mb-1">VIDEO ATTACHMENT</span>
+                                <video controls class="w-full rounded-lg bg-black mt-1"><source src="${n.attachment_path}" type="video/${ext === 'mov' ? 'quicktime' : (ext === 'mkv' ? 'x-matroska' : ext)}"></video>
+                            </div>`;
+                    }
+                } else {
+                    attachmentHtml = `
+                        <div class="mt-4 flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-905 border border-slate-200 dark:border-slate-700 rounded-lg">
+                            <div class="flex items-center text-slate-700 dark:text-slate-350">
+                                <i data-lucide="paperclip" class="w-4 h-4 mr-2 text-slate-400"></i>
+                                <span class="text-xs font-semibold truncate max-w-xs">${n.attachment_path.split('/').pop()}</span>
+                            </div>
+                            <a href="${n.attachment_path}" target="_blank" download class="px-3 py-1 bg-navy-500 hover:bg-navy-600 text-white rounded text-xs font-bold transition-colors" style="text-decoration: none;">Download</a>
+                        </div>`;
+                }
+            }
+
+            let taskInfoHtml = '';
+            if (n.type === 'Task' && n.task_id > 0) {
+                let descHtml = '';
+                if (n.task_description) {
+                    descHtml = `
+                        <div class="mb-3">
+                            <span class="text-slate-450 dark:text-slate-400 block mb-0.5">Task Description:</span>
+                            <p class="text-xs text-slate-650 dark:text-slate-300 leading-relaxed font-normal bg-white dark:bg-slate-900/60 p-2.5 rounded-lg border border-slate-200/50 dark:border-slate-800 whitespace-pre-wrap max-h-32 overflow-y-auto">${escapeHtml(n.task_description)}</p>
+                        </div>`;
+                }
+                taskInfoHtml = `
+                    <div class="mt-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-905 text-left border border-slate-200 dark:border-slate-700">
+                        <span class="text-xs text-slate-400 font-bold block uppercase mb-2">Task Details</span>
+                        ${descHtml}
+                        <div class="grid grid-cols-2 gap-2 text-xs mb-3">
+                            <div>
+                                <span class="text-slate-400 block">Status:</span>
+                                <span class="font-bold text-slate-700 dark:text-slate-350">${n.task_status || 'Unknown'}</span>
+                            </div>
+                            <div>
+                                <span class="text-slate-400 block">Due Date:</span>
+                                <span class="font-bold text-slate-700 dark:text-slate-350">${n.task_due_date || 'N/A'}</span>
+                            </div>
+                        </div>
+                        <div class="border-t border-slate-200 dark:border-slate-700 pt-2.5">
+                            <a href="task_tracking.php?task_id=${n.task_id}" class="inline-flex items-center text-xs font-bold text-navy-600 dark:text-blue-400 hover:underline" style="text-decoration: none;">
+                                Go to Task Tracking Page <i data-lucide="arrow-right" class="w-3.5 h-3.5 ml-1"></i>
+                            </a>
+                        </div>
+                    </div>`;
+            }
+
+            let announcementInfoHtml = '';
+            if (n.type === 'Announcement') {
+                announcementInfoHtml = `
+                    <div class="mt-4 text-left border-t border-slate-200 dark:border-slate-700 pt-3">
+                        <a href="announcements.php" class="inline-flex items-center text-xs font-bold text-navy-600 dark:text-blue-400 hover:underline" style="text-decoration: none;">
+                            Go to Announcement Center <i data-lucide="arrow-right" class="w-3.5 h-3.5 ml-1"></i>
+                        </a>
+                    </div>`;
+            }
+
+            let meetingInfoHtml = '';
+            if (n.type === 'Meeting') {
+                meetingInfoHtml = `
+                    <div class="mt-4 text-left border-t border-slate-200 dark:border-slate-700 pt-3">
+                        <a href="announcements.php" class="inline-flex items-center text-xs font-bold text-navy-600 dark:text-blue-400 hover:underline" style="text-decoration: none;">
+                            Go to Meetings & Schedule <i data-lucide="arrow-right" class="w-3.5 h-3.5 ml-1"></i>
+                        </a>
+                    </div>`;
+            }
+
+            let actionsHtml = '';
+            if (n.actions && n.actions.length > 0) {
+                actionsHtml = '<div class="mt-5 flex justify-end gap-2 border-t border-slate-200 dark:border-slate-700 pt-4">';
+                n.actions.forEach(act => {
+                    if (act.action === 'accept') {
+                        actionsHtml += `<button onclick="Swal.close(); acceptTask(${n.task_id}, ${n.id})" class="px-4 py-2 bg-govgreen-500 hover:bg-govgreen-600 text-white rounded-lg text-xs font-bold transition-colors">Accept</button>`;
+                    } else if (act.action === 'reject') {
+                        actionsHtml += `<button onclick="Swal.close(); openRejectTaskModal(${n.task_id})" class="px-4 py-2 bg-red-500 hover:bg-red-650 text-white rounded-lg text-xs font-bold transition-colors">Reject</button>`;
+                    } else if (act.action === 'verify_rejection') {
+                        actionsHtml += `<button onclick="Swal.close(); openReviewRejectionModal(${n.task_id})" class="px-4 py-2 bg-navy-500 hover:bg-navy-600 text-white rounded-lg text-xs font-bold transition-colors">Verify Rejection</button>`;
+                    } else if (act.action === 'verify_completion') {
+                        actionsHtml += `<button onclick="Swal.close(); verifyCompletion(${n.task_id}, ${n.id})" class="px-4 py-2 bg-purple-500 hover:bg-purple-650 text-white rounded-lg text-xs font-bold transition-colors">Verify Completion</button>`;
+                    }
+                });
+                actionsHtml += '</div>';
+            }
+
+            const htmlContent = `
+                <div class="text-slate-800 dark:text-slate-200">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-bold rounded-full ${n.badge_color}">${n.priority}</span>
+                        <span class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-bold rounded-full bg-slate-100 dark:bg-slate-800 text-slate-650 dark:text-slate-400 uppercase">${n.type}</span>
+                    </div>
+                    <p class="text-sm leading-relaxed text-left bg-slate-50 dark:bg-slate-900/30 p-4 rounded-xl border border-slate-200 dark:border-slate-700 font-normal mb-1 max-h-48 overflow-y-auto whitespace-pre-wrap">${escapeHtml(n.message)}</p>
+                    <div class="text-left mt-2 text-[10px] text-slate-400 flex justify-between">
+                        <span>Sender: <strong>${escapeHtml(n.sender_name)}</strong></span>
+                        <span>${n.time_elapsed}</span>
+                    </div>
+                    ${attachmentHtml}
+                    ${taskInfoHtml}
+                    ${announcementInfoHtml}
+                    ${meetingInfoHtml}
+                    ${actionsHtml}
+                </div>
+            `;
+
+            Swal.fire({
+                title: n.title,
+                html: htmlContent,
+                showConfirmButton: true,
+                confirmButtonText: 'Close',
+                confirmButtonColor: '#0054a4',
+                customClass: {
+                    title: 'text-lg font-bold text-slate-800 dark:text-white mb-2 pt-4 text-left border-b pb-2 px-6',
+                    htmlContainer: 'px-6 pb-4'
+                },
+                didOpen: () => {
+                    lucide.createIcons();
+                }
+            });
         }
 
         // Poll notifications every 5 seconds for live dashboard updates

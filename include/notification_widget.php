@@ -172,7 +172,7 @@ if (!isset($lang)) {
                             `;
                             item.onclick = () => {
                                 const currentLang = new URLSearchParams(window.location.search).get('lang') || 'en';
-                                const targetUrl = 'notifications.php?lang=' + currentLang;
+                                const targetUrl = 'notifications.php?lang=' + currentLang + '&notif_id=' + n.id;
                                 if (isUnread) {
                                     fetch('api/mark_notification_read.php', {
                                         method: 'POST',
