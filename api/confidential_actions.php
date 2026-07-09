@@ -85,7 +85,7 @@ if ($action === 'upload') {
     
     $stmt = $conn->prepare("INSERT INTO confidential_documents (subject, description, classification_level, file_path, allow_download, allow_view, audience_type, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
     if ($stmt) {
-        $stmt->bind_param("ssssiiii", $subject, $description, $classification_level, $file_path, $allow_download, $allow_view, $audience_type, $userId);
+        $stmt->bind_param("ssssiisi", $subject, $description, $classification_level, $file_path, $allow_download, $allow_view, $audience_type, $userId);
         if ($stmt->execute()) {
             $document_id = $stmt->insert_id;
             $stmt->close();
