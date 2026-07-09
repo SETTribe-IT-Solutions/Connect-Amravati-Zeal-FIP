@@ -449,13 +449,13 @@ include 'include/sidebar.php';
                             <?= ' (' . htmlspecialchars($headerLocationDisplay) . ')' ?>
                         </span>
                     </div>
-                    <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold text-sm border-2 border-white dark:border-slate-800 shadow-sm transition-transform duration-200 hover:scale-105 active:scale-95">
+                    <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold text-sm border border-amber-500/40 shadow-sm transition-transform duration-200 hover:scale-105 active:scale-95">
                         <?= htmlspecialchars($initials) ?>
                     </div>
                 </button>
                 
                 <!-- Dropdown Menu -->
-                <div id="profileDropdownMenu" class="hidden absolute right-0 mt-2 w-48 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div id="profileDropdownMenu" class="hidden absolute right-0 top-full mt-2 w-48 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md z-50 animate-in fade-in slide-in-from-top-2 duration-150 text-left">
                     <div class="py-1 text-left">
                         <a href="profile_update.php?lang=<?= $lang ?>" class="flex items-center px-4 py-2.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors">
                             <i data-lucide="user" class="w-4 h-4 mr-2.5 text-slate-400"></i>
@@ -497,7 +497,7 @@ include 'include/sidebar.php';
                     <i data-lucide="shield" class="w-3.5 h-3.5"></i>
                     <?= htmlspecialchars($t['badge_level']) ?> <?= $level ?> &middot; <?= htmlspecialchars($roleLabel) ?>
                 </span>
-                <button onclick="exportToCSV()" class="inline-flex items-center px-4 py-2 border border-slate-300 dark:border-slate-600 shadow-sm text-sm font-medium rounded-md text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none transition-colors">
+                <button onclick="exportToCSV()" class="inline-flex items-center px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border-2 border-blue-200 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/50 shadow-sm text-sm font-semibold rounded-md focus:outline-none transition-colors">
                     <i data-lucide="download" class="w-4 h-4 mr-2"></i><?= htmlspecialchars($t['btn_export']) ?>
                 </button>
                 <button onclick="window.print()" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-navy-600 hover:bg-navy-700 focus:outline-none transition-colors">
@@ -509,7 +509,7 @@ include 'include/sidebar.php';
         <!-- KPI SUMMARY CARDS -->
         <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
             <!-- KPI 1 -->
-            <div class="kpi-card bg-white dark:bg-slate-800 overflow-hidden shadow-sm rounded-xl border border-slate-200 dark:border-slate-700">
+            <div class="kpi-card kpi-red overflow-hidden h-full">
                 <div class="p-5">
                     <div class="flex items-center justify-between">
                         <div class="flex-1 min-w-0">
@@ -523,7 +523,7 @@ include 'include/sidebar.php';
                 </div>
             </div>
             <!-- KPI 2 -->
-            <div class="kpi-card bg-white dark:bg-slate-800 overflow-hidden shadow-sm rounded-xl border border-slate-200 dark:border-slate-700">
+            <div class="kpi-card kpi-orange overflow-hidden h-full">
                 <div class="p-5">
                     <div class="flex items-center justify-between">
                         <div class="flex-1 min-w-0">
@@ -537,7 +537,7 @@ include 'include/sidebar.php';
                 </div>
             </div>
             <!-- KPI 3 -->
-            <div class="kpi-card bg-white dark:bg-slate-800 overflow-hidden shadow-sm rounded-xl border border-slate-200 dark:border-slate-700">
+            <div class="kpi-card kpi-blue overflow-hidden h-full">
                 <div class="p-5">
                     <div class="flex items-center justify-between">
                         <div class="flex-1 min-w-0">
@@ -551,7 +551,7 @@ include 'include/sidebar.php';
                 </div>
             </div>
             <!-- KPI 4 -->
-            <div class="kpi-card bg-white dark:bg-slate-800 overflow-hidden shadow-sm rounded-xl border border-slate-200 dark:border-slate-700">
+            <div class="kpi-card kpi-green overflow-hidden h-full">
                 <div class="p-5">
                     <div class="flex items-center justify-between">
                         <div class="flex-1 min-w-0">
@@ -822,8 +822,8 @@ include 'include/sidebar.php';
                     </div>
                     <input type="text" id="reportModalSearch" oninput="filterReportModalTasks()" placeholder="Search report..." class="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none">
                 </div>
-                <button onclick="exportReportToCSV()" class="inline-flex items-center px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm bg-white dark:bg-slate-850 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700">
-                    <i data-lucide="download-cloud" class="w-4 h-4 mr-2 text-slate-500"></i>Export CSV
+                <button onclick="exportReportToCSV()" class="inline-flex items-center px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border-2 border-blue-200 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/50 rounded-lg text-sm font-semibold transition-colors">
+                    <i data-lucide="download-cloud" class="w-4 h-4 mr-2 text-blue-500"></i>Export CSV
                 </button>
             </div>
             <div class="px-6 py-4 max-h-[50vh] overflow-y-auto bg-slate-50 dark:bg-slate-900/10">

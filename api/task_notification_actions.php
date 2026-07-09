@@ -503,24 +503,59 @@ elseif ($action === 'reassign_task') {
         exit;
     }
     
-    $newAssigneeId = (int)($_POST['new_assignee_id'] ?? 0);
-    if (!$newAssigneeId) {
-        echo json_encode(['status' => 'error', 'message' => 'New assignee is required.']);
+    // Support single and multiple assignees
+    $newAssigneeIds = [];
+    if (isset($_POST['new_assignee_ids']) && is_array($_POST['new_assignee_ids'])) {
+        foreach ($_POST['new_assignee_ids'] as $uid) {
+            $val = (int)$uid;
+            if ($val > 0) $newAssigneeIds[] = $val;
+        }
+    } elseif (!empty($_POST['new_assignee_id'])) {
+        $newAssigneeIds[] = (int)$_POST['new_assignee_id'];
+    }
+
+    if (empty($newAssigneeIds)) {
+        echo json_encode(['status' => 'error', 'message' => 'At least one new assignee is required.']);
         exit;
     }
 
-    // Get current status
-    $statusRes = $conn->query("SELECT status, task_title FROM tasks WHERE task_id = $taskId LIMIT 1");
+    // Fetch original task info
+    $statusRes = $conn->query("SELECT * FROM tasks WHERE task_id = $taskId LIMIT 1");
     if ($statusRes && $statusRes->num_rows > 0) {
-        $row = $statusRes->fetch_assoc();
-        $oldStatus = $row['status'];
-        $taskTitle = $row['task_title'];
+        $origTask = $statusRes->fetch_assoc();
+        $oldStatus = $origTask['status'];
+        $taskTitle = $origTask['task_title'];
 
-        // Update tasks table
-        $conn->query("UPDATE tasks SET assigned_user_id = $newAssigneeId, status = 'Reassigned' WHERE task_id = $taskId");
+        // We process the first assignee: update the original task
+        $firstAssigneeId = array_shift($newAssigneeIds);
+        
+        // Lookup first assignee's department, role, location data
+        $first_dept_id = $origTask['department_id'];
+        $first_role_id = $origTask['assigned_role_id'];
+        $first_district = $origTask['district_id'];
+        $first_taluka   = $origTask['taluka_id'];
+        $first_village  = $origTask['village_id'];
+
+        $u_res = $conn->query("SELECT department_id, role_id, district_id, taluka_id, village_id FROM users WHERE user_id = $firstAssigneeId AND status = 'Active' LIMIT 1");
+        if ($u_res && $u_row = $u_res->fetch_assoc()) {
+            $first_dept_id = !empty($u_row['department_id']) ? (int)$u_row['department_id'] : $first_dept_id;
+            $first_role_id = !empty($u_row['role_id'])       ? (int)$u_row['role_id']       : $first_role_id;
+            $first_district = !empty($u_row['district_id'])   ? (int)$u_row['district_id']   : null;
+            $first_taluka   = !empty($u_row['taluka_id'])     ? (int)$u_row['taluka_id']     : null;
+            $first_village  = !empty($u_row['village_id'])    ? (int)$u_row['village_id']    : null;
+        }
+
+        $f_dept_sql = $first_dept_id ? (int)$first_dept_id : 'NULL';
+        $f_role_sql = $first_role_id ? (int)$first_role_id : 'NULL';
+        $f_dist_sql = $first_district ? (int)$first_district : 'NULL';
+        $f_tal_sql  = $first_taluka ? (int)$first_taluka : 'NULL';
+        $f_vil_sql  = $first_village ? (int)$first_village : 'NULL';
+
+        // Update the tasks table for the first assignee
+        $conn->query("UPDATE tasks SET assigned_user_id = $firstAssigneeId, department_id = $f_dept_sql, assigned_role_id = $f_role_sql, district_id = $f_dist_sql, taluka_id = $f_tal_sql, village_id = $f_vil_sql, status = 'Reassigned', updated_at = NOW() WHERE task_id = $taskId");
         
         // Update task_assignments table
-        $conn->query("UPDATE task_assignments SET assigned_to_user = $newAssigneeId, status = 'Reassigned' WHERE task_id = $taskId");
+        $conn->query("UPDATE task_assignments SET assigned_to_user = $firstAssigneeId, assigned_to_role = $f_role_sql, status = 'Reassigned' WHERE task_id = $taskId");
         
         // Add to task_status_history
         $stmtHist = $conn->prepare("INSERT INTO task_status_history (task_id, old_status, new_status, changed_by, change_date, remarks) VALUES (?, ?, 'Reassigned', ?, NOW(), 'Task transferred to new member.')");
@@ -531,10 +566,99 @@ elseif ($action === 'reassign_task') {
         }
 
         // Notify new assignee
-        createTaskNotification($conn, 'Task', 'Task Reassigned', "You have been reassigned a new task: $taskTitle.", $taskId, $userId, $newAssigneeId);
+        createTaskNotification($conn, 'Task', 'Task Reassigned', "You have been reassigned a new task: $taskTitle.", $taskId, $userId, $firstAssigneeId);
 
         // Audit Log
-        logAuditAction($conn, $userId, $taskId, 'Task Reassigned', "Task reassigned to user ID $newAssigneeId");
+        logAuditAction($conn, $userId, $taskId, 'Task Reassigned', "Task reassigned to user ID $firstAssigneeId");
+
+        // Loop over any remaining assignee IDs and create duplicate tasks for them!
+        foreach ($newAssigneeIds as $nextAssigneeId) {
+            $next_dept_id = $origTask['department_id'];
+            $next_role_id = $origTask['assigned_role_id'];
+            $next_district = $origTask['district_id'];
+            $next_taluka   = $origTask['taluka_id'];
+            $next_village  = $origTask['village_id'];
+
+            $u_res2 = $conn->query("SELECT department_id, role_id, district_id, taluka_id, village_id FROM users WHERE user_id = $nextAssigneeId AND status = 'Active' LIMIT 1");
+            if ($u_res2 && $u_row2 = $u_res2->fetch_assoc()) {
+                $next_dept_id = !empty($u_row2['department_id']) ? (int)$u_row2['department_id'] : $next_dept_id;
+                $next_role_id = !empty($u_row2['role_id'])       ? (int)$u_row2['role_id']       : $next_role_id;
+                $next_district = !empty($u_row2['district_id'])   ? (int)$u_row2['district_id']   : null;
+                $next_taluka   = !empty($u_row2['taluka_id'])     ? (int)$u_row2['taluka_id']     : null;
+                $next_village  = !empty($u_row2['village_id'])    ? (int)$u_row2['village_id']    : null;
+            }
+
+            // Build SQL literals for duplication
+            $d_dept_sql  = $next_dept_id ? (int)$next_dept_id : 'NULL';
+            $d_role_sql  = $next_role_id ? (int)$next_role_id : 'NULL';
+            $d_dist_sql  = $next_district ? (int)$next_district : 'NULL';
+            $d_tal_sql   = $next_taluka ? (int)$next_taluka : 'NULL';
+            $d_vil_sql   = $next_village ? (int)$next_village : 'NULL';
+
+            $t_title_esc = $conn->real_escape_string($origTask['task_title']);
+            $t_desc_esc  = $conn->real_escape_string($origTask['task_description']);
+            $t_pri_esc   = $conn->real_escape_string($origTask['priority']);
+            $t_cat_sql   = $origTask['task_category'] ? "'" . $conn->real_escape_string($origTask['task_category']) . "'" : 'NULL';
+            $t_due_sql   = $origTask['due_date'] ? "'" . $origTask['due_date'] . "'" : 'NULL';
+            $t_rem_sql   = $origTask['remarks'] ? "'" . $conn->real_escape_string($origTask['remarks']) . "'" : 'NULL';
+            
+            $tmp_no = 'TASK_TMP_' . time() . '_' . rand(100, 999);
+
+            $ins_sql = "INSERT INTO tasks
+                            (task_no, task_title, task_description, priority, task_category,
+                             department_id, created_by, assigned_role_id, assigned_user_id,
+                             district_id, taluka_id, village_id,
+                             due_date, status, remarks)
+                        VALUES
+                            ('" . $conn->real_escape_string($tmp_no) . "',
+                             '$t_title_esc', '$t_desc_esc', '$t_pri_esc', $t_cat_sql,
+                             $d_dept_sql, {$origTask['created_by']}, $d_role_sql, $nextAssigneeId,
+                             $d_dist_sql, $d_tal_sql, $d_vil_sql,
+                             $t_due_sql, 'Reassigned', $t_rem_sql)";
+
+            if ($conn->query($ins_sql)) {
+                $new_tid = $conn->insert_id;
+
+                // Sequentially pad task_no
+                $seq_res = $conn->query("SELECT COUNT(*) AS cnt FROM tasks WHERE task_id <= $new_tid");
+                $seq_row = $seq_res ? $seq_res->fetch_assoc() : null;
+                $seq_num = (int)($seq_row['cnt'] ?? $new_tid);
+                $new_no_str = 'TASK_' . str_pad($seq_num, 3, '0', STR_PAD_LEFT);
+
+                $conn->query("UPDATE tasks SET task_no = '" . $conn->real_escape_string($new_no_str) . "' WHERE task_id = $new_tid");
+
+                // Duplicate attachments/remarks
+                $doc_res = $conn->query("SELECT * FROM task_documents WHERE task_id = $taskId");
+                if ($doc_res) {
+                    while ($doc_row = $doc_res->fetch_assoc()) {
+                        $f_name_esc = $conn->real_escape_string($doc_row['file_name']);
+                        $f_path_esc = $conn->real_escape_string($doc_row['file_path']);
+                        $conn->query("INSERT INTO task_documents (task_id, file_name, file_path, uploaded_by) VALUES ($new_tid, '$f_name_esc', '$f_path_esc', {$doc_row['uploaded_by']})");
+                    }
+                }
+                
+                $rem_res = $conn->query("SELECT * FROM task_remarks WHERE task_id = $taskId");
+                if ($rem_res) {
+                    while ($rem_row = $rem_res->fetch_assoc()) {
+                        $rem_esc = $conn->real_escape_string($rem_row['remark_text']);
+                        $conn->query("INSERT INTO task_remarks (task_id, user_id, remark_text, status_after_remark, created_at) VALUES ($new_tid, {$rem_row['user_id']}, '$rem_esc', 'Pending', NOW())");
+                    }
+                }
+
+                // Insert activity log
+                $act_desc = $conn->real_escape_string("Task duplicated via transfer reassignment.");
+                $conn->query("INSERT INTO task_activity_logs (task_id, user_id, activity_type, description, activity_time) VALUES ($new_tid, $userId, 'Task Created', '$act_desc', NOW())");
+
+                // Insert task assignments
+                $conn->query("INSERT INTO task_assignments (task_id, assigned_from_user, assigned_to_user, assigned_to_role, assigned_date, status) VALUES ($new_tid, $userId, $nextAssigneeId, $d_role_sql, NOW(), 'Reassigned')");
+
+                // Notify new assignee
+                createTaskNotification($conn, 'Task', 'Task Reassigned', "You have been assigned a transferred task: $taskTitle.", $new_tid, $userId, $nextAssigneeId);
+
+                // Audit Log
+                logAuditAction($conn, $userId, $new_tid, 'Task Reassigned', "Task created via transfer to user ID $nextAssigneeId");
+            }
+        }
 
         echo json_encode(['status' => 'success', 'message' => 'Task transferred successfully.']);
     } else {
@@ -542,6 +666,7 @@ elseif ($action === 'reassign_task') {
     }
     exit;
 }
+
 elseif ($action === 'hold_task') {
     if ($assignedUserId !== $userId && $creatorId !== $userId && !$isL1) {
         echo json_encode(['status' => 'error', 'message' => 'Permission denied.']);

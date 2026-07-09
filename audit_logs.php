@@ -148,11 +148,11 @@ include 'include/sidebar.php';
                         <span class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($sName) ?></span>
                         <span class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($sRole) ?> (<?= htmlspecialchars($headerLocationDisplay) ?>)</span>
                     </div>
-                    <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border-2 border-white shadow-sm">
+                    <div class="h-9 w-9 rounded-full bg-navy-600 flex items-center justify-center text-white font-bold border border-amber-500/40 shadow-sm">
                         <?= strtoupper(substr($sName, 0, 1)) ?>
                     </div>
                 </button>
-                <div id="profileDropdownMenu" class="hidden absolute right-0 mt-2 w-48 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 z-50">
+                <div id="profileDropdownMenu" class="hidden absolute right-0 top-full mt-2 w-48 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 z-50 text-left">
                     <div class="py-1">
                         <a href="profile_update.php" class="flex items-center px-4 py-2.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
                             <i data-lucide="user" class="w-4 h-4 mr-2 text-slate-400"></i>Update Profile
@@ -232,13 +232,14 @@ include 'include/sidebar.php';
 
         <!-- Filter Bar -->
         <div class="bg-white dark:bg-slate-950 border border-slate-200/70 dark:border-slate-800/80 rounded-2xl p-4 shadow-sm">
-            <form action="audit_logs.php" method="GET" class="flex flex-col md:flex-row gap-3 items-center">
+            <form action="audit_logs.php" method="GET" class="flex flex-col md:flex-row gap-3 items-center" id="auditSearchForm" onsubmit="return validateAuditSearch(event)">
                 <input type="hidden" name="lang" value="<?= $lang ?>">
                 <div class="flex-1 relative">
-                    <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
-                    <input type="text" name="search" value="<?= htmlspecialchars($searchQuery) ?>"
-                        placeholder="Search by name, action, or values..."
-                        class="w-full pl-10 pr-4 py-2.5 border border-slate-200 dark:border-slate-800 dark:bg-slate-900 dark:text-white rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                    <i data-lucide="search" class="w-4 h-4 text-navy-500 dark:text-blue-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                    <input type="text" name="search" id="auditSearchInput" value="<?= htmlspecialchars($searchQuery) ?>"
+                        placeholder="Search by name, action, or values... (Press Enter)"
+                        autocomplete="off"
+                        class="w-full pl-10 pr-4 py-2.5 border-2 border-slate-200 dark:border-slate-800 dark:bg-slate-900 dark:text-white rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
                 </div>
                 <div class="w-full md:w-56">
                     <select name="module" onchange="this.form.submit()"
@@ -250,7 +251,7 @@ include 'include/sidebar.php';
                     </select>
                 </div>
                 <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-all flex items-center gap-2">
-                    <i data-lucide="filter" class="w-4 h-4"></i> Filter
+                    <i data-lucide="search" class="w-4 h-4"></i> Search
                 </button>
                 <?php if ($filterModule !== 'All' || !empty($searchQuery)): ?>
                     <a href="audit_logs.php?lang=<?= $lang ?>" class="px-4 py-2.5 text-slate-500 hover:text-red-500 dark:text-slate-400 text-sm flex items-center gap-1.5 transition-colors">
@@ -259,6 +260,41 @@ include 'include/sidebar.php';
                 <?php endif; ?>
             </form>
         </div>
+        <?php if (!empty($searchQuery) && empty($auditLogs)): ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'No Records Found',
+                    html: '<p>No audit records found for <strong>"<?= htmlspecialchars(addslashes($searchQuery)) ?>"</strong>.</p><p class="text-sm text-slate-500 mt-1">Please enter correct data and try again.</p>',
+                    confirmButtonColor: '#4f46e5',
+                    confirmButtonText: 'OK'
+                });
+            }
+        });
+        </script>
+        <?php endif; ?>
+        <script>
+        function validateAuditSearch(e) {
+            const input = document.getElementById('auditSearchInput');
+            if (input && input.value.trim().length > 0 && input.value.trim().length < 2) {
+                e.preventDefault();
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Search Too Short',
+                        text: 'Please enter at least 2 characters to search.',
+                        confirmButtonColor: '#4f46e5',
+                        confirmButtonText: 'OK'
+                    });
+                }
+                return false;
+            }
+            return true;
+        }
+        </script>
+
 
         <!-- Timeline Activity Feed -->
         <?php if (empty($auditLogs)): ?>

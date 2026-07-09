@@ -80,8 +80,8 @@ $T = [
 $t = $T[$lang];
 
 // ── Constants ──────────────────────────────────────────────────────────────
-if (!defined('MAX_ATTEMPTS'))    define('MAX_ATTEMPTS',    3);
-if (!defined('LOCKOUT_MINUTES')) define('LOCKOUT_MINUTES', 15);
+if (!defined('MAX_ATTEMPTS'))    define('MAX_ATTEMPTS',    5);
+if (!defined('LOCKOUT_MINUTES')) define('LOCKOUT_MINUTES', 2);
 
 // ── State ──────────────────────────────────────────────────────────────────
 $error_message     = '';
@@ -387,7 +387,7 @@ close_db_connection();
 ?>
 <?php
 $pageTitle = htmlspecialchars($t['title']);
-$bodyClass = "min-h-screen flex flex-col md:flex-row bg-white font-sans overflow-hidden";
+$bodyClass = "min-h-screen flex flex-col md:flex-row bg-white font-sans overflow-x-hidden overflow-y-auto";
 include 'include/header.php';
 ?>
 
@@ -408,26 +408,81 @@ include 'include/header.php';
     </div>
 
     <!-- Right Side -->
-    <div class="w-full md:w-1/2 lg:w-2/5 flex flex-col justify-between min-h-screen px-8 py-10 lg:px-12 xl:px-16 relative bg-slate-50">
+    <div class="w-full md:w-1/2 lg:w-2/5 flex flex-col justify-between min-h-screen px-8 py-6 lg:py-8 lg:px-12 xl:px-16 relative bg-slate-50">
 
-        <header class="flex justify-between items-center mb-8 mt-4">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-gradient-to-br from-govgreen-500 to-govgreen-600 rounded-xl flex items-center justify-center shadow-official">
-                    <i data-lucide="landmark" class="w-5 h-5 text-white"></i>
-                </div>
-                <span class="font-bold text-xl text-slate-800 tracking-tight font-formal uppercase">Collector Office</span>
+        <style>
+            .login-card-input {
+                border-radius: 0.75rem !important;
+                border: 2px solid #334155 !important; /* Light Black / Slate-700 border */
+                padding: 0.8rem 1rem 0.8rem 2.75rem !important;
+                background-color: #ffffff !important;
+                transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                color: #1e293b !important;
+                font-size: 0.875rem !important;
+                box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.02) !important;
+            }
+            .login-card-input:hover {
+                border-color: #e19022 !important; /* Gold on hover */
+            }
+            .login-card-input:focus {
+                border-color: #0054a4 !important;
+                box-shadow: 0 0 0 4px rgba(0, 84, 164, 0.15), 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+                background-color: #ffffff !important;
+            }
+            .dark .login-card-input {
+                border-color: #94a3b8 !important; /* Slate-400 in dark mode */
+                background-color: #0f172a !important;
+                color: #f1f5f9 !important;
+            }
+            .dark .login-card-input:hover {
+                border-color: #e19022 !important;
+            }
+            .dark .login-card-input:focus {
+                border-color: #3387d7 !important;
+                box-shadow: 0 0 0 4px rgba(51, 135, 215, 0.25), 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+                background-color: #0f172a !important;
+            }
+            .login-relative:focus-within svg,
+            .login-relative:focus-within i {
+                color: #e19022 !important;
+            }
+            .login-submit-btn {
+                background: linear-gradient(135deg, #003f7b, #0054a4) !important;
+                border: 1px solid rgba(225, 144, 34, 0.2) !important;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            }
+            .login-submit-btn:hover {
+                background: linear-gradient(135deg, #004d96, #0060ba) !important;
+                box-shadow: 0 4px 20px rgba(225, 144, 34, 0.3) !important;
+                border-color: rgba(225, 144, 34, 0.5) !important;
+                transform: translateY(-1px);
+            }
+        </style>
+
+        <!-- Header with Centered Text between Golden Logos -->
+        <header class="flex items-center justify-between mb-4 mt-2 w-full bg-amber-50/60 dark:bg-amber-950/20 py-2.5 px-4 rounded-2xl border border-amber-200/50 dark:border-amber-900/30 shadow-[0_2px_12px_rgba(225,144,34,0.04)]">
+            <!-- Seal of Maharashtra -->
+            <img src="assets/images/maharashtra_seal.jpg" alt="Seal of Maharashtra" class="h-12 w-auto flex-shrink-0" style="filter: sepia(100%) saturate(350%) brightness(75%) hue-rotate(340deg) contrast(150%); mix-blend-mode: multiply;">
+            
+            <!-- Centered Text -->
+            <div class="text-center flex-1 px-3">
+                <span class="font-extrabold text-xs sm:text-sm text-slate-850 dark:text-slate-100 tracking-wide font-formal uppercase block leading-tight"><?= $lang === 'en' ? 'Collector Office, Amravati' : 'जिल्हाधिकारी कार्यालय, अमरावती' ?></span>
+                <span class="text-[10px] sm:text-xs text-amber-600 dark:text-amber-500 font-extrabold block mt-0.5 leading-none uppercase tracking-wider"><?= $lang === 'en' ? 'Government of Maharashtra' : 'महाराष्ट्र शासन' ?></span>
             </div>
+            
+            <!-- Satyamev Jayate (Emblem of India) -->
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" alt="Emblem of India" class="h-12 w-auto flex-shrink-0" style="filter: sepia(100%) saturate(300%) brightness(85%) hue-rotate(340deg) contrast(110%);">
         </header>
 
         <main class="flex-1 flex flex-col justify-center">
-            <div class="mb-8">
-                <span class="inline-block py-1 px-3 rounded-full bg-navy-50 text-navy-700 text-xs font-bold uppercase tracking-wider mb-3 border border-navy-100">Welcome</span>
-                <h2 class="text-3xl font-bold text-slate-900 tracking-tight mb-2 font-formal uppercase"><?php echo htmlspecialchars($t['heading']); ?></h2>
+            <div class="mb-5">
+                <span class="inline-block py-1 px-3 rounded-full bg-navy-50 text-navy-700 text-xs font-bold uppercase tracking-wider mb-2 border border-navy-100">Welcome</span>
+                <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight mb-1 font-formal uppercase"><?php echo htmlspecialchars($t['heading']); ?></h2>
                 <p class="text-sm text-slate-500 font-medium"><?php echo htmlspecialchars($t['sub']); ?></p>
             </div>
 
             <!-- Language Toggle -->
-            <div class="flex mb-6">
+            <div class="flex mb-4">
                 <?php if ($lang === 'en'): ?>
                     <a href="login.php?lang=mr" class="inline-flex items-center text-xs font-semibold text-navy-600 hover:text-navy-800 transition-colors bg-white px-3 py-1.5 rounded-full border border-slate-200 shadow-sm">
                         <i data-lucide="globe" class="w-3 h-3 mr-1.5"></i> Switch to मराठी (MR)
@@ -438,6 +493,34 @@ include 'include/header.php';
                     </a>
                 <?php endif; ?>
             </div>
+
+            <!-- Premium Glassmorphic Login Card -->
+            <div class="bg-amber-50/60 dark:bg-amber-950/20 backdrop-blur-lg rounded-2xl p-6 sm:p-8 border border-amber-200/50 dark:border-amber-900/30 shadow-[0_8px_30px_rgba(225,144,34,0.04)]">
+
+                <!-- Tab Navigation (Login vs Register) -->
+                <div class="flex border-b border-slate-200 dark:border-slate-700 mb-6 bg-slate-100/55 dark:bg-slate-900/20 p-1 rounded-xl">
+                    <button class="flex-1 text-center py-2 text-sm font-bold bg-white dark:bg-slate-800 rounded-lg text-navy-700 dark:text-blue-400 shadow-sm border border-slate-200/40 dark:border-slate-700/40">
+                        <i data-lucide="log-in" class="w-4 h-4 inline-block mr-1.5 align-text-bottom"></i><?= $lang === 'en' ? 'Login' : 'लॉगिन' ?>
+                    </button>
+                    <a href="register.php?lang=<?= $lang ?>" class="flex-1 text-center py-2 text-sm font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-lg transition-all" style="text-decoration: none;">
+                        <i data-lucide="user-plus" class="w-4 h-4 inline-block mr-1.5 align-text-bottom text-slate-400"></i><?= $lang === 'en' ? 'Register' : 'नोंदणी' ?>
+                    </a>
+                </div>
+
+                <!-- Registration Success Banner -->
+                <?php if (isset($_SESSION['registration_success'])): ?>
+                    <script>
+                        window.addEventListener('DOMContentLoaded', () => {
+                            Swal.fire({
+                                icon: 'success',
+                                title: '<?= $lang === 'en' ? 'Registration Submitted' : 'नोंदणी सबमिट केली' ?>',
+                                text: '<?= htmlspecialchars($_SESSION['registration_success']) ?>',
+                                confirmButtonColor: '#0054a4'
+                            });
+                        });
+                    </script>
+                    <?php unset($_SESSION['registration_success']); ?>
+                <?php endif; ?>
 
             <?php if ($is_locked): ?>
             <!-- ════ LOCKOUT CARD WITH COUNTDOWN ════ -->
@@ -481,23 +564,23 @@ include 'include/header.php';
             <form class="space-y-4 opacity-40 pointer-events-none select-none" aria-disabled="true">
                 <div>
                     <label class="block text-sm font-semibold text-slate-700 mb-1.5"><?php echo htmlspecialchars($t['lbl_user']); ?></label>
-                    <div class="relative">
+                    <div class="relative login-relative">
                         <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                             <i data-lucide="user" class="w-5 h-5 text-slate-400"></i>
                         </div>
-                        <input type="text" disabled placeholder="e.g. EMP12345 or user@domain.gov.in" class="input-modern w-full pl-11 pr-4 cursor-not-allowed">
+                        <input type="text" disabled placeholder="e.g. EMP12345 or user@domain.gov.in" class="login-card-input w-full cursor-not-allowed">
                     </div>
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-slate-700 mb-1.5"><?php echo htmlspecialchars($t['lbl_pass']); ?></label>
-                    <div class="relative">
+                    <div class="relative login-relative">
                         <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                             <i data-lucide="lock" class="w-5 h-5 text-slate-400"></i>
                         </div>
-                        <input type="password" disabled placeholder="••••••••" class="input-modern w-full pl-11 pr-4 cursor-not-allowed">
+                        <input type="password" disabled placeholder="••••••••" class="login-card-input w-full cursor-not-allowed">
                     </div>
                 </div>
-                <button type="button" disabled class="w-full flex justify-center items-center py-3 px-4 rounded-xl text-sm font-bold text-white bg-slate-400 cursor-not-allowed mt-2 uppercase tracking-wider">
+                <button type="button" disabled class="w-full flex justify-center items-center py-3.5 px-4 rounded-xl text-sm font-bold text-white bg-slate-400 cursor-not-allowed mt-2 uppercase tracking-wider">
                     <i data-lucide="lock" class="w-4 h-4 mr-2"></i> Account Locked
                 </button>
             </form>
@@ -551,14 +634,14 @@ include 'include/header.php';
 
                 <div>
                     <label for="username" class="block text-sm font-semibold text-slate-700 mb-1.5"><?php echo htmlspecialchars($t['lbl_user']); ?></label>
-                    <div class="relative">
+                    <div class="relative login-relative">
                         <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                             <i data-lucide="user" class="w-5 h-5 text-slate-400"></i>
                         </div>
                         <input type="text" id="username" name="username" required autofocus
                             placeholder="e.g. EMP12345 or user@domain.gov.in"
                             value="<?php echo htmlspecialchars($_POST['username'] ?? ''); ?>"
-                            class="input-modern w-full pl-11 pr-4">
+                            class="login-card-input w-full">
                     </div>
                 </div>
 
@@ -567,13 +650,13 @@ include 'include/header.php';
                         <label for="password" class="block text-sm font-semibold text-slate-700"><?php echo htmlspecialchars($t['lbl_pass']); ?></label>
                         <a href="passwordReset.php" class="text-xs font-medium text-navy-600 hover:text-navy-800 transition-colors"><?php echo htmlspecialchars($t['forgot']); ?></a>
                     </div>
-                    <div class="relative">
+                    <div class="relative login-relative">
                         <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                             <i data-lucide="lock" class="w-5 h-5 text-slate-400"></i>
                         </div>
                         <input type="password" id="password" name="password" required
                             placeholder="••••••••" minlength="4"
-                            class="input-modern w-full pl-11 pr-12">
+                            class="login-card-input w-full pr-12">
                         <button type="button" onclick="togglePassword()"
                             class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-navy-600 transition-colors">
                             <i data-lucide="eye" id="eyeIcon" class="w-5 h-5"></i>
@@ -591,7 +674,7 @@ include 'include/header.php';
                 <?php endif; ?>
 
                 <button type="submit" id="loginBtn"
-                    class="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-xl shadow-official text-sm font-bold text-white bg-gradient-to-r from-navy-600 to-navy-500 hover:from-navy-700 hover:to-navy-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-navy-500 transition-all duration-200 transform hover:-translate-y-0.5 mt-2 uppercase tracking-wider">
+                    class="w-full flex justify-center items-center py-3.5 px-4 rounded-xl shadow-md text-sm font-bold text-white login-submit-btn focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-all duration-200 transform hover:-translate-y-0.5 mt-2 uppercase tracking-wider">
                     <i data-lucide="log-in" class="w-4 h-4 mr-2"></i>
                     <span id="btnText"><?php echo htmlspecialchars($t['btn']); ?></span>
                 </button>
@@ -617,9 +700,10 @@ include 'include/header.php';
             </script>
 
             <?php endif; ?>
+            </div>
         </main>
 
-        <footer class="mt-8 pt-6 border-t border-slate-200 text-center">
+        <footer class="mt-6 pt-4 border-t border-slate-200 text-center">
             <p class="text-xs text-slate-500 font-medium">&copy; <?php echo date('Y'); ?> AMRAVATI CONNECT. All rights reserved.</p>
         </footer>
     </div>
