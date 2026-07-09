@@ -93,14 +93,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['give_appreciation']))
                 // Set attachment path link pointing to the appreciations page
                 $notifAttachment = "appreciations.php?view_id=" . $appreciationId;
                 
-                $stmtNotif = $conn->prepare("INSERT INTO notifications (notification_type, title, message, sender_id, receiver_id, status, attachment_path, certificate_id) VALUES ('System', ?, ?, ?, ?, 'Unread', ?, ?)");
-                $stmtNotif->bind_param("ssiisi", $notifTitle, $notifMsg, $userId, $recipientId, $notifAttachment, $appreciationId);
+                $stmtNotif = $conn->prepare("INSERT INTO notifications (notification_type, title, message, sender_id, receiver_id, status, attachment_path, certificate_id, redirect_url) VALUES ('System', ?, ?, ?, ?, 'Unread', ?, ?, ?)");
+                $stmtNotif->bind_param("ssiisis", $notifTitle, $notifMsg, $userId, $recipientId, $notifAttachment, $appreciationId, $notifAttachment);
                 $stmtNotif->execute();
                 $stmtNotif->close();
 
                 // Fetch Recipient Email details
                 $resRecip = $conn->query("SELECT full_name, email FROM users WHERE user_id = $recipientId LIMIT 1");
                 $recipientUser = $resRecip ? $resRecip->fetch_assoc() : null;
+
+                $alert_msg = $t['success_sent'];
+                $alert_type = 'success';
 
                 if ($recipientUser && !empty($recipientUser['email'])) {
                     $toEmail = $recipientUser['email'];
@@ -155,16 +158,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['give_appreciation']))
                     ";
 
                     if (SMTP_ENABLED) {
-                        send_smtp_email(
-                            $toEmail, $subject, $emailHtml,
-                            SMTP_USER, SMTP_FROM_NAME,
-                            SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SECURE
-                        );
+                        try {
+                            send_smtp_email(
+                                $toEmail, $subject, $emailHtml,
+                                SMTP_USER, SMTP_FROM_NAME,
+                                SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SECURE
+                            );
+                        } catch (Throwable $mailEx) {
+                            error_log("Failed to send SMTP email: " . $mailEx->getMessage());
+                            $alert_msg = "Appreciation certificate issued successfully, but email notification could not be dispatched.";
+                            $alert_type = 'warning';
+                        }
                     }
                 }
-
-                $alert_msg = $t['success_sent'];
-                $alert_type = 'success';
             }
         } catch (Throwable $e) {
             $alert_msg = "Error issuing appreciation: " . $e->getMessage();

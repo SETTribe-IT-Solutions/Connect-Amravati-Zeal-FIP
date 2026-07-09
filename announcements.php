@@ -3,7 +3,7 @@ session_start();
 
 // Database Connection
 require_once 'include/dbConfig.php';
-$db_connected = true;
+$db_connected = (isset($conn) && $conn instanceof mysqli);
 
 // Session Defaults for Dev
 if (empty($_SESSION['user_id'])) {
@@ -542,7 +542,7 @@ include 'include/sidebar.php';
                 <div onclick="switchTab('all_annc')" class="cursor-pointer kpi-card kpi-blue p-5 rounded-xl flex flex-col justify-between hover:scale-[1.03] transition-all duration-200">
                     <p class="text-xs font-bold uppercase tracking-wider opacity-90">Total Annc</p>
                     <div class="flex items-baseline justify-between mt-3">
-                        <span class="text-2xl font-extrabold text-white"><?= $totalAnnc ?></span>
+                        <span id="kpi-total-annc" class="text-2xl font-extrabold text-white"><?= $totalAnnc ?></span>
                         <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
                             <i data-lucide="megaphone" class="w-4 h-4 text-white"></i>
                         </div>
@@ -552,7 +552,7 @@ include 'include/sidebar.php';
                 <div onclick="switchTab('all_annc')" class="cursor-pointer kpi-card kpi-green p-5 rounded-xl flex flex-col justify-between hover:scale-[1.03] transition-all duration-200">
                     <p class="text-xs font-bold uppercase tracking-wider opacity-90">Active Annc</p>
                     <div class="flex items-baseline justify-between mt-3">
-                        <span class="text-2xl font-extrabold text-white"><?= $activeAnnc ?></span>
+                        <span id="kpi-active-annc" class="text-2xl font-extrabold text-white"><?= $activeAnnc ?></span>
                         <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
                             <i data-lucide="bell" class="w-4 h-4 text-white"></i>
                         </div>
@@ -562,7 +562,7 @@ include 'include/sidebar.php';
                 <div onclick="switchTab('meetings')" class="cursor-pointer kpi-card kpi-orange p-5 rounded-xl flex flex-col justify-between hover:scale-[1.03] transition-all duration-200">
                     <p class="text-xs font-bold uppercase tracking-wider opacity-90">Upcoming Mtgs</p>
                     <div class="flex items-baseline justify-between mt-3">
-                        <span class="text-2xl font-extrabold text-white"><?= $upcomingMeetings ?></span>
+                        <span id="kpi-upcoming-meetings" class="text-2xl font-extrabold text-white"><?= $upcomingMeetings ?></span>
                         <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
                             <i data-lucide="calendar" class="w-4 h-4 text-white"></i>
                         </div>
@@ -572,7 +572,7 @@ include 'include/sidebar.php';
                 <div onclick="switchTab('meetings')" class="cursor-pointer kpi-card kpi-red p-5 rounded-xl flex flex-col justify-between hover:scale-[1.03] transition-all duration-200">
                     <p class="text-xs font-bold uppercase tracking-wider opacity-90">Live Meetings</p>
                     <div class="flex items-baseline justify-between mt-3">
-                        <span class="text-2xl font-extrabold text-white"><?= $liveMeetings ?></span>
+                        <span id="kpi-live-meetings" class="text-2xl font-extrabold text-white"><?= $liveMeetings ?></span>
                         <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
                             <i data-lucide="video" class="w-4 h-4 text-white"></i>
                         </div>
@@ -582,17 +582,17 @@ include 'include/sidebar.php';
                 <div onclick="switchTab('messages')" class="cursor-pointer kpi-card kpi-indigo p-5 rounded-xl flex flex-col justify-between hover:scale-[1.03] transition-all duration-200">
                     <p class="text-xs font-bold uppercase tracking-wider opacity-90">Unread Msgs</p>
                     <div class="flex items-baseline justify-between mt-3">
-                        <span class="text-2xl font-extrabold text-white"><?= $unreadMsgs ?></span>
+                        <span id="kpi-unread-msgs" class="text-2xl font-extrabold text-white"><?= $unreadMsgs ?></span>
                         <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
                             <i data-lucide="mail" class="w-4 h-4 text-white"></i>
                         </div>
                     </div>
                 </div>
                 <!-- Card 6 -->
-                <div class="kpi-card kpi-purple p-5 rounded-xl flex flex-col justify-between hover:scale-[1.03] transition-all duration-200">
+                <div onclick="location.href='notifications.php?lang=<?= $lang ?>'" class="cursor-pointer kpi-card kpi-purple p-5 rounded-xl flex flex-col justify-between hover:scale-[1.03] transition-all duration-200">
                     <p class="text-xs font-bold uppercase tracking-wider opacity-90">Notifications</p>
                     <div class="flex items-baseline justify-between mt-3">
-                        <span class="text-2xl font-extrabold text-white"><?= $unreadNotifs ?></span>
+                        <span id="kpi-unread-notifs" class="text-2xl font-extrabold text-white"><?= $unreadNotifs ?></span>
                         <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
                             <i data-lucide="bell-ring" class="w-4 h-4 text-white"></i>
                         </div>
@@ -1161,7 +1161,7 @@ include 'include/sidebar.php';
             </div>
             <div class="px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
                 <span class="text-xs text-red-500 font-bold uppercase tracking-wider">Classification Level: Classified and Audited Access Only</span>
-                <a href="#" id="viewerDownloadBtn" onclick="logDownload()" class="px-4 py-2 bg-govgreen-500 hover:bg-govgreen-600 text-white rounded-lg text-sm font-bold shadow transition-colors">Download Document</a>
+                <a href="#" id="viewerDownloadBtn" onclick="logDownload()" target="_blank" download class="px-4 py-2 bg-govgreen-500 hover:bg-govgreen-600 text-white rounded-lg text-sm font-bold shadow transition-colors">Download Document</a>
             </div>
         </div>
     </div>
@@ -1543,7 +1543,7 @@ include 'include/sidebar.php';
         // Tab Switching
         function switchTab(tabId) {
             document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('border-navy-500', 'text-navy-800', 'font-semibold', 'dark:border-blue-400', 'dark:text-blue-300', 'bg-navy-100/80', 'dark:bg-navy-900/50');
+                btn.classList.remove('border-navy-500', 'text-navy-800', 'text-navy-600', 'font-semibold', 'dark:border-blue-400', 'dark:text-blue-300', 'dark:text-blue-400', 'bg-navy-100/80', 'dark:bg-navy-900/50');
                 btn.classList.add('border-transparent', 'text-slate-500', 'hover:text-slate-700', 'dark:text-slate-400', 'hover:bg-slate-100/50', 'dark:hover:bg-slate-800/40');
             });
             document.querySelectorAll('.tab-pane').forEach(pane => {
@@ -2304,12 +2304,19 @@ include 'include/sidebar.php';
                                                 </video>
                                             </div>
                                         `;
+                                    } else if (ext === 'pdf') {
+                                        frame.innerHTML = `
+                                            <div class="w-full flex flex-col items-center">
+                                                <iframe src="${verifyRes.file_path}#toolbar=0" class="w-[75vw] max-w-[800px] h-[55vh] border border-slate-700 rounded shadow-lg bg-white"></iframe>
+                                                <p class="text-[10px] text-slate-500 mt-2">Classified Document Sandbox - Session Monitored & Audited</p>
+                                            </div>
+                                        `;
                                     } else {
                                         frame.innerHTML = `
-                                            <div class="p-6 text-center text-slate-300">
+                                            <div class="p-6 text-center text-slate-350">
                                                 <i data-lucide="file-text" class="w-16 h-16 text-navy-500 mx-auto mb-3"></i>
                                                 <h4 class="font-bold text-base mb-2">${verifyRes.file_path.split('/').pop()}</h4>
-                                                <p class="text-xs text-slate-400">Secure sandboxed PDF viewer loaded inside the encrypted partition.</p>
+                                                <p class="text-xs text-slate-400">Secure sandboxed viewer loaded inside the encrypted partition.</p>
                                             </div>
                                         `;
                                     }

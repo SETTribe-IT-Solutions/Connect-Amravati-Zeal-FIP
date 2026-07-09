@@ -31,7 +31,7 @@ try {
                            n.created_at as notif_created_at, n.task_id, ndl.delivery_time, 
                            t.task_title, t.task_description, t.priority AS task_priority, 
                            t.due_date AS task_due_date, t.status AS task_status, 
-                           t.assigned_user_id, u.full_name AS sender_name, n.attachment_path
+                           t.assigned_user_id, u.full_name AS sender_name, n.attachment_path, n.redirect_url
                     FROM notifications n
                     LEFT JOIN notification_delivery_logs ndl ON n.notification_id = ndl.notification_id
                     LEFT JOIN tasks t ON n.task_id = t.task_id
@@ -97,6 +97,7 @@ try {
             'task_status' => $tStatus,
             'task_description' => $row['task_description'],
             'attachment_path' => $row['attachment_path'],
+            'redirect_url' => $row['redirect_url'],
             'actions' => $actions
         ];
     }
