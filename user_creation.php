@@ -61,6 +61,21 @@ $translations = [
         'role_talathi' => 'Talathi',
         'role_gramsevak' => 'Gramsevak',
         'badge_level' => 'Level',
+        'tab_manage_users' => 'Manage Users',
+        'tab_new_requests' => 'New User Requests',
+        'req_title' => 'Pending Registration Requests',
+        'stat_pending' => 'Pending Requests',
+        'stat_approved_today' => 'Approved Today',
+        'stat_rejected_today' => 'Rejected Today',
+        'col_req_id' => 'Request ID',
+        'col_req_role' => 'Requested Role',
+        'col_req_date' => 'Applied Date',
+        'col_req_status' => 'Status',
+        'btn_view_details' => 'View Details',
+        'btn_approve' => 'Approve',
+        'btn_reject' => 'Reject',
+        'confirm_approve' => 'Are you sure you want to approve this registration request?',
+        'confirm_reject' => 'Please enter the reason for rejecting this request:'
     ],
     'mr' => [
         'title' => 'वापरकर्ता व्यवस्थापन - अमरावती कनेक्ट',
@@ -116,6 +131,21 @@ $translations = [
         'role_talathi' => 'तलाठी',
         'role_gramsevak' => 'ग्रामसेवक',
         'badge_level' => 'स्तर',
+        'tab_manage_users' => 'वापरकर्ते व्यवस्थापित करा',
+        'tab_new_requests' => 'नवीन वापरकर्ता विनंत्या',
+        'req_title' => 'प्रलंबित नोंदणी विनंत्या',
+        'stat_pending' => 'प्रलंबित विनंत्या',
+        'stat_approved_today' => 'आज मंजूर',
+        'stat_rejected_today' => 'आज नाकारलेले',
+        'col_req_id' => 'विनंती आयडी',
+        'col_req_role' => 'अर्ज केलेली भूमिका',
+        'col_req_date' => 'अर्ज तारीख',
+        'col_req_status' => 'स्थिती',
+        'btn_view_details' => 'तपशील पहा',
+        'btn_approve' => 'मंजूर करा',
+        'btn_reject' => 'नाकारा',
+        'confirm_approve' => 'तुम्ही या नोंदणी विनंतीला मंजूर करू इच्छिता का?',
+        'confirm_reject' => 'कृपया ही विनंती नाकारण्याचे कारण प्रविष्ट करा:'
     ]
 ];
 $t = $translations[$lang];
@@ -375,6 +405,22 @@ if ($villages) {
     }
 }
 
+// Fetch registration requests and status stats
+$requestsQuery = "SELECT r.*, d.department_name, ro.role_name, t.taluka_name, v.village_name 
+                  FROM user_registration_requests r 
+                  LEFT JOIN departments d ON r.department_id = d.department_id 
+                  LEFT JOIN roles ro ON r.role_id = ro.role_id 
+                  LEFT JOIN talukas t ON r.taluka_id = t.taluka_id 
+                  LEFT JOIN villages v ON r.village_id = v.village_id 
+                  WHERE r.request_status = 'Pending' 
+                  ORDER BY r.id DESC";
+$requestsResult = $conn->query($requestsQuery);
+
+// Fetch stats for cards
+$pendingStats = $conn->query("SELECT COUNT(*) as cnt FROM user_registration_requests WHERE request_status = 'Pending'")->fetch_assoc()['cnt'];
+$approvedTodayStats = $conn->query("SELECT COUNT(*) as cnt FROM user_registration_requests WHERE request_status = 'Approved' AND DATE(approved_at) = CURDATE()")->fetch_assoc()['cnt'];
+$rejectedTodayStats = $conn->query("SELECT COUNT(*) as cnt FROM user_registration_requests WHERE request_status = 'Rejected' AND DATE(rejected_at) = CURDATE()")->fetch_assoc()['cnt'];
+
 // Fetch single user for edit
 $editData = null;
 if ($action === 'edit' && $edit_id > 0) {
@@ -502,10 +548,20 @@ include 'include/sidebar.php';
         </header>
 
         <!-- MAIN CONTENT SCROLL AREA -->
+        <?php
+        $requestsList = [];
+        if ($requestsResult && $requestsResult->num_rows > 0) {
+            mysqli_data_seek($requestsResult, 0);
+            while ($req = $requestsResult->fetch_assoc()) {
+                $requestsList[] = $req;
+            }
+            mysqli_data_seek($requestsResult, 0);
+        }
+        ?>
         <main class="flex-1 overflow-y-auto bg-navy-50 dark:bg-slate-900 p-6 sm:p-8">
             
             <!-- Page Header -->
-            <div class="flex flex-col md:flex-row md:items-center justify-between mb-8">
+            <div class="flex flex-col md:flex-row md:items-center justify-between mb-6">
                 <div>
                     <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight"><?= htmlspecialchars($t['page_title']) ?></h1>
                     <p class="text-sm text-slate-500 dark:text-slate-400 mt-1"><?= htmlspecialchars($t['page_subtitle']) ?></p>
@@ -519,6 +575,19 @@ include 'include/sidebar.php';
                     </span>
                 </div>
             </div>
+
+            <!-- Tab Navigation (Manage Users vs New User Requests) -->
+            <div class="flex border-b border-slate-200 dark:border-slate-700 mb-6 bg-white dark:bg-slate-800 p-1.5 rounded-xl shadow-sm max-w-md shrink-0">
+                <button onclick="switchTab('manage')" id="tab-btn-manage" class="flex-1 text-center py-2 text-xs font-bold rounded-lg transition-all border border-transparent bg-navy-600 text-white shadow-sm">
+                    <i data-lucide="users" class="w-4 h-4 inline-block mr-1.5 align-text-bottom"></i><?= htmlspecialchars($t['tab_manage_users']) ?>
+                </button>
+                <button onclick="switchTab('requests')" id="tab-btn-requests" class="flex-1 text-center py-2 text-xs font-bold rounded-lg transition-all border border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+                    <i data-lucide="user-plus" class="w-4 h-4 inline-block mr-1.5 align-text-bottom text-slate-400"></i><?= htmlspecialchars($t['tab_new_requests']) ?>
+                    <span id="requests-badge" class="ml-1 px-1.5 py-0.5 text-[10px] font-black rounded-full bg-orange-500 text-white <?= $pendingStats > 0 ? '' : 'hidden' ?>"><?= $pendingStats ?></span>
+                </button>
+            </div>
+
+            <div id="manage-users-section">
 
             <!-- Alerts (Trigger SweetAlert2 instead of inline alert box) -->
             <?php if ($msg): ?>
@@ -762,9 +831,203 @@ include 'include/sidebar.php';
                             <?php endif; ?>
                         </tbody>
                     </table>
+            </div><!-- Closing overflow-x-auto -->
+        </div><!-- Closing Registered Users Table glass-panel -->
+    </div><!-- Closing manage-users-section -->
+
+            <!-- New User Requests Section -->
+            <div id="new-user-requests-section" class="hidden">
+                <!-- Dashboard Counts Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
+                    <!-- Pending card -->
+                    <div class="bg-white dark:bg-slate-800 rounded-xl p-5 border border-slate-200 dark:border-slate-700/50 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['stat_pending']) ?></p>
+                            <h3 class="text-2xl font-black text-slate-850 dark:text-white mt-1"><?= $pendingStats ?></h3>
+                        </div>
+                        <div class="p-3 bg-amber-50 dark:bg-amber-950/20 text-amber-500 rounded-xl">
+                            <i data-lucide="clock" class="w-6 h-6"></i>
+                        </div>
+                    </div>
+                    <!-- Approved card -->
+                    <div class="bg-white dark:bg-slate-800 rounded-xl p-5 border border-slate-200 dark:border-slate-700/50 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['stat_approved_today']) ?></p>
+                            <h3 class="text-2xl font-black text-govgreen-600 dark:text-govgreen-500 mt-1"><?= $approvedTodayStats ?></h3>
+                        </div>
+                        <div class="p-3 bg-green-50 dark:bg-green-950/20 text-govgreen-500 rounded-xl">
+                            <i data-lucide="check-circle" class="w-6 h-6"></i>
+                        </div>
+                    </div>
+                    <!-- Rejected card -->
+                    <div class="bg-white dark:bg-slate-800 rounded-xl p-5 border border-slate-200 dark:border-slate-700/50 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider"><?= htmlspecialchars($t['stat_rejected_today']) ?></p>
+                            <h3 class="text-2xl font-black text-red-650 dark:text-red-400 mt-1"><?= $rejectedTodayStats ?></h3>
+                        </div>
+                        <div class="p-3 bg-red-50 dark:bg-red-950/20 text-red-500 rounded-xl">
+                            <i data-lucide="x-circle" class="w-6 h-6"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Registration Requests Grid/Table -->
+                <div class="glass-panel rounded-xl shadow-official border border-slate-200/50 dark:border-slate-700/50 overflow-hidden mb-12">
+                    <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                        <h2 class="text-lg font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($t['req_title']) ?></h2>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                            <thead class="bg-navy-50 dark:bg-slate-900/50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_req_id']) ?></th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_user_details']) ?></th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_contact']) ?></th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_req_role']) ?></th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_req_date']) ?></th>
+                                    <th scope="col" class="px-6 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider"><?= htmlspecialchars($t['col_actions']) ?></th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700" id="requests-table-body">
+                                <?php if ($requestsResult && $requestsResult->num_rows > 0): ?>
+                                    <?php mysqli_data_seek($requestsResult, 0); while ($req = $requestsResult->fetch_assoc()): ?>
+                                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors" id="req-row-<?= $req['id'] ?>">
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-navy-800 dark:text-blue-400">
+                                                REQ<?= str_pad($req['id'], 5, '0', STR_PAD_LEFT) ?>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="flex items-center">
+                                                    <div class="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-white mr-3 overflow-hidden">
+                                                        <?php if ($req['profile_photo']): ?>
+                                                            <img src="<?= htmlspecialchars($req['profile_photo']) ?>" alt="Avatar" class="h-full w-full object-cover">
+                                                        <?php else: ?>
+                                                            <?= strtoupper(substr($req['applicant_name'], 0, 2)) ?>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    <div>
+                                                        <div class="text-sm font-semibold text-slate-900 dark:text-white"><?= htmlspecialchars($req['applicant_name']) ?></div>
+                                                        <div class="text-xs text-slate-500 dark:text-slate-400">Code: <?= htmlspecialchars($req['employee_code']) ?></div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="text-sm text-slate-900 dark:text-white"><?= htmlspecialchars($req['email']) ?></div>
+                                                <div class="text-xs text-slate-500 dark:text-slate-400"><?= htmlspecialchars($req['mobile']) ?></div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="text-sm font-medium text-slate-900 dark:text-white"><?= htmlspecialchars($req['department_name'] ?: 'N/A') ?></div>
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-900/30 mt-1">
+                                                    <?= htmlspecialchars($req['role_name'] ?: 'No Role') ?>
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-xs text-slate-500 dark:text-slate-400">
+                                                <?= date('d M Y, h:i A', strtotime($req['submitted_at'])) ?>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                                <button onclick="viewRequestDetails(<?= htmlspecialchars(json_encode($req)) ?>)" class="px-3 py-1.5 bg-navy-100 hover:bg-navy-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-navy-850 dark:text-white text-xs font-bold rounded-lg transition-colors inline-flex items-center gap-1">
+                                                    <i data-lucide="eye" class="w-3.5 h-3.5"></i> <?= htmlspecialchars($t['btn_view_details']) ?>
+                                                </button>
+                                                <button onclick="actionApprove(<?= $req['id'] ?>)" class="px-3 py-1.5 bg-govgreen-500 hover:bg-govgreen-600 text-white text-xs font-bold rounded-lg transition-colors inline-flex items-center gap-1">
+                                                    <i data-lucide="check" class="w-3.5 h-3.5"></i> <?= htmlspecialchars($t['btn_approve']) ?>
+                                                </button>
+                                                <button onclick="actionReject(<?= $req['id'] ?>)" class="px-3 py-1.5 bg-red-500 hover:bg-red-650 text-white text-xs font-bold rounded-lg transition-colors inline-flex items-center gap-1">
+                                                    <i data-lucide="x" class="w-3.5 h-3.5"></i> <?= htmlspecialchars($t['btn_reject']) ?>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    <?php endwhile; ?>
+                                <?php else: ?>
+                                    <tr>
+                                        <td colspan="6" class="px-6 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+                                            <?= $lang === 'en' ? 'No pending registration requests found.' : 'कोणत्याही प्रलंबित नोंदणी विनंत्या आढळल्या नाहीत.' ?>
+                                        </td>
+                                    </tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-            
+
+            <!-- Request Detail Modal -->
+            <div id="requestModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-3xl w-full overflow-hidden border border-slate-200 dark:border-slate-700 max-h-[90vh] flex flex-col scale-95 transition-all duration-150" id="requestModalContent">
+                    <!-- Modal Header -->
+                    <div class="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between shrink-0">
+                        <h3 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <i data-lucide="user-check" class="text-navy-600 dark:text-blue-400"></i>
+                            <span><?= $lang === 'en' ? 'Applicant Detailed Information' : 'अर्जदाराची सविस्तर माहिती' ?></span>
+                            <span id="modalRequestNo" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-navy-100 text-navy-800 dark:bg-slate-800 dark:text-blue-400 font-mono"></span>
+                        </h3>
+                        <button onclick="closeRequestModal()" class="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    <!-- Modal Body (Scrollable) -->
+                    <div class="p-6 overflow-y-auto space-y-6 flex-1 text-slate-850 dark:text-slate-200">
+                        <div class="flex flex-col sm:flex-row items-center gap-5 pb-6 border-b border-slate-100 dark:border-slate-700">
+                            <div id="modalAvatar" class="h-20 w-20 rounded-2xl bg-slate-150 dark:bg-slate-700 flex items-center justify-center text-2xl font-black text-slate-600 dark:text-white border border-slate-200 dark:border-slate-600 shadow-sm overflow-hidden"></div>
+                            <div class="text-center sm:text-left flex-1">
+                                <h4 id="modalName" class="text-xl font-bold text-slate-900 dark:text-white"></h4>
+                                <p id="modalEmpCode" class="text-sm font-semibold text-navy-600 dark:text-blue-400 mt-0.5"></p>
+                                <p id="modalSource" class="text-xs text-slate-400 mt-1"></p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5 text-sm">
+                            <!-- Column 1: Personal -->
+                            <div class="space-y-3">
+                                <h5 class="font-bold text-xs text-orange-500 uppercase tracking-widest border-b pb-1"><?= $lang === 'en' ? 'Personal & Contact Details' : 'वैयक्तिक आणि संपर्क तपशील' ?></h5>
+                                <p><strong><?= $lang === 'en' ? 'Gender:' : 'लिंग:' ?></strong> <span id="modalGender" class="font-medium"></span></p>
+                                <p><strong><?= $lang === 'en' ? 'Date of Birth:' : 'जन्मतारीख:' ?></strong> <span id="modalDOB" class="font-medium"></span></p>
+                                <p><strong><?= $lang === 'en' ? 'Email ID:' : 'ईमेल आयडी:' ?></strong> <span id="modalEmail" class="font-medium"></span></p>
+                                <p><strong><?= $lang === 'en' ? 'Mobile Number:' : 'मोबाईल नंबर:' ?></strong> <span id="modalMobile" class="font-medium"></span></p>
+                                <p><strong><?= $lang === 'en' ? 'Alt Mobile:' : 'पर्यायी मोबाईल:' ?></strong> <span id="modalAltMobile" class="font-medium"></span></p>
+                                <p><strong><?= $lang === 'en' ? 'Aadhaar Card No:' : 'आधार कार्ड क्रमांक:' ?></strong> <span id="modalAadhaar" class="font-medium font-mono"></span></p>
+                            </div>
+
+                            <!-- Column 2: Official -->
+                            <div class="space-y-3">
+                                <h5 class="font-bold text-xs text-orange-500 uppercase tracking-widest border-b pb-1"><?= $lang === 'en' ? 'Official & Office Details' : 'अधिकृत आणि कार्यालय तपशील' ?></h5>
+                                <p><strong><?= $lang === 'en' ? 'Department:' : 'विभाग:' ?></strong> <span id="modalDept" class="font-medium"></span></p>
+                                <p><strong><?= $lang === 'en' ? 'Requested Role:' : 'भूमिका:' ?></strong> <span id="modalRole" class="font-medium"></span></p>
+                                <p><strong><?= $lang === 'en' ? 'Taluka Office:' : 'तालुका:' ?></strong> <span id="modalTaluka" class="font-medium"></span></p>
+                                <p><strong><?= $lang === 'en' ? 'Village Office:' : 'गाव:' ?></strong> <span id="modalVillage" class="font-medium"></span></p>
+                                <p><strong><?= $lang === 'en' ? 'Joining Date:' : 'रुजू तारीख:' ?></strong> <span id="modalJoining" class="font-medium"></span></p>
+                                <p><strong><?= $lang === 'en' ? 'Reporting Office:' : 'रिपोर्टिंग कार्यालय:' ?></strong> <span id="modalReporting" class="font-medium"></span></p>
+                            </div>
+
+                            <!-- Address Section (Full Width) -->
+                            <div class="md:col-span-2 space-y-3 pt-2">
+                                <h5 class="font-bold text-xs text-orange-500 uppercase tracking-widest border-b pb-1"><?= $lang === 'en' ? 'Address Details' : 'पत्ता तपशील' ?></h5>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <p><strong><?= $lang === 'en' ? 'Current Address:' : 'सध्याचा पत्ता:' ?></strong><br><span id="modalCurrAddr" class="text-xs text-slate-500 dark:text-slate-400 mt-1 block leading-relaxed"></span></p>
+                                    <p><strong><?= $lang === 'en' ? 'Permanent Address:' : 'कायमचा पत्ता:' ?></strong><br><span id="modalPermAddr" class="text-xs text-slate-500 dark:text-slate-400 mt-1 block leading-relaxed"></span></p>
+                                </div>
+                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2 border-t border-slate-100 dark:border-slate-700/50">
+                                    <p><strong><?= $lang === 'en' ? 'Taluka / City:' : 'तालुका / शहर:' ?></strong><br><span id="modalAddrTaluka" class="font-semibold text-xs text-slate-500"></span></p>
+                                    <p><strong><?= $lang === 'en' ? 'Village / City:' : 'गाव / शहर:' ?></strong><br><span id="modalAddrVillage" class="font-semibold text-xs text-slate-500"></span></p>
+                                    <p><strong><?= $lang === 'en' ? 'Pincode:' : 'पिनकोड:' ?></strong><br><span id="modalAddrPincode" class="font-semibold text-xs text-slate-500"></span></p>
+                                    <p><strong><?= $lang === 'en' ? 'State / District:' : 'राज्य / जिल्हा:' ?></strong><br><span id="modalAddrStateDist" class="font-semibold text-xs text-slate-500"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Modal Footer -->
+                    <div class="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-end items-center gap-3 shrink-0">
+                        <button onclick="closeRequestModal()" class="w-full sm:w-auto px-5 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-200 font-semibold text-center hover:bg-slate-100 transition-colors">
+                            <?= $lang === 'en' ? 'Close' : 'बंद करा' ?>
+                        </button>
+                        <button id="modalBtnReject" class="w-full sm:w-auto px-5 py-2.5 bg-red-500 hover:bg-red-650 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-1 shadow-sm">
+                            <i data-lucide="x" class="w-4 h-4"></i> <?= htmlspecialchars($t['btn_reject']) ?>
+                        </button>
+                        <button id="modalBtnApprove" class="w-full sm:w-auto px-5 py-2.5 bg-govgreen-600 hover:bg-govgreen-500 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-1 shadow-md">
+                            <i data-lucide="check" class="w-4 h-4"></i> <?= htmlspecialchars($t['btn_approve']) ?>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
         </main>
     </div>
 
@@ -837,6 +1100,224 @@ include 'include/sidebar.php';
         if (talukaSelect.value) {
             populateVillages();
         }
+
+        // Requests Section Tab & Actions Script Logic
+        const manageSection = document.getElementById('manage-users-section');
+        const requestsSection = document.getElementById('new-user-requests-section');
+        const tabBtnManage = document.getElementById('tab-btn-manage');
+        const tabBtnRequests = document.getElementById('tab-btn-requests');
+
+        function switchTab(tab) {
+            if (tab === 'manage') {
+                manageSection.classList.remove('hidden');
+                requestsSection.classList.add('hidden');
+                tabBtnManage.className = "flex-1 text-center py-2 text-xs font-bold rounded-lg transition-all border border-transparent bg-navy-600 text-white shadow-sm";
+                tabBtnRequests.className = "flex-1 text-center py-2 text-xs font-bold rounded-lg transition-all border border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200";
+            } else {
+                manageSection.classList.add('hidden');
+                requestsSection.classList.remove('hidden');
+                tabBtnManage.className = "flex-1 text-center py-2 text-xs font-bold rounded-lg transition-all border border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200";
+                tabBtnRequests.className = "flex-1 text-center py-2 text-xs font-bold rounded-lg transition-all border border-transparent bg-navy-600 text-white shadow-sm";
+            }
+        }
+
+        // Parse requests array from PHP
+        const requestsData = <?= json_encode($requestsList) ?>;
+
+        function viewRequestDetails(req) {
+            document.getElementById('modalRequestNo').innerText = 'REQ' + String(req.id).padStart(5, '0');
+            document.getElementById('modalName').innerText = req.applicant_name;
+            document.getElementById('modalEmpCode').innerText = 'Employee Code: ' + req.employee_code;
+            document.getElementById('modalSource').innerText = 'Source: ' + req.registration_source + ' | Applied: ' + req.submitted_at;
+            
+            const avatar = document.getElementById('modalAvatar');
+            if (req.profile_photo) {
+                avatar.innerHTML = `<img src="${req.profile_photo}" class="h-full w-full object-cover" />`;
+            } else {
+                avatar.innerHTML = `<span class="font-black">${req.applicant_name.substring(0, 2).toUpperCase()}</span>`;
+            }
+
+            document.getElementById('modalGender').innerText = req.gender;
+            document.getElementById('modalDOB').innerText = req.dob;
+            document.getElementById('modalEmail').innerText = req.email;
+            document.getElementById('modalMobile').innerText = req.mobile;
+            document.getElementById('modalAltMobile').innerText = req.alternate_mobile || 'N/A';
+            document.getElementById('modalAadhaar').innerText = req.aadhaar;
+
+            document.getElementById('modalDept').innerText = req.department_name || 'N/A';
+            document.getElementById('modalRole').innerText = req.role_name || 'N/A';
+            document.getElementById('modalTaluka').innerText = req.taluka_name || 'N/A';
+            document.getElementById('modalVillage').innerText = req.village_name || 'N/A';
+            document.getElementById('modalJoining').innerText = req.joining_date || 'N/A';
+            document.getElementById('modalReporting').innerText = req.reporting_office || 'N/A';
+
+            document.getElementById('modalCurrAddr').innerText = req.current_address;
+            document.getElementById('modalPermAddr').innerText = req.permanent_address;
+            document.getElementById('modalAddrTaluka').innerText = req.taluka_name || 'N/A';
+            document.getElementById('modalAddrVillage').innerText = req.village_name || 'N/A';
+            document.getElementById('modalAddrPincode').innerText = req.pincode;
+            document.getElementById('modalAddrStateDist').innerText = req.state + ' / ' + req.district;
+
+            // Setup buttons
+            document.getElementById('modalBtnApprove').onclick = () => { closeRequestModal(); actionApprove(req.id); };
+            document.getElementById('modalBtnReject').onclick = () => { closeRequestModal(); actionReject(req.id); };
+
+            // Show Modal
+            const modal = document.getElementById('requestModal');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('requestModalContent').classList.remove('scale-95');
+            }, 10);
+            lucide.createIcons();
+        }
+
+        function closeRequestModal() {
+            const modal = document.getElementById('requestModal');
+            document.getElementById('requestModalContent').classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 150);
+        }
+
+        // Action Approve
+        function actionApprove(id) {
+            Swal.fire({
+                title: '<?= $lang === 'en' ? 'Approve User?' : 'वापरकर्त्याला मंजूर करायचे?' ?>',
+                text: "<?= htmlspecialchars($t['confirm_approve']) ?>",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#1b5e20',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<?= $lang === 'en' ? 'Yes, Approve' : 'होय, मंजूर करा' ?>',
+                cancelButtonText: '<?= $lang === 'en' ? 'Cancel' : 'रद्द करा' ?>'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Processing...',
+                        allowOutsideClick: false,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
+                    
+                    fetch('api/registration_actions.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'approve', request_id: id })
+                    })
+                    .then(res => res.json())
+                    .then(res => {
+                        Swal.close();
+                        if (res.status === 'success') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Approved',
+                                text: res.message,
+                                confirmButtonColor: '#0054a4'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: res.message,
+                                confirmButtonColor: '#ef4444'
+                            });
+                        }
+                    })
+                    .catch(err => {
+                        Swal.close();
+                        console.error(err);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Network error. Please try again.',
+                            confirmButtonColor: '#ef4444'
+                        });
+                    });
+                }
+            });
+        }
+
+        // Action Reject
+        function actionReject(id) {
+            Swal.fire({
+                title: '<?= $lang === 'en' ? 'Reject Registration?' : 'नोंदणी नाकारायची?' ?>',
+                text: "<?= htmlspecialchars($t['confirm_reject']) ?>",
+                icon: 'warning',
+                input: 'text',
+                inputPlaceholder: 'Enter rejection reason here...',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<?= $lang === 'en' ? 'Reject' : 'नाकारा' ?>',
+                cancelButtonText: '<?= $lang === 'en' ? 'Cancel' : 'रद्द करा' ?>',
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'Rejection reason is required!';
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Processing...',
+                        allowOutsideClick: false,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
+                    
+                    fetch('api/registration_actions.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'reject', request_id: id, remarks: result.value })
+                    })
+                    .then(res => res.json())
+                    .then(res => {
+                        Swal.close();
+                        if (res.status === 'success') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Rejected',
+                                text: res.message,
+                                confirmButtonColor: '#0054a4'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: res.message,
+                                confirmButtonColor: '#ef4444'
+                            });
+                        }
+                    })
+                    .catch(err => {
+                        Swal.close();
+                        console.error(err);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Network error. Please try again.',
+                            confirmButtonColor: '#ef4444'
+                        });
+                    });
+                }
+            });
+        }
+
+        // Dynamic routing on redirect from notifications
+        window.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('tab') === 'requests') {
+                switchTab('requests');
+                const reqId = params.get('req_id');
+                if (reqId) {
+                    const match = requestsData.find(r => r.id == reqId);
+                    if (match) {
+                        viewRequestDetails(match);
+                    }
+                }
+            }
+        });
 
         // Notification bell and dropdown logic is handled by include/notification_widget.php and include/footer.php globally
     </script>

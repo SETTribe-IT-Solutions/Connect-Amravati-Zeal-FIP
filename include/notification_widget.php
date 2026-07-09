@@ -145,12 +145,21 @@ if (!isset($lang)) {
                             
                             let attachmentHtml = '';
                             if (n.attachment_path) {
-                                attachmentHtml = `
-                                    <div class="mt-1.5 flex items-center gap-1 text-[11px] text-navy-600 dark:text-blue-400 hover:underline" onclick="event.stopPropagation();">
-                                        <i data-lucide="paperclip" class="w-3.5 h-3.5 text-slate-400"></i>
-                                        <a href="${n.attachment_path}" target="_blank">View Attachment</a>
-                                    </div>
-                                `;
+                                if (n.attachment_path.includes('appreciations.php')) {
+                                    attachmentHtml = `
+                                        <div class="mt-1.5 flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 hover:underline" onclick="event.stopPropagation();">
+                                            <i data-lucide="award" class="w-3.5 h-3.5 text-amber-500"></i>
+                                            <a href="${n.attachment_path}">View Certificate</a>
+                                        </div>
+                                    `;
+                                } else {
+                                    attachmentHtml = `
+                                        <div class="mt-1.5 flex items-center gap-1 text-[11px] text-navy-600 dark:text-blue-400 hover:underline" onclick="event.stopPropagation();">
+                                            <i data-lucide="paperclip" class="w-3.5 h-3.5 text-slate-400"></i>
+                                            <a href="${n.attachment_path}" target="_blank">View Attachment</a>
+                                        </div>
+                                    `;
+                                }
                             }
 
                             item.innerHTML = `
@@ -172,7 +181,10 @@ if (!isset($lang)) {
                             `;
                             item.onclick = () => {
                                 const currentLang = new URLSearchParams(window.location.search).get('lang') || 'en';
-                                const targetUrl = 'notifications.php?lang=' + currentLang + '&notif_id=' + n.id;
+                                let targetUrl = 'notifications.php?lang=' + currentLang + '&notif_id=' + n.id;
+                                if (n.redirect_url) {
+                                    targetUrl = n.redirect_url + (n.redirect_url.includes('?') ? '&' : '?') + 'lang=' + currentLang + '&notif_id=' + n.id;
+                                }
                                 if (isUnread) {
                                     fetch('api/mark_notification_read.php', {
                                         method: 'POST',
