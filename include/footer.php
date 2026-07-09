@@ -519,8 +519,12 @@
             if (!isAuthPage && !document.querySelector('footer.custom-page-footer')) {
                 const footer = document.createElement('footer');
 <<<<<<< HEAD
+<<<<<<< HEAD
                 footer.className = 'custom-page-footer border-t border-navy-800 text-slate-400 text-xs select-none relative overflow-hidden';
                 footer.style.cssText = 'padding: 10px 24px; min-height: 0;';
+=======
+                footer.className = 'custom-page-footer py-3.5 border-t border-navy-800 text-slate-400 text-xs flex flex-col lg:flex-row items-center justify-between px-8 gap-4 select-none relative overflow-hidden';
+>>>>>>> b1f55568d96b16976fcff78a4f39436bc283bace
 =======
                 footer.className = 'custom-page-footer py-3.5 border-t border-navy-800 text-slate-400 text-xs flex flex-col lg:flex-row items-center justify-between px-8 gap-4 select-none relative overflow-hidden';
 >>>>>>> b1f55568d96b16976fcff78a4f39436bc283bace
@@ -555,6 +559,9 @@
                         <div class="flex flex-col text-left">
                             <span class="font-semibold text-xs text-white leading-tight">${officeLabel}</span>
                             <span class="text-[9px] text-slate-450 font-medium">${adminLabel}</span>
+<<<<<<< HEAD
+>>>>>>> b1f55568d96b16976fcff78a4f39436bc283bace
+=======
 >>>>>>> b1f55568d96b16976fcff78a4f39436bc283bace
                         </div>
 
