@@ -936,6 +936,15 @@ include 'include/sidebar.php';
                                 <video controls class="w-full rounded-lg bg-black mt-1"><source src="${n.attachment_path}" type="video/${ext === 'mov' ? 'quicktime' : (ext === 'mkv' ? 'x-matroska' : ext)}"></video>
                             </div>`;
                     }
+                } else if (n.attachment_path.includes('appreciations.php')) {
+                    attachmentHtml = `
+                        <div class="mt-4 flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-905 border border-slate-200 dark:border-slate-700 rounded-lg">
+                            <div class="flex items-center text-slate-700 dark:text-slate-350">
+                                <i data-lucide="award" class="w-4 h-4 mr-2 text-amber-500"></i>
+                                <span class="text-xs font-semibold truncate max-w-xs">Appreciation Certificate</span>
+                            </div>
+                            <a href="${n.attachment_path}" class="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded text-xs font-bold transition-colors" style="text-decoration: none;">View Certificate</a>
+                        </div>`;
                 } else {
                     attachmentHtml = `
                         <div class="mt-4 flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-905 border border-slate-200 dark:border-slate-700 rounded-lg">
