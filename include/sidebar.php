@@ -146,11 +146,13 @@ if (!empty($sRole)) {
             </a>
 
             <!-- Previously Hidden / Missing Links -->
+            <?php if (in_array($sRole, ['Administrator', 'System Administrator', 'Collector'])): ?>
             <a href="appreciations.php?lang=<?= $lang ?>" 
                class="nav-item <?= $activePage === 'appreciations' ? 'nav-active' : '' ?>">
                 <i data-lucide="award" class="w-5 h-5 mr-3 <?= $activePage === 'appreciations' ? '' : 'text-slate-400 dark:text-slate-500' ?>"></i>
                 <?= htmlspecialchars($t['menu_appreciation'] ?? 'Appreciation') ?>
             </a>
+            <?php endif; ?>
             <a href="graph.php?lang=<?= $lang ?>"
                class="nav-item <?= $activePage === 'graph' ? 'nav-active' : '' ?>">
                 <i data-lucide="bar-chart-2" class="w-5 h-5 mr-3 <?= $activePage === 'graph' ? '' : 'text-slate-400 dark:text-slate-500' ?>"></i>

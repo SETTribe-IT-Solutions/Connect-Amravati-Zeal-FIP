@@ -13,6 +13,12 @@ $userId = (int)$_SESSION['user_id'];
 $sRole  = $_SESSION['user_role'] ?? 'L3';
 $sName  = $_SESSION['user_name'] ?? 'User';
 
+// Restrict to Admin & Collector
+if (!in_array($sRole, ['Administrator', 'System Administrator', 'Collector'])) {
+    header("Location: " . app_url("dashboard.php"));
+    exit;
+}
+
 // Determine Level
 $level = match($sRole) {
     'Administrator', 'System Administrator', 'Collector', 'Additional Collector', 'Deputy Collector' => 1,
